@@ -2147,7 +2147,11 @@ function curColW(mx){
 }
 
 /* ================= data ================= */
-let state = {
+/* ================= サンプルデータ =================
+   「サンプルを出す」ボタンで読み込むための一式。起動時の初期値ではない
+   (白紙で始めたいので、state の初期値とは切り離してある) */
+const SAMPLE_DATA = (function buildSampleData(){
+  const state = {
   project:"旅客飛行船(仮)",
   script:"● 優雅な飛行船客室 [1分程度 / 00:00~1:00]\n暗転を抜けると旅客飛行船の客室\n窓は閉まっているが優雅なBGMが聞こえる\nすでに空の上を航行中のようだ\n時折、天井や壁の向こう側からゴトゴト何かが聴こえる\n<aside>\n[プレイヤーの体験] 自由散策\n客室内を自由散策し、プロップを観察可能\n</aside>\n\n* [脚注メモ]\n   * バグで始まっていないのでは、と思わせないように(ゴトゴト音でカバー)\n   * 窓を開くインパクトを後に取っておきたい。現状は閉めている理由を考えたい\n\n● 船内アナウンス、そして、違和感 [30秒程度 / 1:00~1:30]\n船長のバッドばつ丸から船内アナウンスが入る\n船長ばつ丸「…こほん!乗客のみんな、\"◯◯◯(飛行船名)\"に乗ってくれてありがとう!オレ様はこの飛行船の船長のバッドばつ丸だ!よろしくな!」\n船員ペックル「(遠くから)ばつ丸〜、やっぱりどこにもいないよ〜!」\n船長ばつ丸「(小声で)しっ!ペックル、今話しかけないでくれよ!…さっき無事離陸して、順調に航行しているぞ!ゆっくり過ごしてくれよな!ブツッ」\n不穏な空気のまま物語は幕を開ける。\n<aside>\n[プレイヤーの体験] 物語に巻き込まれている\n既に物語は始まっていて、何かに巻き込まれていることを察知する\n⚠️ただし、初心者を考慮してどこにいてもすべての展開を楽しめるようにしておく\n</aside>\n\n* [脚注メモ]\n   * 窓を開けていない理由とかをここで言ってもいいかも\n   * (出発したばかりなのに窓外の天候が悪いのは微妙か?)\n\n● ゴトゴトの正体 [1分程度 / 1:30~2:30]\n再び天井や壁の向こう側からゴトゴト音が聴こえてくる\nダクトの蓋が落ちて、中からキキララのキキが顔を出す\nキキ「わあ、落ちちゃった、ごめんなさい!入ってくるつもりはなかったんだ。お客さんのお部屋だしね」\nキキ、立ち去ろうとするが振り返って\nキキ「あの〜実はとても大切なものを探しているんだ。それはね…」\n<aside>\n[プレイヤーの体験] キャラクターからの問いかけ\nキャラクターに話しかけられることで物語の一部であることを感じる\n</aside>\n客室のドアにノック\nキキは驚いた顔をして、ダクトから降りてくる\n落ちているダクト蓋を引きずって物陰に隠れる\nハンギョドンがドアを開けて入ってくる\n船員ハンギョドン「お客様、失礼します。このあたりで青色の髪の男の子を見かけませんでしたか?」\nキキを見ると首を振っている。プレイヤーも首を振る空気感\n<aside>\n[プレイヤーの体験] 共犯\n首を振って匿うことで、ある程度能動的に楽しむスタイルのコンテンツの示唆\n</aside>\n船員ハンギョドン「えっ?客室から出ていないからわからない?そうですよね。ありがとうございます」\nハンギョドン、ドアを閉めて去っていく。\nキキ「危ない危ない!見つからなくてよかった。ありがとう!急いでアレを見つけないと」\nキキは急いでダクトの中に戻っていく(蓋は直さない)\n\n* [脚注メモ]\n   * 船員一同は\"キキ\"を探している(キキが星のステッキを持っていることを知っているから)\n   * キキは\"何か(星のステッキ)\"を探している\n\n● 通路での会話 [30秒程度 / 2:30~3:00]\nしばらくすると通路で会話が聴こえてくる\n<aside>\n[プレイヤーの体験] 聞き耳を立てる\n遠くからも聴こえるが近づくとはっきり聴こえるし、隙間から見える\n</aside>\n船員ダニエル「ペックル〜!どうだい?」\n船員ペックル「ダニエル、全然見つからないよ。ばつ丸にもさっき伝えてきたよ」\n船員ダニエル「そっか。ララも必死に探しているみたい」\n隙間から覗き込むと、少し離れた場所にばつ丸がコーヒー片手に立っているのが見える\nコップにはステッキのようなものが刺さり、ぼんやり光っている。\n<aside>\n[プレイヤーの体験] 発見\n近づいて覗いた人だけが、光る棒(光のステッキ)の存在に気づける\n</aside>\n船長ばつ丸「(ズズッ)いや〜、まいったなあ。お客さんを不安にさせてしまうから絶対に窓を開けるなよ〜」\nペックル&ダニエル「は〜い!」\n● 窓のオープンと外の天気 [30秒程度 3:00~3:30]\n船内アナウンスがオンになって声が漏れてくる。\n船員ハンギョドン「あれ、このボタンだっけ。違うな。こっちかな」\n客室の窓が開く\n船員ハンギョドン「これで開いたかな。せっかくの空の旅なんだから窓を開けないと!空の旅はロマンス〜」\n窓外は雷が鳴り響く悪天候。\n<aside>\n[プレイヤーの体験] 外が見える\n窓が開いて夜空が見える\nと思いきやロマンスとはかけ離れた悪天候!\n</aside>\n船員ハンギョドン「よし、キキを探しに戻ろう!」\n扉の開閉音が聴こえる。\n● ララの登場の星のステッキ [30秒程度 3:30~4:00]\n悪天候の窓外にララが登場する。\nララ「こんにちは。ごめんね、大事なものを持ってキキがどっかいってしまって。どこかで見ていないかしら?」\nふらふら移動するキキの姿が見える\nララ「あ!」\nララ、キキに駆け寄る\nララ「もう、心配したんだから!ステッキはどうしたの?」\nキキ「そ、それが…探してるところで…」\nララ「ええっ!?あの星のステッキがないと、この天気、良くならないんだよ!?」\n<aside>\n[プレイヤーの体験] 絶望①\nステッキの本当の役割(天候を鎮める力)がここで初めて明かされる\n</aside>\n\n* [脚注メモ]\n   * ここで初めてステッキの存在意義が明かされ、これまでの「大切なもの探し」が重みを持つ\n\n●  雷直撃、停電 [30秒程度 / 4:00~4:30]\n雷鳴が近づいてくる\n一際大きな音とともに、船に雷が直撃\nBGMが途切れ、照明が落ちる\n船が不安定になる\n船員ダニエル「(遠くで)うわあっ!停電したぞ!」\n船員ペックル「(遠くで)みんな、大丈夫か〜!?」\n<aside>\n[プレイヤーの体験] 絶望②\n照明・音の変化を直接体感する。結構インパクトのある表現\n</aside>\n\n* [脚注メモ]\n   * ここまでは\"聞こえてくる\"だけだった異変が、ここで初めて自分ごとになる\n   * 落ちかける演出が怖いならナーフ\n\n●  デッキ解放 [30秒程度 / 4:30~5:00]\n客室の扉が自動で開き、通路・展望デッキへ移動できるようになる\n船員たちも下方のデッキに出てくる\n<aside>\n[プレイヤーの体験] 合流\nここで他の部屋のプレイヤーとも合流ができるようになる\nクライマックスに向けての大集合\nただし、キャラクター達はひとつ下のデッキに集合で我々の存在に気がついていない\n</aside>\n● ばつ丸登場、発覚 [30秒程度 / 5:00~5:30]\nララ「困ったわ」\nキキ「ぼくのせいだ」\n船員みんな「困った!落ちてしまう!」など\nハンギョドン「ぼくはこう見えて泳ぐのが苦手なんだ!」\nみんな絶望。\nばつ丸、コーヒー片手に慌てて駆けつける\n船長ばつ丸「飛行船が動かなくなっちまった!おれ様もお手上げだぞ!」\nララ「ばつ丸、それ…!」\nばつ丸、自分の手元のコップを見る\nマドラー代わりに刺さっていたステッキが、ぼんやりと強く光り始めている\n船長ばつ丸「なんのことだ?」\n<aside>\n[プレイヤーの体験] 伏線回収\n先ほど覗き見た人は「やっぱりあれだったのか!」と気づける\n</aside>\nキキ「それだ!ぼくが探してたのは、それ!」\n船長ばつ丸「これか!落ちてて混ぜるのにぴったしだったんだよ!」\n● ステッキ復活、パレード [2分程度 / 5:30~7:30]\nキキララがステッキを高く掲げると、光が強くなる!\nデッキの外、雲間から小さな光の粒(星々)が集まってくる\n星々が集まり、キキララの周りを取り囲むように舞い始める\nパレード曲候補:未定\n悪天候からどんどん綺麗な空になっていく\n<aside>\n[プレイヤーの体験] クライマックスパレード\n展望デッキから、星々によるパーティクルパレードを鑑賞する\nプレイヤーがピックアップできる花火ギミックで参加を促しても良いかも\n</aside>\n● 天候回復 [30秒程度 / 7:30~8:00]\n雷鳴が止み、雲が晴れていく\n満天の星空が広がる\n照明が正常に戻り、船体の傾きも収まる\nキキララ戻っていく。\nキキ、一瞬戻ってきて\nキキ「さっきはありがとうね!」\n去っていく\n● エンディング [30秒程度 / 8:00~8:30]\n船内アナウンスが入る\n船長ばつ丸「みんな、順調に航行しているぞ〜!ほんとだぞ!……あれ、窓が開いてた?うん、まあいいか。旅はまだまだ長いんだ、ゆっくりしていってくれよな」\nブツッ、とアナウンスが切れる\n優雅なBGMが再開\n<aside>\n[プレイヤーの体験]\n色々な展開が嵐のように過ぎ去っていく。スターツアーズのような感じ\n</aside>\n● エピローグ(チルワ化)\n船内を自由に移動できるように\n各部屋のギミックがオンになる\n\n* ミラー\n* PPSで暗くする機能\n* ビデオプレイヤー?\n* 扉を叩くとキャラクターが喋る\n* 船内アナウンスがたまに流れる\n\nなどホームワールド的な要素",
   members:[
@@ -2306,9 +2310,21 @@ let state = {
   state.eventEndDate = "";
   state.dateMode = "event";
 })();
+  return state;
+})();
 
-/* 起動時にlocalStorageの保存データでstateが上書きされる前のサンプルを保持しておく(「サンプルを出す」ボタン用) */
-const SAMPLE_DATA = JSON.parse(JSON.stringify(state));
+/* ================= 起動時の中身 =================
+   何も入っていない白紙で始める。保存データや共有ボードがあれば、
+   このあとの読み込み処理で置き換わる */
+function emptyBoard(){
+  return {
+    project:"", script:"", headerImg:"",
+    members:[], cats: DEFAULT_CATS.map(c=>({...c})),
+    scenes:[], tasks:[], phases:[], milestones:[],
+    eventDate:"", eventEndDate:"", dateMode:"event", ui:{}
+  };
+}
+let state = emptyBoard();
 
 let editingAsset = null;
 let editingScene = null;
@@ -2496,6 +2512,7 @@ async function syncPull(opts){
       return false;
     }
     adoptState(remote);
+    applyEditModeFromState();   /* 読み込み直後は必ずロック(他の人の内容をいきなり動かさないように) */
     renderAll();
     setSyncStatus(`共有から読込 ${nowHM()}`);
     return true;
@@ -2601,10 +2618,13 @@ try{
 /* ================= edit mode(誤操作防止のロック) =================
    既定はロック(閲覧安全)側。マトリクスのセル操作・ドラッグ系だけを止め、
    タスク名/シーン名クリックでのモーダル編集は常に生かす(意図的な操作だけを許可する考え方) */
-let editMode = true;  /* 既定はロック解除(オフ) */
+let editMode = false;  /* 既定はロック。誤操作を防ぐため、起動時は必ずロックから始める */
 function applyEditMode(){
   document.body.classList.toggle("locked", !editMode);
   $("btnEditMode").classList.toggle("editing", editMode);
+  /* ガントは別スコープ(IIFE)に自前の editMode を持っているので、必ず同じ値へ揃える。
+     揃えないと、ロック中でもバーがドラッグ・矢印キーで動いてしまう(実際にそうなっていた) */
+  if(typeof Gantt !== "undefined" && Gantt && Gantt.setEditMode) Gantt.setEditMode(editMode);
 }
 function toggleEditMode(){
   editMode = !editMode;
@@ -2614,8 +2634,11 @@ function toggleEditMode(){
   renderAll();
 }
 /* 保存されているロック状態を復元する(未保存なら解除状態) */
+/* 起動時・共有ボードの読み込み時は、保存されていた状態に関わらず必ずロックする。
+   開いた直後にドラッグして意図せず日程を動かす事故を防ぐため(解除はいつでも右上のトグルから) */
 function applyEditModeFromState(){
-  editMode = state.ui?.editMode !== false;
+  editMode = false;
+  if(state.ui) state.ui.editMode = false;
   applyEditMode();
 }
 applyEditMode();
@@ -3519,7 +3542,7 @@ function renderKanban(){
       const ms = membersOf(a);
       const stack = avatarStack(ms);
       return `
-      <div class="kb-card st${a.stage}" draggable="true" data-id="${a.id}" data-scenes="${a.scenes.join(",")}" style="border-left-color:${cat(a.cat).color}" onclick="openAssetModal('${a.id}')">
+      <div class="kb-card st${a.stage}" draggable="${editMode}" data-id="${a.id}" data-scenes="${a.scenes.join(",")}" style="border-left-color:${cat(a.cat).color}" onclick="openAssetModal('${a.id}')">
         <div class="kb-name">${prioFlag(a.priority)}<span class="t">${esc(a.name)}</span>${stack}</div>
         <div class="kb-meta"><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span><span class="kb-sub"><span class="size-badge">${a.size}</span> ${a.scenes.length}${unitName()}</span></div>
       </div>`;}).join("");
@@ -3527,7 +3550,7 @@ function renderKanban(){
   }).join("") + `</div>`;
 
   v.querySelectorAll(".kb-card").forEach(card=>{
-    card.addEventListener("dragstart", e=>{ _dndAid = card.dataset.id; e.dataTransfer.setData("text/plain", card.dataset.id); });
+    card.addEventListener("dragstart", e=>{ if(!editMode){ e.preventDefault(); return; } _dndAid = card.dataset.id; e.dataTransfer.setData("text/plain", card.dataset.id); });
     card.addEventListener("dragend", ()=>setDndMark(null));
     /* カード上へのドラッグ=そのカードの前後へ挿入(手動モード時)。工程はそのカードの列に合わせる */
     card.addEventListener("dragover", e=>{
@@ -3538,6 +3561,7 @@ function renderKanban(){
     });
     card.addEventListener("drop", e=>{
       e.preventDefault(); e.stopPropagation();
+      if(!editMode) return;   /* ロック中は工程を変えない */
       const dragId = _dndAid || e.dataTransfer.getData("text/plain");
       const a = state.tasks.find(x=>x.id===dragId);
       if(!a) return;
@@ -3554,6 +3578,7 @@ function renderKanban(){
     col.addEventListener("dragleave", ()=>col.classList.remove("dragover"));
     col.addEventListener("drop", e=>{
       e.preventDefault(); col.classList.remove("dragover"); setDndMark(null);
+      if(!editMode) return;   /* ロック中は工程を変えない */
       const a = state.tasks.find(x=>x.id===(_dndAid || e.dataTransfer.getData("text/plain")));
       if(a){a.stage = +col.dataset.stage; renderAll();}
     });
@@ -4681,12 +4706,7 @@ $("hdrFile").addEventListener("change", async e=>{
 /* ================= new(Ganttの#btnNewと同じ操作: 表示設定は引き継いで内容だけ白紙に戻す) ================= */
 function newBoard(){
   if(!confirm("現在の内容をすべて消去して、新規作成しますか?\n(誤って押しても Ctrl+Z で元に戻せます)")) return;
-  state = {
-    project:"", script:"", members:[],
-    cats: DEFAULT_CATS.map(c=>({...c})),
-    ui: state.ui, /* 名前列の幅などの表示設定はそのまま引き継ぐ */
-    scenes:[], tasks:[], phases:[], milestones:[],
-  };
+  state = {...emptyBoard(), ui: state.ui}; /* 名前列の幅などの表示設定はそのまま引き継ぐ */
   renderScriptPane();
   renderAll();
   openTitleModal();
@@ -9369,10 +9389,9 @@ $("#scaleLabel").addEventListener("blur",()=>{
 
 /* 編集ロック(タスクボードと同じ仕様)。既定はロック状態で、保存はせず読み込みのたびにロックへ戻る。
    ロック中はドラッグ系の操作だけを止め、クリックでの編集モーダルは開ける */
-let editMode=true; /* 既定はロック解除(オフ) */
+let editMode=false; /* 既定はロック。実際の値は統合版から setEditMode() で入ってくる */
 function applyEditMode(){
-  document.body.classList.toggle("locked",!editMode);
-  $("#btnEditMode").classList.toggle("editing",editMode);
+  /* body.locked と右上のトグルは統合版が持っている。ここで触ると取り合いになるので触らない */
 }
 $("#btnEditMode").onclick=()=>{
   editMode=!editMode;
@@ -10025,7 +10044,9 @@ function startBarDragFor(id, clientX, clientY){
     {bubbles:true, cancelable:true, clientX, clientY, button:0, buttons:1}));
   return true;
 }
-return { show, render, dateAtClientX, snapInfo, dropContext, markPlacing, startBarDragFor, _internal: { data, wrapTask, hasDates },
+return { show, render, dateAtClientX, snapInfo, dropContext, markPlacing, startBarDragFor,
+  /* 統合版の編集ロックを、こちらの editMode にも反映させる(唯一の入口) */
+  setEditMode: (v)=>{ editMode = !!v; }, _internal: { data, wrapTask, hasDates },
   /* 不具合調査用。モジュール内部の状態を外から覗く */
   _debug: () => ({ editMode, hoverTid: _hoverTid, hoverMid: _hoverMid,
     sel: selectedTaskIds.size, selMs: selectedMsIds.size, zoom,
@@ -10040,6 +10061,7 @@ return { show, render, dateAtClientX, snapInfo, dropContext, markPlacing, startB
 
 /* 前回開いていたビューを復元する。Gantt の初期化より後でないと Gantt.show() が呼べないので、
    起動処理(renderAll)ではなくここでやる */
+applyEditMode();   /* Gantt の初期化後に、ロック状態をガント側へも行き渡らせる */
 initSync();   /* 共有設定があれば接続して読み込む(無ければ何もしない) */
 
 (function restoreView(){
