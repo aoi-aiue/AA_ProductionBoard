@@ -1952,13 +1952,13 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <button id="dayWReset" class="stepReset" title="標準(20px)に戻す">↺</button>
     </div>
     <button class="btn solid" id="btnFit" title="1画面に全体を収めて表示します。この間はドラッグでの編集ができません">全体ビュー</button>
-    <button class="btn" id="btnUnsched" title="日程未定タスクの置き場を表示/非表示します">日程未定</button>
     <div class="seg" id="densSeg" title="タスク行の高さ(見やすさ)を切り替えます">
       <div class="seg-thumb noAnim"></div>
       <button data-d="s">低</button>
       <button data-d="m" class="on">中</button>
       <button data-d="l">高</button>
     </div>
+    <button class="btn" id="btnUnsched" title="日程未定タスクの置き場を表示/非表示します">日程未定タスクを開く</button>
   </div>
   <div class="tgroup matrixOnly" title="タスクの並び順です。元(手動)=手動配置に戻します">
     <select id="sortSel" onchange="setSortMode(this.value)">
@@ -2737,7 +2737,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.03-4ceaa1f";
+const APP_VERSION = "2026.08.03-a2dfcc8";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -6924,10 +6924,21 @@ function shiftRowsFrom(rowIndex, after, rowH){
     el.style.transition = "transform .12s ease";
   }
   _shifted = [...want];
+  setShiftPad(rowH);
 }
 function clearRowShift(){
   for(const el of _shifted){ el.style.transform = ""; el.style.transition = ""; }
   _shifted = [];
+  setShiftPad(0);
+}
+/* 行をずらして隙間を作る分だけ、下端に余白を足す。
+   transform は高さに影響しないため、これが無いと押し下げられた最後の行が
+   スクロールできる範囲の外にはみ出して隠れてしまう(左右とも同じだけ足して段差を作らない) */
+function setShiftPad(px){
+  for(const id of ["lbody","rinner"]){
+    const el = document.getElementById(id);
+    if(el) el.style.paddingBottom = px ? px + "px" : "";
+  }
 }
 /* ISO日付にn日足す */
 function addDaysIso(iso, n){
