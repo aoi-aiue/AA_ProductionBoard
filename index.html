@@ -789,7 +789,11 @@ body.dark .chip.on{background:rgba(91,155,230,.14)}
   font-size:12px;line-height:1.6;resize:vertical;white-space:pre;overflow:auto;
 }
 
-footer{padding:6px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:11px;display:flex;gap:12px;flex-wrap:wrap;background:var(--panel);align-items:center}
+footer{padding:6px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:11px;display:flex;gap:12px;
+  flex-wrap:nowrap;background:var(--panel);align-items:center;overflow:hidden;white-space:nowrap}
+/* 説明文だけが縮む。ボタンや状態表示は縮めない */
+footer > span:first-of-type{overflow:hidden;text-overflow:ellipsis;min-width:0}
+footer > :not(span:first-of-type){flex:none}
 /* 左下の共有設定。普段は目立たせない */
 #btnSyncFoot{flex:none;font-size:10.5px;padding:2px 9px;height:auto;line-height:1.7;border-radius:4px}
 
@@ -1016,9 +1020,8 @@ body.locked .scChip{cursor:default}
 #tabStrip{
   display:flex;align-items:flex-end;gap:2px;
   padding:5px 14px 0;background:var(--tabBand,#EDEFF2);
-  border-bottom:0;overflow-x:auto;overflow-y:visible;scrollbar-width:none;
+  border-bottom:0;overflow:visible;
 }
-#tabStrip::-webkit-scrollbar{display:none}
 body.dark #tabStrip{background:#0B0E11}
 #viewTabs{
   display:flex;align-items:flex-end;gap:2px;position:static;
@@ -1037,12 +1040,15 @@ body.dark #viewTabs button:hover{background:rgba(255,255,255,.07)}
 #viewTabs button.on{
   background:var(--panel);color:var(--text);font-weight:600;z-index:1;
 }
+/* 下端の左右を外へ膨らませる。半円を切り抜いた形をbox-shadowで作り、
+   タブとツールバーが1枚の面として繋がって見えるようにする */
 #viewTabs button.on::before,
 #viewTabs button.on::after{
-  content:"";position:absolute;bottom:0;width:9px;height:9px;pointer-events:none;
+  content:"";position:absolute;bottom:0;width:10px;height:10px;pointer-events:none;
+  background:transparent;
 }
-#viewTabs button.on::before{left:-9px;border-bottom-right-radius:9px;box-shadow:4px 4px 0 4px var(--panel)}
-#viewTabs button.on::after{right:-9px;border-bottom-left-radius:9px;box-shadow:-4px 4px 0 4px var(--panel)}
+#viewTabs button.on::before{left:-10px;border-bottom-right-radius:10px;box-shadow:5px 5px 0 5px var(--panel)}
+#viewTabs button.on::after{right:-10px;border-bottom-left-radius:10px;box-shadow:-5px 5px 0 5px var(--panel)}
 /* ヘッダーは上の角丸を持たない(タブと地続きにするため) */
 header{border-top:0}
 
@@ -1052,7 +1058,7 @@ header{border-top:0}
   display:flex;align-items:center;gap:9px;
   background:rgba(20,29,40,.07);
   border:1px solid rgba(20,29,40,.13);border-radius:7px;
-  padding:3px 10px;height:32px;box-sizing:border-box;
+  padding:2px 9px;height:26px;box-sizing:border-box;   /* 他の道具と同じ高さ。出入りでヘッダーの高さを変えないため */
 }
 body.dark .viewTools{background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.14)}
 .viewTools .tgroup{gap:7px}
@@ -2390,7 +2396,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-ded0564";
+const APP_VERSION = "2026.08.02-95f8990";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
