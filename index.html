@@ -2158,6 +2158,27 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   </div>
 </div>
 <!-- 初回だけ出る入口。作るのか、誰かのに参加するのかをまず選ぶ -->
+<!-- 接続中の新規作成。共有相手を巻き込むかどうかは、はっきり選ばせる -->
+<div class="overlay" id="newBoardOverlay">
+  <div class="modal" style="width:min(560px,94vw)">
+    <h2>新規作成</h2>
+    <p class="syncLead">いま <b id="nbName"></b> に接続しています。どちらにしますか?</p>
+    <div class="aiModeCards syncMode" id="nbMode">
+      <button type="button" data-nb="detach">
+        <span class="amTitle">接続を切って、新しく作る</span>
+        <span class="amDesc">いまのプロジェクトはそのまま残ります。他の人の画面は変わりません</span>
+      </button>
+      <button type="button" data-nb="wipe">
+        <span class="amTitle">このプロジェクトを白紙にする</span>
+        <span class="amDesc">共有している人全員の画面も白紙になります。よく確認してから選んでください</span>
+      </button>
+    </div>
+    <div class="mFoot">
+      <div class="spacer"></div>
+      <button class="btn solid" type="button" onclick="document.getElementById('newBoardOverlay').classList.remove('open')">キャンセル</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="welcomeOverlay">
   <div class="modal" style="width:min(560px,94vw)">
     <h2 class="wcTitle">AA_ProductionBoard へようこそ</h2>
@@ -2609,7 +2630,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-7a14918";
+const APP_VERSION = "2026.08.02-d0bc6b1";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2785,10 +2806,13 @@ async function historyList(){
       .sort((a,b)=>b.rev-a.rev);
   }catch(e){ return []; }
 }
+/* 「このプロジェクトを白紙にする」を選んだときだけ立てる。1回使ったら下ろす */
+let _allowEmptyPush = false;
 function guardEmptyOverwrite(remote){
   if(!remote || !remote.ct) return false;              /* 相手が空なら気にしない */
   const mine = state.tasks.length + state.scenes.length;
   if(mine > 0) return false;                            /* こちらに中身があるなら通常の更新 */
+  if(_allowEmptyPush){ _allowEmptyPush = false; return false; }   /* 意図した白紙化 */
   return true;                                          /* こちらが空 = 事故の可能性が高い */
 }
 /* =====================================================================
@@ -5592,12 +5616,41 @@ $("hdrFile").addEventListener("change", async e=>{
 
 /* ================= new(Ganttの#btnNewと同じ操作: 表示設定は引き継いで内容だけ白紙に戻す) ================= */
 function newBoard(){
+  /* 共有に繋がっているときは、相手を巻き込むかどうかを必ず選ばせる。
+     黙って白紙にすると、全員の画面まで白紙になってしまう */
+  if(syncEnabled()){
+    $("nbName").textContent = state.project || "(名称未設定のプロジェクト)";
+    $("newBoardOverlay").classList.add("open");
+    return;
+  }
   if(!confirm("現在の内容をすべて消去して、新規作成しますか?\n(誤って押しても Ctrl+Z で元に戻せます)")) return;
+  blankBoard();
+}
+function blankBoard(){
   state = {...emptyBoard(), ui: state.ui}; /* 名前列の幅などの表示設定はそのまま引き継ぐ */
   renderScriptPane();
   renderAll();
   openTitleModal();
 }
+$("nbMode").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-nb]");
+  if(!b) return;
+  $("newBoardOverlay").classList.remove("open");
+  if(b.dataset.nb === "detach"){
+    /* 接続だけ切る。サーバー上のプロジェクトには一切触れない */
+    localStorage.removeItem(SYNC_KEY);
+    try{ sessionStorage.removeItem(SYNC_KEY); }catch(err){}
+    presenceLeave(); stopPresence(); stopSyncStream();
+    syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
+    setSyncStatus("このパソコンのみ");
+    blankBoard();
+  }else{
+    const nm = state.project || "このプロジェクト";
+    if(!confirm(`「${nm}」を白紙にします。\n\n共有している人全員の画面も白紙になります。\n本当によろしいですか?`)) return;
+    _allowEmptyPush = true;   /* この1回だけ、空での上書きを許す */
+    blankBoard();
+  }
+});
 
 /* ================= サンプルを出す =================
    ボタンは一旦画面から外した。関数は残してあるので、コンソールから loadSampleData() で出せる */
