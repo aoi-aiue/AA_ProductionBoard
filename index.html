@@ -2458,7 +2458,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-2181d83";
+const APP_VERSION = "2026.08.02-4ad6028";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4242,11 +4242,15 @@ function openMembersModal(){
   $("memberOverlay").classList.add("open");
 
   const mb = $("memberModalBody");
+  /* メンバーへの変更は、その場で保存して全ビューにも反映する。
+     以前は「モーダルを閉じたとき」だけ保存していたため、背景クリックやEscapeで閉じると
+     追加・削除・色替えが保存されず、共有にも流れていなかった */
+  const memChanged = ()=>{ openMembersModal(); renderAll(); };
   $("memClose").onclick = ()=>{_palOpen=null; _memRen=null; $("memberOverlay").classList.remove("open"); renderAll();};
   $("memAdd").onclick = ()=>{
     const n = $("memName").value.trim(); if(!n) return;
     state.members.push({id:uid("m"), name:n, color:resolveMemberColor(n,PALETTE[state.members.length%PALETTE.length])});
-    openMembersModal();
+    memChanged();
   };
   $("memName").addEventListener("keydown", e=>{if(e.key==="Enter"&&!e.isComposing)$("memAdd").click();});
   mb.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
@@ -4254,7 +4258,7 @@ function openMembersModal(){
     state.tasks.forEach(a=>{a.memberIds=(a.memberIds||[]).filter(id=>id!==m.id)});
     state.members.splice(+b.dataset.del,1);
     _palOpen = null;
-    openMembersModal();
+    memChanged();
   });
   mb.querySelectorAll(".memItem .dot").forEach(d=>d.onclick=()=>{
     const i = +d.dataset.i;
@@ -4263,11 +4267,11 @@ function openMembersModal(){
   });
   mb.querySelectorAll(".sw").forEach(s=>s.onclick=()=>{
     state.members[+s.dataset.m].color = s.dataset.c;
-    openMembersModal();
+    memChanged();
   });
   mb.querySelectorAll("[data-cc]").forEach(c=>c.addEventListener("change",()=>{
     state.members[+c.dataset.cc].color = c.value;
-    openMembersModal();
+    memChanged();
   }));
   mb.querySelectorAll("[data-av]").forEach(a=>a.onclick=()=>{
     _avIdx = +a.dataset.av;
@@ -4275,7 +4279,7 @@ function openMembersModal(){
   });
   mb.querySelectorAll("[data-rmav]").forEach(b=>b.onclick=()=>{
     delete state.members[+b.dataset.rmav].icon;
-    openMembersModal();
+    memChanged();
   });
   $("memIconFolder").onclick = ()=>$("avFolder").click();
   /* 名前をクリックすると入力欄になる。Enter/フォーカスを外すと確定、Escapeで取り消し。
@@ -4409,7 +4413,7 @@ $("avFile").onchange = e=>{
       /* 名前で色が決まるメンバー(藍上アオイ等)はそちらを優先する */
       if(key) m.color = resolveMemberColor(m.name, key);
       _avIdx = null;
-      openMembersModal();
+      openMembersModal(); renderAll();   /* その場で保存し、共有にも流す */
     }
   };
   img.onerror = ()=>{URL.revokeObjectURL(url); alert("画像を読み込めませんでした");};
@@ -4451,23 +4455,25 @@ function openCatsModal(){
   $("catOverlay").classList.add("open");
 
   const mb = $("catModalBody");
+  /* メンバーと同じく、変更したその場で保存して全ビューに反映する */
+  const catChanged = ()=>{ openCatsModal(); renderAll(); };
   $("catClose").onclick = ()=>{_catPal=null; _catRen=null; $("catOverlay").classList.remove("open"); renderAll();};
   $("catAdd").onclick = ()=>{
     const n = $("catName").value.trim(); if(!n) return;
     state.cats.push({id:uid("c"), name:n, color:PALETTE[state.cats.length%PALETTE.length]});
-    openCatsModal();
+    catChanged();
   };
   $("catName").addEventListener("keydown", e=>{if(e.key==="Enter"&&!e.isComposing)$("catAdd").click();});
   mb.querySelectorAll("[data-crn]").forEach(s=>s.onclick=()=>{
     _catRen = +s.dataset.crn;
-    openCatsModal();
+    catChanged();
     const inp = $("catRen");
     inp.focus(); inp.select();
     const commit = ()=>{
       const n = inp.value.trim();
       if(n) state.cats[_catRen].name = n;
       _catRen = null;
-      openCatsModal();
+      catChanged();
     };
     inp.addEventListener("keydown", e=>{if(e.key==="Enter"&&!e.isComposing) commit();});
     inp.addEventListener("blur", commit);
@@ -4481,20 +4487,20 @@ function openCatsModal(){
     state.tasks.forEach(a=>{if(a.cat===c.id) a.cat = fallback.id;});
     state.cats.splice(+b.dataset.cdel,1);
     _catPal = null; _catRen = null;
-    openCatsModal();
+    catChanged();
   });
   mb.querySelectorAll(".memItem .dot").forEach(d=>d.onclick=()=>{
     const i = +d.dataset.ci;
     _catPal = (_catPal===i) ? null : i;
-    openCatsModal();
+    catChanged();
   });
   mb.querySelectorAll(".sw").forEach(s=>s.onclick=()=>{
     state.cats[+s.dataset.m].color = s.dataset.c;
-    openCatsModal();
+    catChanged();
   });
   mb.querySelectorAll("[data-cc]").forEach(c=>c.addEventListener("change",()=>{
     state.cats[+c.dataset.cc].color = c.value;
-    openCatsModal();
+    catChanged();
   }));
   $("catName").focus(); /* 追加後も入力欄にフォーカスが残るので、Enterで連続追加できる */
 }
