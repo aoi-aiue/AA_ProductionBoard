@@ -1038,6 +1038,36 @@ body.locked .scChip{cursor:default}
 /* ガントは自分でスクロールを持つので、他ビュー向けの下余白(60px)は要らない */
 #view-gantt.view.active{padding-bottom:0;overflow-y:hidden}
 
+/* ================= ロック中のカーソル =================
+   ロック中はドラッグ系の操作を止めているので、掴めそうに見えるカーソルは出さない。
+   「掴めると思って引っ張ったのに動かない」を避ける。
+   クリックで開く編集(タスク名・カードなど)は生きているので pointer は残す */
+body.locked .kb-card,
+body.locked .kb-card[draggable="true"],
+body.locked table.assets tr[draggable="true"],
+body.locked .mx-cat,
+body.locked .usChip,
+body.locked #view-gantt .bar,
+body.locked #view-gantt .rrow.phase,
+body.locked #view-gantt .phaseSummaryBar,
+body.locked #view-gantt .grip,
+body.locked #view-gantt .dia,
+body.locked .memItem .memGrip{cursor:pointer}
+/* つまみ・区切りのドラッグも止まっているので、それらしいカーソルを出さない */
+body.locked .colRes,
+body.locked #view-gantt .colRes,
+body.locked .thRes,
+body.locked #view-gantt .barH,
+body.locked #view-gantt .bar .h{cursor:default}
+/* 掴んでいる最中の見た目も出さない */
+body.locked .kb-card:active,
+body.locked .mx-cat:active,
+body.locked #view-gantt .grip:active,
+body.locked #view-gantt .phaseSummaryBar:active,
+body.locked .memGrip:active{cursor:pointer}
+/* ロック中に出しても意味がないので、掴み手そのものを見せない */
+body.locked #view-gantt .grip{opacity:0 !important}
+
 /* ================= ビュー切替のタブ列 =================
    ブラウザのタブと同じ造り。タブ列は一段暗い帯、選択中のタブだけがツールバーと同じ色になり
    地続きに見える。下端の左右は擬似要素+box-shadowで外側へ膨らませ、Chromeのタブ形状にしている */
@@ -2666,7 +2696,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-3880485";
+const APP_VERSION = "2026.08.02-e46ccfb";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2900,6 +2930,9 @@ let _syncTimer = null;
    反映のときだけ、直後の1回の送信を見送る */
 let _skipNextPush = false;
 
+/* 同じ警告を繰り返し出さない(受信のたびに出ると操作できなくなる) */
+let _toldOnce = {};
+function tellOnce(msg){ if(_toldOnce[msg]) return; _toldOnce[msg] = 1; alert(msg); }
 function syncEnabled(){ return !!(syncCfg && syncCfg.url && syncCfg.boardId && _syncKey); }
 /* 暗号化には crypto.subtle が要る。これは「安全なコンテキスト」でしか使えず、
    ブラウザによっては file:// で開いたときに使えない。使えない環境では共有を諦めるのではなく、
@@ -3014,6 +3047,12 @@ async function doSyncPush(){
     /* 送る前に、自分が読んだ後で誰かが書いていないか確かめる。
        上書きしてしまう事故を防ぐのが目的(段階2でここを自動マージにする) */
     const cur = await remoteGet(syncCfg);
+    /* 相手が新しい形式なら、こちらの古い形で上書きしてはいけない */
+    if(cur && +cur.fmt > FMT_VERSION){
+      setSyncStatus("⚠ ツールの更新が必要です", true);
+      tellOnce("このプロジェクトは、より新しい版のツールで更新されています。\n\nこのままだと内容を壊してしまうため、送信を止めました。\nページを再読み込みして、ツールを最新にしてください。");
+      return;
+    }
     /* こちらが空なのに相手に中身がある = 事故の可能性が高いので送らない */
     if(guardEmptyOverwrite(cur)){
       setSyncStatus("⚠ 送信を中止しました(中身が空)", true);
@@ -3039,9 +3078,8 @@ async function doSyncPush(){
     /* 直前の状態を1つだけ控えておく(誰かが壊してもここから戻せる) */
     const prev = (cur && cur.ct) ? {rev:cur.rev, at:cur.at, ct:cur.ct, iv:cur.iv} : null;
     if(prev) historyPut(prev);   /* 世代として残す(失敗しても本体の保存は続ける) */
-    await remotePut(syncCfg, prev
-      ? {rev:syncRev, at:new Date().toISOString(), ...payload, prev}
-      : {rev:syncRev, at:new Date().toISOString(), ...payload});
+    const meta = {rev:syncRev, at:new Date().toISOString(), fmt:FMT_VERSION};
+    await remotePut(syncCfg, prev ? {...meta, ...payload, prev} : {...meta, ...payload});
     pushBackup();
     setSyncStatus(`送信済み ${nowHM()}`);
   }catch(e){
@@ -3058,6 +3096,11 @@ async function syncPull(opts){
     setSyncStatus("読み込み中…");
     const cur = await remoteGet(syncCfg);
     if(!cur || !cur.ct){ setSyncStatus(""); return false; }
+    if(+cur.fmt > FMT_VERSION){
+      setSyncStatus("⚠ ツールの更新が必要です", true);
+      tellOnce("このプロジェクトは、より新しい版のツールで作られています。\n\nページを再読み込みして、ツールを最新にしてからお試しください。");
+      return false;
+    }
     let box;
     try{ box = await decryptJSON(cur, _syncKey); }
     catch(e){ setSyncStatus("⚠ パスワードが違います"); if(!silent) alert("パスワードが違うため、このプロジェクトを開けませんでした。"); return false; }
@@ -3122,6 +3165,11 @@ function startSyncStream(){
       if(d && d.presence){ _presence = d.presence; renderPresence(); }
       if(!d || typeof d.rev !== "number" || !d.ct) return;
       if(d.rev <= syncRev) return;   /* 自分が書いたぶんのこだま */
+      if(+d.fmt > FMT_VERSION){      /* 新しい形式は取り込まない */
+        setSyncStatus("⚠ ツールの更新が必要です", true);
+        tellOnce("このプロジェクトは、より新しい版のツールで更新されました。\n\nページを再読み込みして、ツールを最新にしてください。");
+        return;
+      }
       receiveRemote(d);
     };
     es.addEventListener("put", onEv);
@@ -3448,6 +3496,7 @@ function scheduleSave(){
 
 /* 旧形式(assignee文字列)や欠けたフィールドを補正。JSON読み込み時にも通す */
 function normalizeState(){
+  state.fmt = FMT_VERSION;   /* 保存されるものには必ず版を入れる */
   if(!state.members) state.members = [];
   if(!state.cats || !state.cats.length) state.cats = DEFAULT_CATS.map(c=>({...c}));
   if(!state.ui) state.ui = {};
@@ -5780,8 +5829,28 @@ function toCommonData(){
      3. 旧 AA_GanttChartBoard の保存ファイル               … projectName + tasks(catIds/imp) を持つ
    旧2ツールが _ext に退避していた項目も、ここで正式なフィールドへ引き上げる。
    変換できない場合は null を返す */
+/* ================= 保存形式のバージョン =================
+   将来データの持ち方を変えたときに、古いファイルを安全に読み、
+   新しい形式を古いツールが壊さないようにするための番号。
+
+   増やすときの手順:
+     1. FMT_VERSION を +1 する
+     2. upgradeFormat() に「前の版 → 新しい版」の変換を1段だけ足す
+   ※ 番号を増やさずに構造を変えないこと。共有相手の古いツールが黙って壊す */
+const FMT_VERSION = 1;
+const FMT_TOO_NEW = "__too_new__";
+
+/* 版が上がるたびに1段ずつ上げていく。今は1が最初なので何もしない */
+function upgradeFormat(s){
+  let v = +s.fmt || 0;
+  /* 例: if(v < 2){ ...1→2の変換...; v = 2; } */
+  s.fmt = FMT_VERSION;
+  return s;
+}
 function migrateToUnified(d){
   if(!d || typeof d!=="object") return null;
+  /* このツールより新しい形式は読まない。読めたつもりで壊すのが一番まずい */
+  if(+d.fmt > FMT_VERSION) return FMT_TOO_NEW;
   const isGantt = Array.isArray(d.tasks) && d.projectName!==undefined && d.project===undefined
     && d.tasks.some(t=>t && (t.catIds!==undefined || t.imp!==undefined));
   const ext = d._ext||{};
@@ -5832,9 +5901,13 @@ function migrateToUnified(d){
 /* 読み込んだデータを実際に反映する。成功したら true */
 function adoptState(d, keepUi){
   const s = migrateToUnified(d);
+  if(s === FMT_TOO_NEW){
+    alert("このデータは、より新しい版のツールで作られています。\n\nこのままでは正しく開けません。\nページを再読み込みして、ツールを最新にしてからお試しください。");
+    return false;
+  }
   if(!s) return false;
   if(keepUi && state && state.ui) s.ui = {...s.ui, ...state.ui, unit:s.ui.unit||state.ui.unit};
-  state = s;
+  state = upgradeFormat(s);
   normalizeState();
   return true;
 }
