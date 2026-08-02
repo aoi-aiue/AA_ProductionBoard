@@ -2703,7 +2703,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-f52e675";
+const APP_VERSION = "2026.08.02-824eae4";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5751,10 +5751,22 @@ function newBoard(){
     return;
   }
   if(!confirm("現在の内容をすべて消去して、新規作成しますか?\n(誤って押しても Ctrl+Z で元に戻せます)")) return;
-  blankBoard();
+  sampleBoard();
 }
 function blankBoard(){
   state = {...emptyBoard(), ui: state.ui}; /* 名前列の幅などの表示設定はそのまま引き継ぐ */
+  renderScriptPane();
+  renderAll();
+  openTitleModal();
+}
+/* 新規作成は白紙ではなくサンプル入りで始める。
+   まっさらだと何ができるツールなのか分からないため(旧ガントもこの挙動だった)。
+   「白紙にする」を選んだときだけは blankBoard() のまま。あちらは文言どおり空にする約束なので */
+function sampleBoard(){
+  state = {...JSON.parse(JSON.stringify(SAMPLE_DATA)), ui: state.ui};
+  normalizeState();
+  applyTitleBar();
+  applyUnitLabels();
   renderScriptPane();
   renderAll();
   openTitleModal();
@@ -5770,7 +5782,7 @@ $("nbMode").addEventListener("click", e=>{
     presenceLeave(); stopPresence(); stopSyncStream();
     syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
     setSyncStatus("このパソコンのみ");
-    blankBoard();
+    sampleBoard();
   }else{
     const nm = state.project || "このプロジェクト";
     if(!confirm(`「${nm}」を白紙にします。\n\n共有している人全員の画面も白紙になります。\n本当によろしいですか?`)) return;
@@ -6179,7 +6191,7 @@ $("wcMode").addEventListener("click", e=>{
     openSyncModal("join");
     $("syBoard").value = ""; syncModeUI();
   }else{
-    openTitleModal();
+    sampleBoard();
   }
 });
 
