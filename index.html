@@ -1038,7 +1038,8 @@ body.dark #tabStrip{background:#07090B}
   border:0;border-radius:9px 9px 0 0;background:transparent;color:var(--muted);
   white-space:nowrap;
   /* overflow:hidden は付けないこと。下端のカーブ(::before/::after)を自分で切ってしまう */
-  transition:background .12s,color .12s;
+  /* 背景に transition を掛けないこと。切替の途中で半透明になり、帯の色が透けてちらつく */
+  transition:color .12s;
 }
 #viewTabs button:hover{background:rgba(255,255,255,.55);color:var(--text)}
 body.dark #viewTabs button:hover{background:rgba(255,255,255,.07)}
@@ -1105,6 +1106,13 @@ body[data-view="matrix"] .matrixOnly{display:flex}
 .syncRow{display:flex;gap:8px;align-items:center}
 .syncRow input{flex:1;min-width:0}
 .fHint{font-weight:400;font-size:10.5px;color:var(--faint);margin-left:6px}
+/* 共有設定: やることを2択で示す */
+.syncHow{display:flex;flex-direction:column;gap:6px;background:var(--hover);border:1px solid var(--line);
+  border-radius:7px;padding:10px 12px;font-size:11.5px;line-height:1.75;color:var(--text)}
+.syncHow b{margin-right:4px}
+.syncAdv{margin:2px 0 10px}
+.syncAdv summary{font-size:11px;color:var(--muted);cursor:pointer;padding:2px 0}
+.syncAdv summary:hover{color:var(--text)}
 .syncNote{font-size:11.5px;color:var(--muted);min-height:16px;margin-top:6px;line-height:1.7}
 .syncNote.warn{color:#B3401A;background:#FDF3EE;border:1px solid #F0D3C4;border-radius:6px;padding:9px 11px}
 body.dark .syncNote.warn{color:#F0B49A;background:#2A1E19;border-color:#4A3428}
@@ -2036,25 +2044,37 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   <div class="modal" style="width:min(620px,94vw)">
     <h2>みんなで共有する</h2>
     <p class="syncLead">
-      同じプロジェクトを、複数人で同じ画面で見られるようにします。<br>
-      <b>新しく共有を始める</b>ときも、<b>他の人のプロジェクトに参加する</b>ときも、この画面から行います。<br>
+      同じプロジェクトを、離れた場所にいる人と同じ画面で見られるようにします。変更は数秒でお互いに届きます。
+    </p>
+    <div class="syncHow">
+      <div><b>新しく始める</b> … 「新規発行」を押して、合言葉を決めます。そのIDと合言葉を仲間に伝えてください</div>
+      <div><b>参加する</b> … 教わったIDと合言葉を入れて「つないで開始」を押します</div>
+    </div>
+    <p class="syncLead" style="margin-top:12px">
+      中身は<b>合言葉で暗号化してから送られます</b>。合言葉を知らない人には読めません。<br>
       設定しなければ、今まで通りこのパソコンの中だけで動きます。
     </p>
     <div class="field">
-      <label>置き場所のURL <span class="fHint">プロジェクトを預けるサーバーの住所。参加する場合は、誘ってくれた人から教わります</span></label>
-      <input type="text" id="syUrl" placeholder="https://〇〇〇-default-rtdb.asia-southeast1.firebasedatabase.app" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>プロジェクトID <span class="fHint">プロジェクト1つにつき1つ。新しく始めるなら「新規発行」、参加するなら教わったIDを貼ります</span></label>
+      <label>プロジェクトID
+        <span class="fHint">新しく始めるなら「新規発行」。参加するなら、誘ってくれた人から教わったIDを貼り付けます</span></label>
       <div class="syncRow">
-        <input type="text" id="syBoard" placeholder="参加する場合は、教わったIDを貼り付け" spellcheck="false">
-        <button class="btn" id="syNewId" type="button" title="新しくプロジェクトを立てるときに押します">新規発行</button>
+        <input type="text" id="syBoard" placeholder="教わったIDを貼り付け" spellcheck="false">
+        <button class="btn" id="syNewId" type="button" title="新しいプロジェクトを立てます">新規発行</button>
       </div>
     </div>
     <div class="field">
-      <label>合言葉 <span class="fHint">参加者全員で同じものを使います。中身はこれで暗号化されるので、忘れると開けなくなります</span></label>
-      <input type="password" id="syPass" placeholder="合言葉" autocomplete="off">
+      <label>合言葉
+        <span class="fHint">参加者全員で同じものを使います。中身はこれで暗号化されるので、忘れると開けなくなります</span></label>
+      <input type="password" id="syPass" placeholder="例: hikousen2026" autocomplete="off">
     </div>
+    <!-- 置き場所は既定のまま使うのが普通なので、畳んでおく -->
+    <details class="syncAdv">
+      <summary>置き場所を変更する(通常は不要)</summary>
+      <div class="field" style="margin:10px 0 0">
+        <label>置き場所のURL <span class="fHint">自分のサーバーを使う場合だけ変更します</span></label>
+        <input type="text" id="syUrl" spellcheck="false">
+      </div>
+    </details>
     <div class="field">
       <label>あなたの名前 <span class="fHint">「誰が変えたか」の表示に使います</span></label>
       <select id="syName"></select>
@@ -2424,7 +2444,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-c5be256";
+const APP_VERSION = "2026.08.02-bce6d36";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2435,7 +2455,8 @@ function persist(){
     try{
       localStorage.setItem(LS_KEY, JSON.stringify(state));
       $("saveState").textContent = `自動保存済み ${nowHM()}`;
-      syncPush();   /* 共有設定があるときだけ、まとめて送る */
+      if(_skipNextPush) _skipNextPush = false;   /* 受信を反映しただけなので送り返さない */
+      else syncPush();                          /* 共有設定があるときだけ、まとめて送る */
     }catch(e){ $("saveState").textContent = ""; }
   }, 300);
 }
@@ -2462,12 +2483,22 @@ window.addEventListener("blur", flushSave);
    - 段階1では受信(購読)はしない。起動時に1回引くだけ
    ===================================================================== */
 const SYNC_KEY = "aa_productionboard_sync_v1";
+/* プロジェクトの置き場所。ここに全プロジェクトが「プロジェクトIDごと」に並ぶ。
+   IDが違えば互いに見えないので、いくつ作っても混ざらない。
+   中身は合言葉で暗号化してから送るので、この住所が公開されても読まれることはない。
+   別のサーバーを使う人は、共有設定の「置き場所を変更」から差し替えられる */
+const DEFAULT_SYNC_URL = "https://productionboard-ea864-default-rtdb.asia-southeast1.firebasedatabase.app";
 const PBKDF2_ITER = 150000;
 let syncCfg = null;        /* {url, boardId, name, remember, password?} */
 let _syncKey = null;       /* 導出済みのCryptoKey(パスワードそのものは持ち回さない) */
 let _syncPassword = null;  /* 再導出のために保持(保存はrememberのときだけ) */
 let syncRev = 0;           /* 最後に読み書きしたリビジョン。衝突検知に使う */
 let _syncTimer = null;
+/* 受け取った内容を画面に反映すると、その再描画が保存処理を呼び、そのまま送り返してしまう。
+   すると相手には「誰かが更新した」と見え、次の送信が衝突扱いになって共有が止まる。
+   (実際にこれで「2つの窓で変更が伝わらない」状態になった)
+   反映のときだけ、直後の1回の送信を見送る */
+let _skipNextPush = false;
 
 function syncEnabled(){ return !!(syncCfg && syncCfg.url && syncCfg.boardId && _syncKey); }
 /* 暗号化には crypto.subtle が要る。これは「安全なコンテキスト」でしか使えず、
@@ -2480,6 +2511,7 @@ function loadSyncConfig(){
     const raw = localStorage.getItem(SYNC_KEY);
     if(!raw) return null;
     const c = JSON.parse(raw);
+    if(c && !c.url) c.url = DEFAULT_SYNC_URL;
     return (c && c.url && c.boardId) ? c : null;
   }catch(e){ return null; }
 }
@@ -2534,6 +2566,10 @@ function syncPush(){
   _syncTimer = setTimeout(doSyncPush, 1200);
 }
 async function doSyncPush(){
+  /* 予約を消してから走る。ここで消さないと「送信待ち」が永久に真のままになり、
+     isBusyEditing() が常に true → 他の人の変更が自動反映されず、ずっと保留になる
+     (一度でも自分が変更すると受信が止まる、という形で表面化した) */
+  clearTimeout(_syncTimer); _syncTimer = null;
   if(!syncEnabled()) return;
   try{
     setSyncStatus("共有中…");
@@ -2587,6 +2623,7 @@ async function syncPull(opts){
     }
     adoptState(remote);
     applyEditModeFromState();   /* 読み込み直後は必ずロック(他の人の内容をいきなり動かさないように) */
+    _skipNextPush = true;       /* 開いただけで送り返さない */
     renderAll();
     setSyncStatus(`共有から読込 ${nowHM()}`);
     return true;
@@ -2669,6 +2706,7 @@ async function applyRemote(d){
     adoptState(remote);
     state.ui = {...keepUi};
     applyEditModeFromState();   /* 受け取った直後は必ずロック */
+    _skipNextPush = true;
     _histLock = true; renderAll(); _histLock = false;
     setSyncStatus(byName ? `${byName}さんの変更を反映 ${nowHM()}` : `変更を反映 ${nowHM()}`);
   }catch(e){
@@ -5077,7 +5115,7 @@ function setupToolMenu(groupId, btnId, panelId){
 /* --- 共有設定モーダル --- */
 function openSyncModal(){
   const c = loadSyncConfig() || {};
-  $("syUrl").value   = c.url || "";
+  $("syUrl").value   = c.url || DEFAULT_SYNC_URL;
   $("syBoard").value = c.boardId || "";
   $("syPass").value  = (c.password || _syncPassword || "");
   $("syRemember").checked = !!c.remember;
@@ -5120,7 +5158,8 @@ $("sySave").onclick = async ()=>{
   const url = $("syUrl").value.trim().replace(/\/+$/,"");
   const boardId = $("syBoard").value.trim();
   const password = $("syPass").value;
-  if(!url || !boardId || !password){ alert("置き場所のURL・プロジェクトID・合言葉は、すべて必要です。"); return; }
+  if(!boardId || !password){ alert("プロジェクトIDと合言葉を入れてください。\n新しく始める場合は「新規発行」を押してIDを作ります。"); return; }
+  if(!url){ alert("置き場所のURLが空です。"); return; }
   const cfg = {url, boardId, name:$("syName").value, remember:$("syRemember").checked, password};
   saveSyncConfig(cfg);
   syncCfg = cfg;
@@ -5137,7 +5176,8 @@ $("syPull").onclick = async ()=>{
   const url = $("syUrl").value.trim().replace(/\/+$/,"");
   const boardId = $("syBoard").value.trim();
   const password = $("syPass").value;
-  if(!url || !boardId || !password){ alert("置き場所のURL・プロジェクトID・合言葉は、すべて必要です。"); return; }
+  if(!boardId || !password){ alert("プロジェクトIDと合言葉を入れてください。\n新しく始める場合は「新規発行」を押してIDを作ります。"); return; }
+  if(!url){ alert("置き場所のURLが空です。"); return; }
   syncCfg = {url, boardId, name:$("syName").value, remember:$("syRemember").checked, password};
   _syncKey = await deriveSyncKey(password, boardId);
   $("syncOverlay").classList.remove("open");
