@@ -980,6 +980,9 @@ body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
 /* 日付は「2026/08/03」が切れない幅を確保する。フェイズは残りを使う */
 /* 日付は2つ並べて余裕を持たせ、フェイズは幅が要るので次の行に単独で置く */
 .taskModal .tmRow.dateRow .field.dateF{flex:1 1 0;min-width:132px}
+/* 日付欄は入れ物いっぱいに広げる。既定のままだとカレンダー分の幅しか取らず、
+   終了日の右端が上の工程・作業量・優先度の右端と揃わない */
+.taskModal .field.dateF input[type=date]{width:100%;display:block}
 /* ガントから開いたときの見本バー。実際のバーと同じ造形で、入力に合わせて即座に変わる */
 #aPreviewWrap{margin-bottom:16px}
 #aPreviewWrap[hidden]{display:none}
@@ -2732,7 +2735,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-9c9d03b";
+const APP_VERSION = "2026.08.02-c319821";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
