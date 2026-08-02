@@ -1050,10 +1050,12 @@ body.dark #tabStrip{background:#07090B}
 #viewTabs{
   display:flex;align-items:flex-end;gap:2px;position:static;align-self:flex-end;
   border:0;background:none;border-radius:0;overflow:visible;height:auto;
+  min-width:0;   /* 幅が足りないときはタブ側が縮む(はみ出して右端がずれるのを防ぐ) */
 }
 #viewTabs .seg-thumb{display:none}
 #viewTabs button{
   position:relative;height:auto;padding:6px 15px 7px;line-height:1.35;font-size:12px;
+  min-width:0;flex:0 1 auto;
   border:0;border-radius:9px 9px 0 0;background:transparent;color:var(--muted);
   white-space:nowrap;
   /* overflow:hidden は付けないこと。下端のカーブ(::before/::after)を自分で切ってしまう */
@@ -1147,7 +1149,7 @@ body.dark #syncState.warn{color:#F0A882}
 #syncState:hover{text-decoration:underline}
 /* タブ列は上だけ4pxの余白があるため、align-items:center だとその分だけ下にずれる。
    同じ4pxを下に足して、帯の見た目の中央に来るようにする */
-#presenceBar{display:flex;align-items:center;gap:3px;margin:0 0 4px 0}
+#presenceBar{display:flex;align-items:center;gap:3px;margin:0 0 4px 0;flex:none}
 #presenceBar[hidden]{display:none}
 .pzLbl{font-size:10px;color:var(--muted);margin-right:4px;letter-spacing:.02em;line-height:1}
 .pzAv{width:24px;height:24px;border-radius:50%;flex:none;object-fit:cover;display:block;
@@ -1160,7 +1162,9 @@ body.dark #syncState.warn{color:#F0A882}
 .meSep{width:1px;height:18px;background:var(--line);margin-right:6px;flex:none}
 .meNm{font-size:11px;font-weight:600;color:var(--muted);max-width:110px;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
-.vtName{flex:none}
+/* 幅が足りないときはタブ名を省略して縮める。
+   ボタン自体に overflow:hidden を付けると下端のカーブが切れるので、内側のこの span に付ける */
+.vtName{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 閲覧中の並び。重ねて場所を取らないようにする */
 .pzAv+.pzAv{margin-left:-7px}
 .pzDot,.pzUnknown{display:flex;align-items:center;justify-content:center;
@@ -2630,7 +2634,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-d0bc6b1";
+const APP_VERSION = "2026.08.02-2fa2179";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
