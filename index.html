@@ -1178,8 +1178,9 @@ body[data-view="matrix"] .matrixOnly{display:flex}
   content:"";position:absolute;left:0;right:0;height:2px;background:var(--accent);border-radius:2px;z-index:2}
 .memItem.dropBefore::before{top:-5px}
 .memItem.dropAfter::after{bottom:-5px}
-/* 日程未定にするボタン。日付欄と同じ高さで右に並べる */
-.dateRow #aNoDate{flex:none;align-self:flex-end;height:32px;padding:0 12px;white-space:nowrap}
+/* 日程未定にするボタン。日付欄と横に並べると右列の幅に収まらず切れていたので、下に右寄せで置く */
+.noDateRow{display:flex;justify-content:flex-end;margin-top:6px}
+.noDateRow #aNoDate{flex:none;height:28px;padding:0 10px;font-size:11px;white-space:nowrap}
 /* 共有していない状態の表示。異常ではないので目立たせない */
 #syncState{opacity:.85}
 #syncState.warn{color:#B3401A;font-weight:600}
@@ -1247,12 +1248,17 @@ body.dark #syncState.warn{color:#F0A882}
 .bkMeta{font-size:10px;color:var(--muted)}
 /* ようこそ画面。最初に目に入る画面なので、中央寄せで大きめに */
 /* .modal h2 の方が詳細度が高いので、h2 を含めて上書きしないと級数が効かない */
-.modal h2.wcTitle{font-size:27px;text-align:center;margin:10px 0 16px;letter-spacing:.01em;
-  display:flex;align-items:center;justify-content:center;gap:10px}
+/* 製品名なので、和文が混ざる本文とは切り離して Inter で組む。
+   字面を締めるため字間を詰め、大きい級数でも軽く見えないよう太さを上げてある */
+.modal h2.wcTitle{font-size:29px;text-align:center;margin:10px 0 16px;
+  font-family:Inter,system-ui,sans-serif;font-weight:700;letter-spacing:-.025em;
+  display:flex;align-items:center;justify-content:center;gap:11px}
 /* アイコンは文字に合わせて拡縮させる(級数を変えたときに置き直さなくて済むように) */
 .wcIcon{width:1.15em;height:1.15em;flex:0 0 auto}
+/* 改行は入れず幅で2行に落とす。auto-phrase は文節で折るので「カー/ドビュー」のような
+   語の途中での分割を避けられる(非対応のブラウザでは今までどおり文字単位で折るだけ) */
 .wcLead{font-size:13px;line-height:1.9;color:var(--muted);text-align:center;margin:0 0 26px;
-  max-width:600px;margin-left:auto;margin-right:auto}
+  max-width:440px;margin-left:auto;margin-right:auto;word-break:auto-phrase}
 /* 「あなたは誰か」の選択 */
 .whoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;max-height:44vh;overflow:auto}
 .whoCard{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;cursor:pointer;
@@ -2098,6 +2104,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
         <div class="tmRow dateRow">
           <div class="field dateF"><label>開始日</label><input type="date" id="aStart"></div>
           <div class="field dateF"><label>終了日</label><input type="date" id="aEnd"></div>
+        </div>
+        <div class="noDateRow">
           <button class="btn" type="button" id="aNoDate" title="日程を空にして、ガント下の「日程未定」に置きます">日程未定にする</button>
         </div>
         <div class="field phaseRow"><label>フェイズ</label><select id="aPhase"></select></div>
@@ -2157,7 +2165,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <h2>タイトル設定</h2>
     <div class="field">
       <label>プロジェクト名</label>
-      <input type="text" id="tName" placeholder="例:旅客飛行船(仮)">
+      <input type="text" id="tName" placeholder="例:VRChatバーチャルライブ制作">
     </div>
     <div class="field">
       <label>横軸の分類</label>
@@ -2290,7 +2298,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 <div class="overlay" id="welcomeOverlay">
   <div class="modal" style="width:min(720px,94vw)">
     <h2 class="wcTitle"><img class="wcIcon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='10' height='8' rx='2' fill='%234A6FA5'/%3E%3Crect x='17' y='6' width='11' height='8' rx='2' fill='%237A5CA0'/%3E%3Crect x='4' y='18' width='17' height='8' rx='2' fill='%233E8A80'/%3E%3C/svg%3E" alt="">AA_ProductionBoard</h2>
-    <p class="wcLead">VRChat向けのワールド制作をガントチャートや場面別、カードビュー等で管理するツールです。<br>複数人での同時編集も可能です。</p>
+    <p class="wcLead">VRChat向けのワールド制作プロジェクトをガントチャートや場面別、カードビュー等で管理するツールです。複数人での同時編集も可能です。</p>
     <div class="aiModeCards syncMode" id="wcMode">
       <button type="button" data-w="new">
         <span class="amTitle">新しく作る</span>
@@ -2724,7 +2732,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-e6793bc";
+const APP_VERSION = "2026.08.02-9c9d03b";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5822,44 +5830,98 @@ function renameEventItems(oldBase, newBase){
     if(rename[t.phase||""] !== undefined) t.phase = rename[t.phase||""];
   });
 }
-/* 基準日を初めて設定したときの下書き。旧ガントと同じ考え方で、
-   「今日〜基準日の前日」を3分割したタスクと、基準日当日のタスクを置く。
-   まっさらな画面を見せないためのもので、中身は空のまま(名前だけ連番) */
+/* 基準日を初めて設定したときの下書き。
+   まっさらな画面だと何ができるのか分からないので、ひと通りの機能が一度に見える最小限を置く。
+   ・フェイズ3つ / 担当あり・複数担当・担当不要・未割当 / 進捗4段階 / 作業量S,M,L
+   ・優先度1〜3 / シーン割当 / 台本 / マイルストーン(単日・期間) / 日程未定の置き場
+   量は「消すのが手間にならない」ことを優先して12件に抑えてある。
+   日程は基準日までの期間に対する割合で置くので、基準日をいつにしても形が崩れない */
+const STARTER_PHASES = ["企画・設計", "制作", "仕上げ"];
+const STARTER_MEMBERS = ["ディレクター", "モデラー", "エンジニア"];
+const STARTER_SCENES = [
+  {name:"オープニング",  dur:"1:00", note:"入場してから世界観を提示するまで"},
+  {name:"メインエリア",  dur:"3:00", note:"自由に見て回り、ギミックを触る時間"},
+  {name:"エンディング",  dur:"1:00", note:"締めの演出と、退場までの導線"},
+];
+const STARTER_SCRIPT = `● オープニング [1分程度 / 0:00~1:00]
+暗転から明けて、来場者がワールドに入る
+<aside>
+[プレイヤーの体験] 世界観の提示
+まず何の場所なのかが分かるようにする
+</aside>
+
+● メインエリア [3分程度 / 1:00~4:00]
+自由に歩き回れるようになる
+各所のギミックに触れられる
+
+● エンディング [1分程度 / 4:00~5:00]
+締めの演出。退場導線を案内する`;
+/* [フェイズ, カテゴリ, 担当(STARTER_MEMBERSの番号), 作業量, 進捗, 優先度, 期間(基準日までの割合), シーン] */
+const STARTER_TASKS = [
+  {name:"企画・コンセプト設計", ph:0, cat:"direction", mem:[0],     size:"L", stage:3, pri:1, f:[0,   .14], sc:[]},
+  {name:"ワールドの絵作り",     ph:0, cat:"design",    mem:[1],     size:"M", stage:2, pri:1, f:[.08, .26], sc:[0]},
+  {name:"台本・シーン構成",     ph:0, cat:"direction", mem:[0],     size:"M", stage:1, pri:2, f:[.14, .32], sc:[0,1]},
+  {name:"モデリング",           ph:1, cat:"model",     mem:[1,2],   size:"L", stage:1, pri:1, f:[.28, .62], sc:[1]},
+  {name:"ギミック実装",         ph:1, cat:"gimmick",   mem:[2],     size:"M", stage:0, pri:2, f:[.40, .72], sc:[1,2]},
+  {name:"ライティング",         ph:1, cat:"light",     mem:[1],     size:"M", stage:0, pri:1, f:[.58, .80], sc:[2]},
+  {name:"BGM・SE",              ph:1, cat:"sound",     noAsg:true,  size:"S", stage:0, pri:1, f:[.52, .76], sc:[2]},
+  {name:"テストプレイ・調整",   ph:2, cat:"direction", mem:[0,1,2], size:"M", stage:0, pri:2, f:[.78, .93], sc:[]},
+  {name:"最終チェック",         ph:2, cat:"other",     mem:[0],     size:"S", stage:0, pri:3, f:[.90, 1  ], sc:[]},
+];
+/* 日程未定の置き場も使えることが分かるように、日付を持たないタスクも置く */
+const STARTER_UNDATED = [
+  {name:"記念撮影スポットを置く", cat:"gimmick", mem:[2], size:"S"},
+  {name:"ワールド紹介文を書く",   cat:"other",   mem:[],  size:"S"}, /* 担当未割当の見え方 */
+];
 function seedStarterTasks(evs, eve, base){
   const t0 = isoToday();
   const prepDays = isoDiffDays(t0, evs);
-  const basePhase = state.phases.length ? state.phases[0] : "フェイズ1";
-  if(!state.phases.includes(basePhase)) state.phases.push(basePhase);
-  const made = [];
-  if(prepDays > 0){
-    /* 期間が短い(10日以内)ときは細切れにしても意味が無いので1本にまとめる。
-       3で割り切れない端数は先頭のタスクから1日ずつ足す */
-    const n = prepDays<=10 ? 1 : 3;
-    const q = Math.floor(prepDays/n), rem = prepDays % n;
-    let cur = t0;
-    for(let i=0;i<n;i++){
-      const len = q + (i<rem ? 1 : 0);
-      if(len <= 0) continue;
-      const en = isoAddDays(cur, len-1);
-      const t = normalizeTask({name:`タスク${made.length+1}`, priority:1, phase:basePhase, start:cur, end:en});
-      state.tasks.push(t); made.push(t);
-      cur = isoAddDays(en, 1);
-    }
-  }
-  /* 使い方が伝わるよう、マイルストーンの例も置いておく(3分割できたときだけ)。
-     2本目のタスクの初日に単日、そこから3本目の最終日までを期間として置く */
-  if(made.length >= 3){
-    state.milestones.push({id:uid("ms"), name:"マイルストーン", date:made[1].start});
-    state.milestones.push({id:uid("ms"), name:"マイルストーン(期間)", date:made[1].start, end:made[2].end, imp:2});
-    state.milestones.sort((a,b)=>a.date<b.date ? -1 : 1);
-  }
   /* 基準日のタスクは動かされると困るので、専用フェイズに分けて evLock で固定する。
      フェイズ名は識別子も兼ねるため、重複するときだけ連番を付ける */
-  let evPhase = base + "日";
-  for(let i=2; state.phases.includes(evPhase); i++) evPhase = base + "日" + i;
-  state.phases.push(evPhase);
-  state.tasks.push(normalizeTask({name:base+"日", noAsg:true, priority:3, phase:evPhase,
-    start:evs, end:eve||evs, evLock:true}));
+  const addEventTask = ()=>{
+    let evPhase = base + "日";
+    for(let i=2; state.phases.includes(evPhase); i++) evPhase = base + "日" + i;
+    state.phases.push(evPhase);
+    state.tasks.push(normalizeTask({name:base+"日", noAsg:true, priority:3, phase:evPhase,
+      start:evs, end:eve||evs, evLock:true}));
+  };
+  /* 既に自分で作り始めているなら、下書きは邪魔になるだけなので基準日のタスクだけ足す */
+  if(state.tasks.length || prepDays <= 0){ addEventTask(); return true; }
+
+  if(!state.members.length){
+    state.members = STARTER_MEMBERS.map((name,i)=>({id:uid("m"), name, color:PALETTE[i % PALETTE.length]}));
+  }
+  if(!state.scenes.length){
+    state.scenes = STARTER_SCENES.map(s=>({id:uid("sc"), ...s}));
+  }
+  if(!state.script) state.script = STARTER_SCRIPT;
+  STARTER_PHASES.forEach(p=>{ if(!state.phases.includes(p)) state.phases.push(p); });
+
+  const mid = i => (state.members[i]||{}).id;
+  const sid = i => (state.scenes[i]||{}).id;
+  /* 割合を日付に。最後の1日は基準日の前日で止める(基準日当日は専用タスクの領分) */
+  const dayAt = n => isoAddDays(t0, Math.max(0, Math.min(prepDays-1, n)));
+  const made = STARTER_TASKS.map(s=>{
+    const s0 = Math.round(s.f[0]*prepDays);
+    const t = normalizeTask({
+      name:s.name, cat:s.cat, size:s.size, stage:s.stage, priority:s.pri,
+      memberIds:(s.mem||[]).map(mid).filter(Boolean), noAsg:!!s.noAsg,
+      scenes:(s.sc||[]).map(sid).filter(Boolean),
+      phase:STARTER_PHASES[s.ph],
+      start:dayAt(s0), end:dayAt(Math.max(s0, Math.round(s.f[1]*prepDays)-1))
+    });
+    state.tasks.push(t);
+    return t;
+  });
+  STARTER_UNDATED.forEach(s=>{
+    state.tasks.push(normalizeTask({name:s.name, cat:s.cat, size:s.size,
+      memberIds:(s.mem||[]).map(mid).filter(Boolean)}));
+  });
+  /* マイルストーンは単日と期間を1つずつ。単日は設計の終わり、期間はテストの期間に重ねる */
+  state.milestones.push({id:uid("ms"), name:"デザインFIX", date:made[2].end});
+  state.milestones.push({id:uid("ms"), name:"通しテスト", date:made[7].start, end:made[7].end, imp:2});
+  state.milestones.sort((a,b)=>a.date<b.date ? -1 : 1);
+  addEventTask();
   return true;
 }
 $("hdrFile").addEventListener("change", async e=>{
@@ -9657,7 +9719,6 @@ function openAiImportModal(){
   `,true);
   $("#aiCancel").onclick=closeModal;
   $("#aiRun").onclick=runAiImport;
-  $("#aiOpenTitle").onclick=()=>{closeModal();openTitleModal();};
   document.querySelectorAll("#aiModeSeg button").forEach(b=>b.onclick=()=>{
     document.querySelectorAll("#aiModeSeg button").forEach(x=>x.classList.toggle("on",x===b));
     document.querySelector("#aiModeSeg").classList.remove("needsel");
@@ -10191,186 +10252,6 @@ function applyTitleBar(){
     cd.hidden=true;
   }
 }
-$("#titleBtn").onclick=()=>openTitleModal();
-$("#titleCountdown").onclick=()=>openTitleModal();
-
-/* ヘッダー画像: 横長(21:6目安)に切り出し、幅1400pxまでに縮小して保存 */
-function readHeaderImageFile(f){
-  return new Promise((res,rej)=>{
-    const img=new Image();
-    const url=URL.createObjectURL(f);
-    img.onload=()=>{
-      const targetRatio=21/6;
-      let sw=img.width,sh=img.height,sx=0,sy=0;
-      if(sw/sh>targetRatio){ sw=sh*targetRatio; sx=(img.width-sw)/2; }
-      else{ sh=sw/targetRatio; sy=(img.height-sh)/2; }
-      const outW=Math.min(1400,Math.round(sw));
-      const outH=Math.round(outW/targetRatio);
-      const c=document.createElement("canvas");c.width=outW;c.height=outH;
-      c.getContext("2d").drawImage(img,sx,sy,sw,sh,0,0,outW,outH);
-      URL.revokeObjectURL(url);
-      res(c.toDataURL("image/jpeg",0.86));
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("画像を読み込めませんでした"));};
-    img.src=url;
-  });
-}
-
-function openTitleModal(isNew){
-  const hasImg=!!data.headerImg;
-  const curMode=data.dateMode==="delivery"?"delivery":"event";
-  const curBase=curMode==="delivery"?"納品":"本番";
-  const defaultEventDate=(()=>{const d=new Date(today());d.setMonth(d.getMonth()+2);return fmt(d);})();
-  openModal(`
-    <h2>タイトル設定</h2>
-    <div class="field"><label>プロジェクト名</label><input id="tName" value="${esc(data.projectName||"")}" placeholder="例: バーチャルライブ制作"></div>
-    <div class="field"><label>ヘッダー画像(任意・横長推奨)</label>
-      <div id="tImgPrev" style="border:1px solid var(--line);border-radius:6px;overflow:hidden;height:90px;background:var(--hover);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
-        ${hasImg?`<img src="${data.headerImg}" style="width:100%;height:100%;object-fit:cover">`:`<span style="font-size:11px;color:var(--faint)">画像未設定</span>`}
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn solid" id="tImgPick" style="flex:1">画像を${hasImg?"変更":"選ぶ"}</button>
-        ${hasImg?`<button class="btn danger" id="tImgDel">画像を削除</button>`:""}
-      </div>
-    </div>
-    <div class="field"><label>基準日の種類</label>
-      <div class="aiModeCards" id="tDateMode">
-        <button type="button" data-m="event"${curMode==="event"?' class="on"':''}>
-          <span class="amTitle">本番日</span>
-          <span class="amDesc">イベント・公演・展示など、当日が決まっているもの</span>
-        </button>
-        <button type="button" data-m="delivery"${curMode==="delivery"?' class="on"':''}>
-          <span class="amTitle">納品日</span>
-          <span class="amDesc">成果物を納める締切が決まっているもの</span>
-        </button>
-      </div>
-    </div>
-    <div class="mRow">
-      <div class="field"><label id="tEvSLabel">${curBase}日(空欄で非表示)</label><input type="date" id="tEvS" value="${data.eventDate||(isNew?defaultEventDate:"")}"></div>
-      <div class="field"><label>終了日(任意・期間の場合)</label><input type="date" id="tEvE" value="${data.eventEndDate||""}"></div>
-    </div>
-    <div style="font-size:11px;color:var(--muted);margin:-4px 0 4px">設定すると、ヘッダーに残り日数(基準日まで)が表示されます。自動生成されるタスク名も選んだ種類に合わせて変わります</div>
-    <div class="mFoot">
-      <div class="spacer"></div>
-      <button class="btn" id="tCancel">キャンセル</button>
-      <button class="btn primary" id="tSave">保存</button>
-    </div>
-  `);
-  $("#tCancel").onclick=closeModal;
-  $("#tImgPick").onclick=()=>$("#hdrFile").click();
-  $("#tDateMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    $("#tDateMode").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
-    $("#tEvSLabel").textContent=(b.dataset.m==="delivery"?"納品":"本番")+"日(空欄で非表示)";
-  });
-  $("#tEvS").addEventListener("focus",()=>{
-    if(!$("#tEvS").value)$("#tEvS").value=defaultEventDate;
-  });
-  $("#tEvE").addEventListener("focus",()=>{
-    const s=$("#tEvS").value;
-    if(!$("#tEvE").value&&s)$("#tEvE").value=fmt(addD(parse(s),1));
-  });
-  if(hasImg)$("#tImgDel").onclick=()=>{
-    delete data.headerImg;
-    scheduleSave();closeModal();applyTitleBar();
-  };
-  $("#tSave").onclick=()=>{
-    data.projectName=$("#tName").value.trim();
-    let evs=$("#tEvS").value,eve=$("#tEvE").value;
-    const hadEventDateBefore=!!data.eventDate;
-    /* 基準日の種類(本番日/納品日)。自動生成タスク・フェイズ・カウントダウンの呼称に反映する */
-    const oldBase=data.dateMode==="delivery"?"納品":"本番";
-    const newMode=($("#tDateMode").querySelector("button.on")||{}).dataset?.m==="delivery"?"delivery":"event";
-    const evBase=newMode==="delivery"?"納品":"本番";
-    if(newMode==="delivery")data.dateMode="delivery";else delete data.dateMode;
-    /* 種類を切り替えたら、既定名のままの本番日/納品日タスク・専用フェイズもその呼称に付け替える
-       (ユーザーが名前を変えている場合は触らない)。付け替え表を先に確定させてから phases と tasks に一括適用する */
-    if(evBase!==oldBase){
-      const evPhases=new Set(data.tasks.filter(t=>t.evLock).map(t=>t.phase||""));
-      const taken=new Set(data.phases.filter(p=>!evPhases.has(p))); /* 通常フェイズ名とは衝突させない */
-      const rename={};
-      evPhases.forEach(p=>{
-        if(p&&p.startsWith(oldBase+"日")){
-          const np=evBase+"日"+p.slice((oldBase+"日").length);
-          if(!taken.has(np)){ rename[p]=np; taken.add(np); }
-        }
-      });
-      data.phases=data.phases.map(p=>rename[p]!==undefined?rename[p]:p);
-      data.tasks.forEach(t=>{
-        if(!t.evLock)return;
-        if(t.name===oldBase+"日") t.name=evBase+"日";
-        if(rename[t.phase||""]!==undefined) t.phase=rename[t.phase||""];
-      });
-    }
-    let autoFit=false;
-    if(evs){
-      if(eve&&parse(eve)<parse(evs))[evs,eve]=[eve,evs];
-      if(!hadEventDateBefore){
-        /* 基準日を初めて設定したタイミングで、今日から前日までを3分割したタスク(重要度1)と、
-           基準日当日のタスク(重要度3)を自動で作っておく */
-        if(!data.phases)data.phases=[];
-        const basePhase=data.phases.length?data.phases[0]:"フェイズ";
-        if(!data.phases.includes(basePhase))data.phases.push(basePhase);
-        /* 今日から本番前日までを3等分したタスクで埋めておく(3で割り切れない分は先頭から1日ずつ足す)。
-           期間が短い(10日以内)ときは細切れにしても意味が無いので1本にまとめる */
-        const prepDays=Math.round((parse(evs)-today())/DAY);
-        const made=[];
-        if(prepDays>0){
-          const n=prepDays<=10?1:3;
-          const base=Math.floor(prepDays/n),rem=prepDays%n;
-          let cur=today();
-          for(let i=0;i<n;i++){
-            const len=base+(i<rem?1:0);
-            if(len<=0)continue;
-            const en=addD(cur,len-1);
-            const nt={id:uid(),name:nextTaskName(),memberIds:[],noAsg:false,catIds:[],phase:basePhase,start:fmt(cur),end:fmt(en),imp:1};
-            data.tasks.push(nt);made.push(nt);
-            cur=addD(en,1);
-          }
-        }
-        /* 使い方が伝わるよう、マイルストーンのサンプルも入れておく(3分割できたときだけ)。
-           2本目のタスクの初日に単日、そこから3本目のタスクの最終日までを期間として置く */
-        if(made.length>=3){
-          data.milestones.push({id:uid(),name:"マイルストーン",date:made[1].start});
-          data.milestones.push({id:uid(),name:"マイルストーン(期間)",date:made[1].start,end:made[2].end,imp:2});
-          data.milestones.sort((a,b)=>a.date<b.date?-1:1);
-        }
-        /* 本番日のタスクは動かされると困るので、専用フェイズに分けてevLockで固定する
-           (名前の変更は可能。日付はタイトル設定の本番日にだけ追従する)。
-           フェイズ名はフェイズの識別子も兼ねるため、重複する場合だけ連番を付ける */
-        let evPhase=evBase+"日";
-        for(let i=2;data.phases.includes(evPhase);i++)evPhase=evBase+"日"+i;
-        data.phases.push(evPhase);
-        data.tasks.push({id:uid(),name:evBase+"日",memberIds:[],noAsg:true,catIds:[],phase:evPhase,start:evs,end:eve||evs,imp:3,evLock:true});
-        autoFit=true; /* 自動生成した初期タスクが全部見えるようにビューを合わせる */
-      }
-      data.eventDate=evs;
-      if(eve)data.eventEndDate=eve;else delete data.eventEndDate;
-      /* 本番日タスクの日付は、ここ(タイトル設定)からのみ変更できる */
-      data.tasks.forEach(t=>{if(t.evLock){t.start=evs;t.end=eve||evs;}});
-    }else{
-      delete data.eventDate;delete data.eventEndDate;
-    }
-    scheduleSave();closeModal();applyTitleBar();render();
-    if(autoFit)fitViewToContent();
-  };
-  $("#tName").focus();
-  $("#modalBody").onkeydown=e=>{
-    if(e.key==="Enter"&&!e.isComposing&&e.target.tagName!=="TEXTAREA"){
-      e.preventDefault();
-      $("#tSave").click();
-    }
-  };
-}
-$("#hdrFile").onchange=async e=>{
-  const f=e.target.files[0];e.target.value="";
-  if(!f)return;
-  try{
-    data.headerImg=await readHeaderImageFile(f);
-    scheduleSave();
-    if($("#modalBg").classList.contains("show"))openTitleModal();
-    else applyTitleBar();
-  }catch(err){alert(err.message);}
-};
 
 /* アイコン画像: 中央を正方形に切り出し64pxに縮小して保存(表示時に円形マスク) */
 let _avFileCallback=null; /* 新規メンバー作成時など、_avIdxを使わずコールバックで画像を受け取りたい場合に使う */
@@ -10484,21 +10365,6 @@ $("#avFolder").onchange=async e=>{
 };
 
 /* ---------- export / import ---------- */
-$("#btnNew").onclick=()=>{
-  if(!confirm("現在の内容をすべて消去して、新規作成しますか?\n(誤って押しても Ctrl+Z で元に戻せます)"))return;
-  data={
-    projectName:"",headerImg:null,eventDate:"",eventEndDate:"",
-    members:[],cats:[],tasks:[],milestones:[],phases:[],
-    ui:data.ui /* テーマ・表示倍率・密度などの表示設定はそのまま引き継ぐ */
-  };
-  clearSelection();
-  /* 全体ビューのままだと横幅を調整できず初期タスクを収められないので、通常表示に戻しておく */
-  if(zoom==="fit"){zoom=dayWBeforeFit;updateDayWStepperState();updateScaleStepperState();}
-  scheduleSave();
-  applyTitleBar();
-  render();
-  openTitleModal(true); /* 新規作成直後は、まずタイトル設定から始められるようにする(本番日は2ヶ月後をあらかじめ入力しておく) */
-};
 /* ================= 共通データ(AA_TaskBoard と受け渡しする交換形式) =================
    ★この機能は「統合するかどうか」を判断するための試験的な追加。内部データ構造・保存形式は一切変えておらず、
      この形式への変換だけを行う。やめる場合はこのブロックと、メニュー項目・#commonFile を消せば元に戻る。
