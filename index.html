@@ -147,10 +147,12 @@ body.themeSwitching,body.themeSwitching *{
 #titleProg{padding:5px 13px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.02em;background:var(--hover);color:var(--text);border:1px solid var(--line)}
 #titleBar.hasImg #titleProg{background:rgba(0,0,0,.45);color:#fff;border:none;backdrop-filter:blur(2px)}
 /* サンプル読み込みは暫定機能なので、通常のメニューには出さず右上に控えめな黄色で置いておく */
+/* タブ列の右端に置く。タイトルバーに重ねていた頃は他の表示に隠れてしまっていた */
 #btnSample{
-  padding:4px 10px;border-radius:99px;font-size:10px;font-weight:600;letter-spacing:.02em;line-height:1;
+  flex:none;align-self:center;margin-bottom:4px;
+  padding:4px 11px;border-radius:99px;font-size:10px;font-weight:600;letter-spacing:.02em;line-height:1.4;
   background:#E9AF12;color:#332800;border:1px solid rgba(0,0,0,.08);cursor:pointer;
-  opacity:.85;
+  opacity:.9;
 }
 #btnSample:hover{opacity:1}
 
@@ -657,6 +659,10 @@ body.dark .stg3{background:#F0F1F2}
 /* ---------- modal (Gantt側と同じ造形) ---------- */
 .overlay{position:fixed;inset:0;background:rgba(20,22,26,.35);display:none;align-items:center;justify-content:center;z-index:100}
 .overlay.open{display:flex}
+/* ガント側のモーダルは .open ではなく .show で開く(元のコードをそのまま活かすため) */
+#modalBg{position:fixed;inset:0;background:rgba(20,22,26,.35);display:none;align-items:center;justify-content:center;z-index:100}
+#modalBg.show{display:flex}
+#modalBody.wide{width:min(760px,94vw)}
 .modal{background:var(--panel);border-radius:10px;padding:22px;width:min(560px,92vw);max-height:85vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.12)}
 .modal h2{font-size:14px;margin-bottom:16px}
 .field{margin-bottom:12px}
@@ -1017,13 +1023,13 @@ body.locked .scChip{cursor:default}
    ブラウザのタブと同じ造り。タブ列は一段暗い帯、選択中のタブだけがツールバーと同じ色になり
    地続きに見える。下端の左右は擬似要素+box-shadowで外側へ膨らませ、Chromeのタブ形状にしている */
 #tabStrip{
-  display:flex;align-items:flex-end;gap:2px;
+  display:flex;align-items:center;gap:2px;
   padding:4px 12px 0;background:var(--tabBand,#D8DDE3);
   border-bottom:0;overflow:visible;
 }
 body.dark #tabStrip{background:#07090B}
 #viewTabs{
-  display:flex;align-items:flex-end;gap:2px;position:static;
+  display:flex;align-items:flex-end;gap:2px;position:static;align-self:flex-end;
   border:0;background:none;border-radius:0;overflow:visible;height:auto;
 }
 #viewTabs .seg-thumb{display:none}
@@ -1076,6 +1082,9 @@ body.dark .viewTools{background:rgba(255,255,255,.075);border-color:rgba(255,255
    ツールバーは1段のまま。溢れたら横スクロールするが、編集ロックとテーマは右端に貼り付くので見失わない */
 .ganttOnly,.matrixOnly{display:none}
 body[data-view="gantt"] .ganttOnly{display:flex}
+/* ドロップダウンの中のガント専用項目は、他の項目と同じ「行」として並べる */
+.menuPanel .btn.ganttOnly{display:none}
+body[data-view="gantt"] .menuPanel .btn.ganttOnly{display:flex}
 body[data-view="matrix"] .matrixOnly{display:flex}
 .headerRight{
   position:sticky;right:0;margin-left:auto;display:flex;align-items:center;gap:10px;
@@ -1678,7 +1687,6 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <span id="titleProg"></span>
       <span id="titleCountdown" onclick="openTitleModal()" title="クリックでタイトル設定を開きます"></span>
     </div>
-    <button id="btnSample" onclick="loadSampleData()" title="サンプルデータを表示します(暫定機能)">サンプルを出す</button>
   </div>
 </div>
 <input type="file" id="hdrFile" accept="image/*" style="display:none">
@@ -1693,6 +1701,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <button data-view="gantt">ガント</button>
     <button data-view="summary">サマリー</button>
   </div>
+  <div class="spacer"></div>
+  <button id="btnSample" onclick="loadSampleData()" title="サンプルデータを表示します(暫定機能)">サンプルを出す</button>
 </div>
 <header>
   <!-- 上段は「いつでも同じ場所にある」ものだけ。ビューごとの設定は下の #viewBar に置く -->
@@ -1716,6 +1726,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <div class="menuPanel" id="addMenuPanel">
       <button class="btn" onclick="openAssetModal()">タスク</button>
       <button class="btn" id="btnAddScene" onclick="openSceneModal(null)">シーン</button>
+      <button class="btn ganttOnly" onclick="Gantt.addPhase()" title="ガントの大きな区切り(企画・制作など)">フェイズ</button>
+      <button class="btn ganttOnly" onclick="Gantt.addMilestone()" title="ガントに置く節目(台本FIX・本番など)">マイルストーン</button>
     </div>
   </div>
   <div class="menuGroup" id="mngGroup">
@@ -1841,6 +1853,11 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   <button id="btnRemote" hidden title="他の人がボードを更新しました。押すと画面に反映します">他の人の変更を反映</button>
   <button id="btnUpdate" hidden title="新しい版が公開されています。押すと読み込み直します">新しい版があります</button>
 </footer>
+
+<!-- ガント側(フェイズ・マイルストーン・クイック追加)が使うモーダルの器。
+     中身は openModal() が流し込む。b.className に "modal" を入れているので、
+     統合版の .modal の見た目がそのまま当たる -->
+<div id="modalBg"><div id="modalBody" class="modal"></div></div>
 
 <!-- task modal -->
 <div class="overlay" id="assetOverlay">
@@ -2407,7 +2424,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-4fc5f61";
+const APP_VERSION = "2026.08.02-c5be256";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10173,7 +10190,10 @@ function startBarDragFor(id, clientX, clientY){
 }
 return { show, render, dateAtClientX, snapInfo, dropContext, markPlacing, startBarDragFor,
   /* 統合版の編集ロックを、こちらの editMode にも反映させる(唯一の入口) */
-  setEditMode: (v)=>{ editMode = !!v; }, _internal: { data, wrapTask, hasDates },
+  setEditMode: (v)=>{ editMode = !!v; },
+  /* ツールバーの「追加」から呼ぶ。フェイズとマイルストーンはガントだけの概念 */
+  addPhase: ()=>openPhaseModal(null),
+  addMilestone: ()=>openMsModal(null), _internal: { data, wrapTask, hasDates },
   /* 不具合調査用。モジュール内部の状態を外から覗く */
   _debug: () => ({ editMode, hoverTid: _hoverTid, hoverMid: _hoverMid,
     sel: selectedTaskIds.size, selMs: selectedMsIds.size, zoom,
