@@ -1140,6 +1140,8 @@ body[data-view="matrix"] .matrixOnly{display:flex}
 .memItem.dropAfter::after{bottom:-5px}
 /* 日程未定にするボタン。日付欄と同じ高さで右に並べる */
 .dateRow #aNoDate{flex:none;align-self:flex-end;height:32px;padding:0 12px;white-space:nowrap}
+/* 共有していない状態の表示。異常ではないので目立たせない */
+#syncState{opacity:.85}
 #syncState.warn{color:#B3401A;font-weight:600}
 body.dark #syncState.warn{color:#F0A882}
 #syncState:hover{text-decoration:underline}
@@ -1797,7 +1799,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <button class="btn" onclick="openScriptTextModal()" title="台本テキストを貼り付け・読み込みます">台本取込</button>
       <button class="btn" onclick="openAiImportModal()" title="AIに台本を分析させた結果(JSON)を取り込みます">AI台本取込</button>
       <div class="mpSep"></div>
-      <button class="btn" onclick="openSyncModal()" title="このプロジェクトを他の人と共有する / 他の人のプロジェクトに参加する">みんなで共有する…</button>
+      <button class="btn" onclick="openSyncModal()" title="他の人と同じ画面で編集できるようにします">共有…</button>
       <div class="mpSep"></div>
       <button class="btn" onclick="exportJSON()" title="編集を再開できるデータファイルとして保存します">ファイルに保存</button>
     </div>
@@ -2081,7 +2083,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     </div>
     <div class="mFoot">
       <!-- 新しく始めるか、既にあるボードに参加するか。入口をここに並べる -->
-      <button class="btn" id="tSync" type="button" title="他の人が作ったプロジェクトに参加します。IDとパスワードを入れると開きます">既存のプロジェクトを開く</button>
+      <button class="btn" id="tSync" type="button" title="共有中のプロジェクトに参加する / このプロジェクトを共有できるようにする">共有…</button>
       <div class="spacer"></div>
       <button class="btn solid" id="tCancel">キャンセル</button>
       <button class="btn primary" id="tSave">保存</button>
@@ -2127,7 +2129,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 <div class="overlay" id="syncOverlay">
   <div class="modal" style="width:min(560px,94vw)">
-    <h2>みんなで共有する</h2>
+    <h2>共有</h2>
     <p class="syncLead">
       同じプロジェクトを、離れた場所にいる人と同じ画面で見られるようにします。<br>
       変更は数秒でお互いに届きます。設定しなければ、今まで通りこのパソコンの中だけで動きます。
@@ -2161,16 +2163,19 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       </div>
       <label class="chk"><input type="checkbox" id="syRemember"><span>このパソコンにパスワードを覚えさせる(共用のパソコンでは外してください)</span></label>
       <details class="syncAdv">
-        <summary>置き場所を変更する(通常は不要)</summary>
+        <summary>詳しい設定(通常は不要)</summary>
         <div class="field" style="margin:10px 0 0">
           <label>置き場所のURL <span class="fHint">自分のサーバーを使う場合だけ変更します</span></label>
           <input type="text" id="syUrl" spellcheck="false">
+        </div>
+        <div class="field" style="margin:0">
+          <label>接続を解除する <span class="fHint">このパソコンだけで編集する状態に戻します。中身は消えません</span></label>
+          <button class="btn" type="button" id="sySOff" style="width:100%">接続を解除</button>
         </div>
       </details>
     </div>
     <div class="syncNote" id="syNote"></div>
     <div class="mFoot">
-      <button class="btn" type="button" id="sySOff" hidden title="このパソコンの中だけで使う状態に戻します(中身は消えません)">共有をやめる</button>
       <div class="spacer"></div>
       <button class="btn solid" type="button" onclick="document.getElementById('syncOverlay').classList.remove('open')">キャンセル</button>
       <button class="btn primary" type="button" id="sySave" hidden>開始</button>
@@ -2531,7 +2536,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-adc95d6";
+const APP_VERSION = "2026.08.02-7649b29";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2621,7 +2626,7 @@ const KEYS_HELP = [
     ["置き場からドラッグ", "日程未定のタスクに日程を与える(初期は5日間)"],
   ]],
   ["共有", [
-    ["ファイル \u25be", "「みんなで共有する…」から、複数人で同じプロジェクトを開く"],
+    ["ファイル \u25be", "「共有…」から、複数人で同じプロジェクトを開く"],
     ["自動", "変更は1〜2秒で相手に届く。保存操作は不要"],
     ["他の人の変更を反映", "編集中に届いた変更を、自分のタイミングで取り込む"],
   ]],
@@ -2767,7 +2772,7 @@ async function doSyncPush(){
   clearTimeout(_syncTimer); _syncTimer = null;
   if(!syncEnabled()) return;
   try{
-    setSyncStatus("共有中…");
+    setSyncStatus("送信中…");
     /* 送る前に、自分が読んだ後で誰かが書いていないか確かめる。
        上書きしてしまう事故を防ぐのが目的(段階2でここを自動マージにする) */
     const cur = await remoteGet(syncCfg);
@@ -2778,7 +2783,7 @@ async function doSyncPush(){
       const who = byName ? `${byName}さん` : "他の人";
       if(!confirm(`${who}がこのボードを更新しています。\n\nこのまま自分の内容で上書きすると、その変更は失われます。\n上書きしますか?\n\n(キャンセルすると共有を一旦止めます。「ファイル ▾ → 共有設定」から読み直せます)`)){
         stopSyncStream();
-        syncCfg = null; _syncKey = null; setSyncStatus("共有: 停止中");
+        syncCfg = null; _syncKey = null; setSyncStatus("⚠ 接続が切れています", true);
         return;
       }
       syncRev = cur.rev;
@@ -2788,9 +2793,9 @@ async function doSyncPush(){
     const payload = await encryptJSON({by:syncCfg.name||"", state}, _syncKey);
     syncRev = (syncRev || 0) + 1;
     await remotePut(syncCfg, {rev:syncRev, at:new Date().toISOString(), ...payload});
-    setSyncStatus(`共有済み ${nowHM()}`);
+    setSyncStatus(`送信済み ${nowHM()}`);
   }catch(e){
-    setSyncStatus("⚠ 共有できませんでした(" + (e && e.message ? e.message.slice(0,40) : "原因不明") + ")");
+    setSyncStatus("⚠ 送れませんでした(" + (e && e.message ? e.message.slice(0,40) : "原因不明") + ")");
     console.warn("[sync] push failed", e);
   }
 }
@@ -2802,7 +2807,7 @@ async function syncPull(opts){
   try{
     setSyncStatus("読み込み中…");
     const cur = await remoteGet(syncCfg);
-    if(!cur || !cur.ct){ setSyncStatus("共有: まだ何もありません"); return false; }
+    if(!cur || !cur.ct){ setSyncStatus(""); return false; }
     let box;
     try{ box = await decryptJSON(cur, _syncKey); }
     catch(e){ setSyncStatus("⚠ パスワードが違います"); if(!silent) alert("パスワードが違うため、このプロジェクトを開けませんでした。"); return false; }
@@ -2813,14 +2818,14 @@ async function syncPull(opts){
     const label = byName ? `${byName}さんが` : "";
     if(opts && opts.quiet){ /* 自動受信からの取り直しは黙って反映する */ }
     else if(!silent && !confirm(`共有ボードを読み込みます。\n\n${label}${cur.at ? new Date(cur.at).toLocaleString() : ""} に更新\nタスク ${(remote.tasks||[]).length}件\n\n今このブラウザで開いている内容は置き換わります。よろしいですか?`)){
-      setSyncStatus("共有: 読み込みを見送りました");
+      setSyncStatus("");
       return false;
     }
     adoptState(remote);
     applyEditModeFromState();   /* 読み込み直後は必ずロック(他の人の内容をいきなり動かさないように) */
     _skipNextPush = true;       /* 開いただけで送り返さない */
     renderAll();
-    setSyncStatus(`共有から読込 ${nowHM()}`);
+    setSyncStatus(`読み込みました ${nowHM()}`);
     return true;
   }catch(e){
     setSyncStatus("⚠ 読み込めませんでした");
@@ -2869,8 +2874,8 @@ function startSyncStream(){
     };
     es.addEventListener("put", onEv);
     es.addEventListener("patch", onEv);
-    es.addEventListener("open", ()=>{ if(syncEnabled()) setSyncStatus(`共有中 ${nowHM()}`); });
-    es.onerror = ()=>{ if(syncEnabled()) setSyncStatus("共有: 再接続中…"); };
+    es.addEventListener("open", ()=>{ if(syncEnabled()) setSyncStatus(`接続中 ${nowHM()}`); });
+    es.onerror = ()=>{ if(syncEnabled()) setSyncStatus("再接続中…"); };
   }catch(e){ console.warn("[sync] stream failed", e); }
 }
 function stopSyncStream(){
@@ -3093,7 +3098,7 @@ setInterval(renderCursors, 200);
 async function initSync(){
   const c = loadSyncConfig();
   if(!c) return;
-  if(!cryptoAvailable()){ setSyncStatus("⚠ 共有: この開き方では使えません"); return; }
+  if(!cryptoAvailable()){ setSyncStatus("⚠ この開き方では共有できません", true); return; }
   syncCfg = c;
   /* 端末に覚えさせたパスワード → なければ、このタブが持っているもの */
   let pw = c.password;
@@ -3102,13 +3107,20 @@ async function initSync(){
     syncCfg.password = pw;
     _syncPassword = pw;
     _syncKey = await deriveSyncKey(pw, c.boardId);
-    setSyncStatus("共有: 接続済み");
+    setSyncStatus("接続しました");
     await syncPull({});
     startSyncStream();   /* 以降は他の人の変更を自動で受け取る */
     startPresence();
   }else{
-    setSyncStatus("⚠ 共有: 未接続(パスワードを入れてください)", true);
+    /* 設定はあるのにパスワードが無い = 繋がるはずが繋がっていない。ここだけは知らせる */
+    setSyncStatus("⚠ 未接続(パスワードを入れ直してください)", true);
   }
+}
+/* 共有していないことを控えめに知らせる。押せば共有設定が開く。
+   このツールは複数人で使うのが前提なので、「まだ共有していない」は伝えておく */
+function showLocalOnlyHint(){
+  if(loadSyncConfig()) return;
+  setSyncStatus("このパソコンのみ");
 }
 /* ランダムなボードID(URLを知っている人だけが辿り着けるようにするための長さ) */
 function newBoardId(){
@@ -5648,7 +5660,7 @@ $("sySOff").onclick = ()=>{
   syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
   setSyncStatus("");
   $("syncOverlay").classList.remove("open");
-  alert("共有をやめました。これまで通り、このパソコンの中だけで動きます。\n中身は消えていません。");
+  alert("接続を解除しました。これまで通り編集できます。\n中身は消えていません。");
 };
 $("sySave").onclick = async ()=>{
   const url = $("syUrl").value.trim().replace(/\/+$/,"") || DEFAULT_SYNC_URL;
@@ -5662,7 +5674,7 @@ $("sySave").onclick = async ()=>{
   _syncPassword = password;
   _syncKey = await deriveSyncKey(password, boardId);
   $("syncOverlay").classList.remove("open");
-  setSyncStatus("共有: 接続しました");
+  setSyncStatus("接続しました");
   /* 既に中身があれば読み込み、無ければ今の内容で始める */
   const got = await syncPull({});
   if(!got) await doSyncPush();
@@ -10768,6 +10780,7 @@ applyEditMode();   /* Gantt の初期化後に、ロック状態をガント側�
 /* 共有設定があれば接続して読み込む(無ければ何もしない)。
    そのうえで中身がまだ空なら、まずタイトル設定から始めてもらう */
 Promise.resolve(initSync()).then(()=>{
+  showLocalOnlyHint();
   const empty = !state.project && !state.tasks.length && !state.scenes.length;
   if(empty && !document.querySelector(".overlay.open")) openTitleModal();
 });
