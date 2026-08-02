@@ -1007,6 +1007,22 @@ body.locked .scChip{cursor:default}
 /* ガントは自分でスクロールを持つので、他ビュー向けの下余白(60px)は要らない */
 #view-gantt.view.active{padding-bottom:0;overflow-y:hidden}
 
+/* ビュー固有の道具は、共通の道具と見分けがつくように一段沈めた面に載せる。
+   「今見ているビューの設定はここ」と分かるよう、左肩にビュー名を出す */
+.viewTools{
+  display:flex;align-items:center;gap:9px;
+  background:rgba(20,29,40,.07);
+  border:1px solid rgba(20,29,40,.13);border-radius:7px;
+  padding:3px 9px 3px 6px;height:32px;box-sizing:border-box;
+}
+body.dark .viewTools{background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.14)}
+/* 左肩のビュー名。「ここから先は今のビューだけの設定」の目印 */
+.vtLabel{
+  flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--bg);
+  background:var(--muted);border-radius:4px;padding:2px 7px;margin-right:3px;line-height:1.5;
+}
+.viewTools .tgroup{gap:7px}
+.viewTools[hidden]{display:none}
 /* ビュー固有の道具は、そのビューを見ているときだけ出す(body[data-view]で切り替える)。
    ツールバーは1段のまま。溢れたら横スクロールするが、編集ロックとテーマは右端に貼り付くので見失わない */
 .ganttOnly,.matrixOnly{display:none}
@@ -1016,6 +1032,12 @@ body[data-view="matrix"] .matrixOnly{display:flex}
   position:sticky;right:0;margin-left:auto;display:flex;align-items:center;gap:10px;
   background:var(--panel);padding-left:14px;
 }
+/* 版の表示と更新の案内。普段は目立たせず、新しい版が出たときだけボタンを出す */
+#appVer{font-size:10px;color:var(--faint);margin-left:6px;font-variant-numeric:tabular-nums}
+#btnUpdate{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--accent);background:var(--accent);color:#fff}
+#btnUpdate[hidden]{display:none}
+#btnUpdate:hover{opacity:.88}
 /* 共有設定モーダル */
 .syncLead{font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 14px}
 .syncRow{display:flex;gap:8px;align-items:center}
@@ -1657,6 +1679,9 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     </div>
   </div>
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+  <!-- ここから下は「今見ているビューだけの設定」。共通のものと見分けがつくよう枠で囲う -->
+  <div class="viewTools" id="viewTools">
+  <span class="vtLabel" id="vtLabel">ガント</span>
   <div class="tgroup ganttOnly" id="ganttTools" title="ガントの表示設定です">
     <div class="scaleStepper" id="dayWStepper" title="1日あたりの表示幅を変更します">
       <button id="dayWDown" title="縮小">−</button>
@@ -1693,6 +1718,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   <div class="tgroup" title="台本ペインの表示/非表示です">
     <button class="btn" id="btnScript" onclick="toggleScriptPane()" title="台本ペインの表示/非表示">台本</button>
   </div>
+  </div><!-- /viewTools -->
   <!-- 編集ロックとテーマは右端に貼り付けておく。横に溢れてもスクロールで見失わないように -->
   <div class="headerRight">
     <button class="themeToggle" id="btnEditMode" onclick="toggleEditMode()" title="オフの間は、マトリクスのセル操作・ドラッグ操作(誤って触れやすい部分)を無効にします。タスク名やシーン名のクリックでの編集は常に可能です" aria-label="編集ロック切替">
@@ -1758,6 +1784,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   <span id="syncState" title="共有の状態"></span>
   <span class="sep" id="appNameSep"></span>
   <span id="appName">AA_ProductionBoard</span>
+  <span id="appVer" title="いま開いている版"></span>
+  <button id="btnUpdate" hidden title="新しい版が公開されています。押すと読み込み直します">新しい版があります</button>
 </footer>
 
 <!-- task modal -->
@@ -2353,6 +2381,9 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
 
 /* ================= 自動保存(Ganttのpersist/scheduleSaveと同じ方式でlocalStorageに保存)
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
+/* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
+   「相手が古い版を開いたままになっていないか」を判断するために使う */
+const APP_VERSION = "2026.08.02-58ce49d";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4913,6 +4944,7 @@ $("viewTabs").addEventListener("click", e=>{
   /* ガントは表示された瞬間に幅を測って描画する(非表示のままだと0幅で計算されてしまう) */
   document.body.classList.toggle("ganttView", e.target.dataset.view==="gantt");
   document.body.dataset.view = e.target.dataset.view;   /* ビュー専用ツールバーの出し分けに使う */
+  updateViewToolsLabel();
   state.ui.view = e.target.dataset.view;   /* リロードしても同じビューで開けるように覚えておく */
   persist();
   if(e.target.dataset.view==="gantt"){ Gantt.show(); renderUnscheduled(); }
@@ -4932,6 +4964,17 @@ document.querySelectorAll(".overlay").forEach(o=>{
   o.addEventListener("click", e=>{ if(e.target===o) o.classList.remove("open"); });
 });
 /* ツールバーのドロップダウン(ガントのsetupToolMenuと同じ:fixedパネルをボタン真下に配置) */
+/* ビュー固有ツールの左肩に、今のビュー名を出す。設定が無いビューでは枠ごと隠す */
+function updateViewToolsLabel(){
+  const v = document.body.dataset.view || "matrix";
+  const el = $("vtLabel"), box = $("viewTools");
+  if(!el || !box) return;
+  const tab = document.querySelector(`#viewTabs [data-view="${v}"]`);
+  el.textContent = tab ? tab.textContent : "";
+  /* 中身(表示中の道具)が無いなら枠は出さない */
+  const hasTools = [...box.querySelectorAll(".tgroup")].some(g=>getComputedStyle(g).display !== "none");
+  box.hidden = !hasTools;
+}
 function setupToolMenu(groupId, btnId, panelId){
   const group=$(groupId), btn=$(btnId), panel=$(panelId);
   btn.addEventListener("click", e=>{
@@ -10061,7 +10104,27 @@ return { show, render, dateAtClientX, snapInfo, dropContext, markPlacing, startB
 
 /* 前回開いていたビューを復元する。Gantt の初期化より後でないと Gantt.show() が呼べないので、
    起動処理(renderAll)ではなくここでやる */
+updateViewToolsLabel();
 applyEditMode();   /* Gantt の初期化後に、ロック状態をガント側へも行き渡らせる */
+
+/* 開いている版をフッターに出し、公開側がもっと新しければ知らせる。
+   ブラウザはHTMLを10分ほどキャッシュするので、黙っていると相手が古い版を使い続けてしまう */
+(function checkVersion(){
+  const el = $("appVer");
+  if(el) el.textContent = APP_VERSION === "dev" ? "" : APP_VERSION;
+  if(APP_VERSION === "dev" || location.protocol === "file:") return;
+  fetch(location.pathname + "?_v=" + Date.now(), {cache:"no-store"})
+    .then(r => r.ok ? r.text() : null)
+    .then(t => {
+      if(!t) return;
+      const m = t.match(/const APP_VERSION = "([^"]+)"/);
+      if(m && m[1] !== APP_VERSION){
+        const b = $("btnUpdate");
+        if(b){ b.hidden = false; b.onclick = ()=>location.replace(location.pathname + "?v=" + m[1]); }
+      }
+    })
+    .catch(()=>{});   /* 確認できなくても動作には影響させない */
+})();
 initSync();   /* 共有設定があれば接続して読み込む(無ければ何もしない) */
 
 (function restoreView(){
