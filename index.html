@@ -1691,7 +1691,10 @@ body.locked #view-gantt .phToggle{cursor:pointer}
 #view-gantt .bgfill{position:absolute;top:0;height:100%}
 #view-gantt .wsat{background:var(--wkSat)}
 #view-gantt .wsun{background:var(--wkSun)}
-#view-gantt #overlay{position:absolute;top:0;left:0;pointer-events:none;z-index:6}
+/* 今日の線などを載せる層。z-index を持つと独自の重なり文脈を作るので、
+   中の線の z-index をいくら上げても、この値より上には出られない。
+   マイルストーン行(24)より上・日付ヘッダー(30)より下に置く */
+#view-gantt #overlay{position:absolute;top:0;left:0;pointer-events:none;z-index:26}
 #view-gantt #hoverCol{position:absolute;top:0;pointer-events:none;z-index:1;background:var(--hovCol);display:none}
 #view-gantt #hoverDate{
   position:absolute;top:37px;transform:translateX(-50%);
@@ -1700,9 +1703,7 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   white-space:nowrap;z-index:5;
 }
 #view-gantt .vline{position:absolute;top:0;width:1px;height:100%}
-/* 今日の線は一番上に置く。マイルストーン行(sticky・z-index:24)が不透明なので、
-   それより下にあると線が途切れて見える。日付ヘッダー(30)より下には収める */
-#view-gantt .vline.today{background:var(--imp);opacity:1;width:2px;z-index:26}
+#view-gantt .vline.today{background:var(--imp);opacity:1;width:2px;z-index:2}
 #view-gantt .todayBand{position:absolute;top:0;height:100%;background:var(--todayCol);pointer-events:none}
 #view-gantt .eventBand{position:absolute;top:0;height:100%;background:rgba(var(--impRgb),.16);pointer-events:none;z-index:1}
 #view-gantt .todayFlag{
@@ -1843,8 +1844,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <button class="btn" onclick="newBoard()" title="現在の内容を消去して、新しい白紙のボードから始めます">新規作成</button>
       <div class="mpSep"></div>
       <button class="btn" id="miShareNew" onclick="openSyncModal('new')" title="いまのプロジェクトを、他の人と一緒に編集できるようにします">共有を開始…</button>
-      <button class="btn" id="miShareInfo" onclick="openSyncModal('info')" title="このプロジェクトのIDとパスワードを確認します" hidden>共有中の情報…</button>
-      <button class="btn" onclick="openSyncModal('join')" title="他の人のプロジェクトを開きます。いまの画面は置き換わります">共有プロジェクトを開く…</button>
+      <button class="btn" id="miShareInfo" onclick="openSyncModal('info')" title="いま開いている共有プロジェクトのIDとパスワードを確認します" hidden>この共有プロジェクトの情報…</button>
+      <button class="btn" id="miShareJoin" onclick="openSyncModal('join')" title="他の人のプロジェクトを開きます。いまの画面は置き換わります">共有プロジェクトを開く…</button>
       <button class="btn" onclick="openBackupModal()" title="自動で取っている控えから、以前の状態に戻します">自動バックアップ…</button>
       <div class="mpSep"></div>
       <!-- 手元のパソコンとのやり取り -->
@@ -2660,7 +2661,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-1f2ae4a";
+const APP_VERSION = "2026.08.02-73b1133";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5919,9 +5920,11 @@ function updateViewToolsLabel(){
    同じ項目を押したのに中身が違う、という状態を作らないため */
 function syncMenuState(){
   const on = syncEnabled();
-  const a = $("miShareNew"), b = $("miShareInfo");
+  const a = $("miShareNew"), b = $("miShareInfo"), c = $("miShareJoin");
   if(a) a.hidden = on;
   if(b) b.hidden = !on;
+  /* 共有中は「いま開いているもの」と紛れないよう「他の」を付ける */
+  if(c) c.textContent = on ? "他の共有プロジェクトを開く…" : "共有プロジェクトを開く…";
 }
 function setupToolMenu(groupId, btnId, panelId){
   const group=$(groupId), btn=$(btnId), panel=$(panelId);
