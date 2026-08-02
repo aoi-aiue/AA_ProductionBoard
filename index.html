@@ -794,8 +794,7 @@ footer{padding:6px 16px;border-top:1px solid var(--line);color:var(--faint);font
 /* 説明文だけが縮む。ボタンや状態表示は縮めない */
 footer > span:first-of-type{overflow:hidden;text-overflow:ellipsis;min-width:0}
 footer > :not(span:first-of-type){flex:none}
-/* 左下の共有設定。普段は目立たせない */
-#btnSyncFoot{flex:none;font-size:10.5px;padding:2px 9px;height:auto;line-height:1.7;border-radius:4px}
+
 
 @media print{
   body{background:#fff;overflow:visible;display:block}
@@ -1041,15 +1040,24 @@ body.dark #viewTabs button:hover{background:rgba(255,255,255,.07)}
 #viewTabs button.on{
   background:var(--panel);color:var(--text);font-weight:600;z-index:1;
 }
-/* 下端の左右を外へ膨らませる。半円を切り抜いた形をbox-shadowで作り、
-   タブとツールバーが1枚の面として繋がって見えるようにする */
+/* 下端の左右を外へ膨らませて、タブとツールバーが1枚の面として繋がって見えるようにする。
+   box-shadow で作ると角が四角く残って帯の上に見えてしまったので、
+   「白い10px角を置き、外側の角だけ円形にくり抜く」マスク方式にしてある */
 #viewTabs button.on::before,
 #viewTabs button.on::after{
   content:"";position:absolute;bottom:0;width:10px;height:10px;pointer-events:none;
-  background:transparent;
+  background:var(--panel);
 }
-#viewTabs button.on::before{left:-10px;border-bottom-right-radius:10px;box-shadow:5px 5px 0 5px var(--panel)}
-#viewTabs button.on::after{right:-10px;border-bottom-left-radius:10px;box-shadow:-5px 5px 0 5px var(--panel)}
+#viewTabs button.on::before{
+  left:-10px;
+  -webkit-mask-image:radial-gradient(circle 10px at 0 0,transparent 0 10px,#000 10px);
+          mask-image:radial-gradient(circle 10px at 0 0,transparent 0 10px,#000 10px);
+}
+#viewTabs button.on::after{
+  right:-10px;
+  -webkit-mask-image:radial-gradient(circle 10px at 100% 0,transparent 0 10px,#000 10px);
+          mask-image:radial-gradient(circle 10px at 100% 0,transparent 0 10px,#000 10px);
+}
 /* ヘッダーは上の角丸を持たない(タブと地続きにするため) */
 header{border-top:0}
 
@@ -1823,7 +1831,6 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 
 <footer>
-  <button class="btn" id="btnSyncFoot" onclick="openSyncModal()" title="同じボードを複数人で使うための設定">共有設定</button>
   <span>クリック=編集/セル切替/工程ピップ更新 ・ Shift+クリック=直前のセルとの間を塗りつぶす ・ ドラッグ=並び替え/伸縮/列幅調整 ・ 1〜5=ビュー切替 ・ D=台本表示 ・ Q/W/E=行の高さ(ガント) ・ Ctrl+Z(⌘Z)=元に戻す ・ Ctrl+Shift+Z=やり直し</span>
   <span class="spacer"></span>
   <span id="saveState"></span>
@@ -1970,6 +1977,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       </div>
     </div>
     <div class="mFoot">
+      <!-- 新しく始めるか、既にあるボードに参加するか。入口をここに並べる -->
+      <button class="btn" id="tSync" type="button" title="既にあるボードに参加する / 複数人で共有する設定">共有設定</button>
       <div class="spacer"></div>
       <button class="btn solid" id="tCancel">キャンセル</button>
       <button class="btn primary" id="tSave">保存</button>
@@ -2397,7 +2406,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-92d6e4d";
+const APP_VERSION = "2026.08.02-046c256";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5076,6 +5085,11 @@ function openSyncModal(){
 $("syNewId").onclick = ()=>{ $("syBoard").value = newBoardId(); };
 /* 編集中で保留になっていた他の人の変更を、本人のタイミングで反映する */
 if($("btnRemote")) $("btnRemote").onclick = ()=>{ if(_pendingRemote) applyRemote(_pendingRemote); };
+/* タイトル設定から共有設定へ。白紙で始めた人が「既にあるボードに参加する」を選べるようにする */
+if($("tSync")) $("tSync").onclick = ()=>{
+  $("titleModalOverlay").classList.remove("open");
+  openSyncModal();
+};
 $("sySOff").onclick = ()=>{
   localStorage.removeItem(SYNC_KEY);
   stopSyncStream();
