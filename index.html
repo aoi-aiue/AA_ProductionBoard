@@ -1795,13 +1795,14 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <div class="menuPanel" id="openMenuPanel">
       <button class="btn" onclick="newBoard()" title="現在の内容を消去して、新しい白紙のボードから始めます">新規作成</button>
       <div class="mpSep"></div>
-      <button class="btn" onclick="document.getElementById('importFile').click()" title="保存したファイル(JSON)を読み込んで復元します">ファイルから開く</button>
       <button class="btn" onclick="openScriptTextModal()" title="台本テキストを貼り付け・読み込みます">台本取込</button>
       <button class="btn" onclick="openAiImportModal()" title="AIに台本を分析させた結果(JSON)を取り込みます">AI台本取込</button>
       <div class="mpSep"></div>
       <button class="btn" onclick="openSyncModal()" title="他の人と同じ画面で編集できるようにします">共有…</button>
       <div class="mpSep"></div>
-      <button class="btn" onclick="exportJSON()" title="編集を再開できるデータファイルとして保存します">ファイルに保存</button>
+      <!-- 手元のパソコンとのやり取り。普段は共有で完結するので、まとめて一番下に置く -->
+      <button class="btn" onclick="document.getElementById('importFile').click()" title="保存しておいたファイル(JSON)を読み込んで復元します">ローカルから開く</button>
+      <button class="btn" onclick="exportJSON()" title="いまの内容をファイル(JSON)として手元に保存します">ローカルに保存</button>
     </div>
   </div>
   <div class="sep"></div>
@@ -2553,7 +2554,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-6dd314b";
+const APP_VERSION = "2026.08.02-0d2ac20";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10609,7 +10610,7 @@ $("#shortcutsBtn").onclick=()=>{
       <div class="scRow"><span class="scKey">Ctrl+Shift+D(⌘⇧D)</span><span>マウスオーバー中の日付で、タスク／期間マイルストーンを2本に分割</span></div>
       <div class="scRow"><span class="scKey">Ctrl+A(⌘A)</span><span>タスクとマイルストーンをすべて選択</span></div>
       <div class="scRow"><span class="scKey">← ・ →</span><span>タスク／マイルストーンの日付を1日ずつ移動(Shiftで1週間 ／ Altで終了日だけ動かして長さを変更)</span></div>
-      <div class="scRow"><span class="scKey">Ctrl+S(⌘S)</span><span>ファイルに保存(データを書き出す)</span></div>
+      <div class="scRow"><span class="scKey">Ctrl+S(⌘S)</span><span>ローカルに保存(データを書き出す)</span></div>
       <div class="scRow"><span class="scKey">[ ・ ]</span><span>マウスオーバー中の日付を、タスク／マイルストーンの開始日・終了日に設定(長さが変わる)</span></div>
       <div class="scRow"><span class="scKey">+ ・ −</span><span>横幅(1日あたりの表示幅)を拡大・縮小</span></div>
       <div class="scRow"><span class="scKey">1 ・ 2 ・ 3</span><span>行の高さを 低／中／高 に切り替え</span></div>
