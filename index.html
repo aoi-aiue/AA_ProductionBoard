@@ -950,7 +950,8 @@ body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
 /* ガントの作業量(LMS)バッジ。左の行はビュー共通の .size-badge、バー内は下地が濃いので白抜き */
 #view-gantt .gsz{flex:none;font-size:var(--tagFs,9.5px);line-height:var(--tagLh,1.6);padding:0;width:18px}
 /* バー内のLMSはタスク名より控えめに。左の行や置き場のバッジより一回り小さくする */
-#view-gantt .bsz{flex:none;font-size:calc(var(--tagFs,9.5px) - 0.5px);font-weight:700;line-height:1.35;text-align:center;
+#view-gantt .bsz{flex:none;font-size:calc(var(--tagFs,9.5px) - 0.5px);font-weight:700;text-align:center;
+  height:var(--tagH,14px);line-height:calc(var(--tagH,14px) - 2px);
   width:15px;box-sizing:border-box;padding:0;border-radius:2px;border:1px solid rgba(255,255,255,.45);color:#fff;
   margin-left:3px;margin-right:-1px}
 /* バーの外に出したとき(下地が背景色)は、他のビューと同じ控えめな配色にし、少し大きくする */
@@ -1470,7 +1471,7 @@ body.fit #view-gantt #rpane{overflow-x:hidden}
 #view-gantt .bcat{
   flex:none;display:inline-flex;align-items:center;gap:calc(var(--tagPadX,6px) - 2px);
   background:rgba(255,255,255,.85);color:#2A2E33;font-size:var(--tagFs,9px);font-weight:600;
-  border-radius:3px;padding:0 calc(var(--tagPadX,6px) - 1px);height:calc(var(--tagFs,9px) + 5px);
+  border-radius:3px;padding:0 calc(var(--tagPadX,6px) - 1px);height:var(--tagH,14px);
   max-width:150px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
@@ -1693,7 +1694,9 @@ body.locked #view-gantt .msband .h{display:none}
   max-width:calc(100% - 12px);overflow:hidden;padding:2px;z-index:2;
   will-change:transform;
 }
-#view-gantt .bar .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;min-width:0}
+/* line-height:normal だと行ボックスが17pxの奇数になり、偶数のバー高の中央に置くと
+   0.5px単位の位置になって下寄りに見える。偶数に固定して常に整数の位置に載せる */
+#view-gantt .bar .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;min-width:0;line-height:16px}
 #view-gantt .bavstack{display:flex;align-items:center;flex:none}
 #view-gantt .bavstack img{
   width:calc(var(--barH) - 6px);height:calc(var(--barH) - 6px);border-radius:99px;
@@ -1958,7 +1961,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <button data-d="m" class="on">中</button>
       <button data-d="l">高</button>
     </div>
-    <button class="btn" id="btnUnsched" title="日程未定タスクの置き場を表示/非表示します">日程未定タスクを開く</button>
+    <button class="btn" id="btnUnsched" title="日程未定タスクの置き場を表示/非表示します">日程未定タスク</button>
   </div>
   <div class="tgroup matrixOnly" title="タスクの並び順です。元(手動)=手動配置に戻します">
     <select id="sortSel" onchange="setSortMode(this.value)">
@@ -2737,7 +2740,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.03-a2dfcc8";
+const APP_VERSION = "2026.08.03-7cf9138";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10673,7 +10676,9 @@ document.addEventListener("click",e=>{
 $("#btnMembers").onclick=openMembersModal;
 $("#btnCats").onclick=openCatsModal;
 $("#btnText").onclick=openTextModal;
-const DENS={s:{row:24,bar:18,av:16,phase:19,fs:11,tagFs:8,tagPadX:4,tagLh:1.45},m:{row:30,bar:22,av:19,phase:22,fs:12.5,tagFs:9,tagPadX:6,tagLh:1.6},l:{row:40,bar:28,av:23,phase:27,fs:13.5,tagFs:9.5,tagPadX:7,tagLh:1.75}};
+/* tagH: バー内のタグ・LMSの高さ。バーの高さ(18/22/28)が偶数なので、ここも偶数にしておく。
+   奇数・小数だと上下中央に置いたときに0.5px単位の位置になり、丸められて下寄りに見える */
+const DENS={s:{row:24,bar:18,av:16,phase:19,fs:11,tagFs:8,tagPadX:4,tagLh:1.45,tagH:12},m:{row:30,bar:22,av:19,phase:22,fs:12.5,tagFs:9,tagPadX:6,tagLh:1.6,tagH:14},l:{row:40,bar:28,av:23,phase:27,fs:13.5,tagFs:9.5,tagPadX:7,tagLh:1.75,tagH:14}};
 /* 選択中のボタンに合わせてインジケーターを配置する(アニメーションなし、即座に切り替え) */
 function updateSegThumb(seg){
   const thumb=seg.querySelector(".seg-thumb");
@@ -10693,6 +10698,7 @@ function applyDensity(){
   rt.setProperty("--tagFs",(v.tagFs||9.5)+"px");
   rt.setProperty("--tagPadX",(v.tagPadX||6)+"px");
   rt.setProperty("--tagLh",(v.tagLh||1.6));
+  rt.setProperty("--tagH",(v.tagH||14)+"px");
   document.querySelectorAll("#densSeg button").forEach(b=>b.classList.toggle("on",b.dataset.d===d));
   updateSegThumb($("#densSeg"));
 }
