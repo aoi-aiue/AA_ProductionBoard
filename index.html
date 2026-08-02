@@ -1247,7 +1247,10 @@ body.dark #syncState.warn{color:#F0A882}
 .bkMeta{font-size:10px;color:var(--muted)}
 /* ようこそ画面。最初に目に入る画面なので、中央寄せで大きめに */
 /* .modal h2 の方が詳細度が高いので、h2 を含めて上書きしないと級数が効かない */
-.modal h2.wcTitle{font-size:27px;text-align:center;margin:10px 0 16px;letter-spacing:.01em}
+.modal h2.wcTitle{font-size:27px;text-align:center;margin:10px 0 16px;letter-spacing:.01em;
+  display:flex;align-items:center;justify-content:center;gap:10px}
+/* アイコンは文字に合わせて拡縮させる(級数を変えたときに置き直さなくて済むように) */
+.wcIcon{width:1.15em;height:1.15em;flex:0 0 auto}
 .wcLead{font-size:13px;line-height:1.9;color:var(--muted);text-align:center;margin:0 0 26px;
   max-width:600px;margin-left:auto;margin-right:auto}
 /* 「あなたは誰か」の選択 */
@@ -2170,6 +2173,24 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       </div>
     </div>
     <div class="field">
+      <label>基準日の種類</label>
+      <div class="aiModeCards" id="tDateMode">
+        <button type="button" data-m="event">
+          <span class="amTitle">本番日</span>
+          <span class="amDesc">イベント・公演・展示など、当日が決まっているもの</span>
+        </button>
+        <button type="button" data-m="delivery">
+          <span class="amTitle">納品日</span>
+          <span class="amDesc">成果物を納める締切が決まっているもの</span>
+        </button>
+      </div>
+    </div>
+    <div class="mRow">
+      <div class="field" style="flex:1"><label id="tEvSLabel">本番日(空欄で非表示)</label><input type="date" id="tEvS"></div>
+      <div class="field" style="flex:1"><label>終了日(任意・期間の場合)</label><input type="date" id="tEvE"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin:-4px 0 12px">設定すると、ヘッダーに残り日数が表示されます。初めて設定したときは、今日から基準日までを分けた下書きのタスクも作られます</div>
+    <div class="field">
       <label>ヘッダー画像(任意・横長推奨)</label>
       <div id="tImgPrev" style="border:1px solid var(--line);border-radius:6px;overflow:hidden;height:90px;background:var(--hover);display:flex;align-items:center;justify-content:center;margin-bottom:8px"></div>
       <div class="mRow">
@@ -2268,7 +2289,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 <div class="overlay" id="welcomeOverlay">
   <div class="modal" style="width:min(720px,94vw)">
-    <h2 class="wcTitle">AA_ProductionBoard へようこそ</h2>
+    <h2 class="wcTitle"><img class="wcIcon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='10' height='8' rx='2' fill='%234A6FA5'/%3E%3Crect x='17' y='6' width='11' height='8' rx='2' fill='%237A5CA0'/%3E%3Crect x='4' y='18' width='17' height='8' rx='2' fill='%233E8A80'/%3E%3C/svg%3E" alt="">AA_ProductionBoard</h2>
     <p class="wcLead">VRChat向けのワールド制作をガントチャートや場面別、カードビュー等で管理するツールです。<br>複数人での同時編集も可能です。</p>
     <div class="aiModeCards syncMode" id="wcMode">
       <button type="button" data-w="new">
@@ -2703,7 +2724,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-824eae4";
+const APP_VERSION = "2026.08.02-e6793bc";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5699,14 +5720,43 @@ function renderTImgPrev(){
   $("tImgDel").style.display = state.headerImg ? "" : "none";
 }
 let _tUnit = "scene";
-function openTitleModal(){
+let _tDateMode = "event"; /* event(本番日) / delivery(納品日) */
+/* 日付は "YYYY-MM-DD" の文字列で持つ。この形式なら文字列比較がそのまま日付の前後比較になる */
+const isoOf = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const isoToday = () => { const d=new Date(); d.setHours(0,0,0,0); return isoOf(d); };
+const isoParse = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y, m-1, d); };
+const isoAddDays = (s,n) => { const d=isoParse(s); d.setDate(d.getDate()+n); return isoOf(d); };
+const isoDiffDays = (a,b) => Math.round((isoParse(b)-isoParse(a))/86400000);
+const plusMonths = n => { const d=new Date(); d.setHours(0,0,0,0); d.setMonth(d.getMonth()+n); return isoOf(d); };
+/* isNew=true(新規作成の直後)のときだけ、基準日に2ヶ月後を入れておく。
+   ここを空のままにすると初期タスクが作られず、まっさらな画面から始まってしまうため */
+function openTitleModal(isNew){
   $("tName").value = state.project || "";
   _tUnit = state.ui.unit || "scene";
   $("tUnitSeg").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.u===_tUnit));
+  _tDateMode = state.dateMode==="delivery" ? "delivery" : "event";
+  applyDateModeUI();
+  $("tEvS").value = state.eventDate || (isNew ? plusMonths(2) : "");
+  $("tEvE").value = state.eventEndDate || "";
   renderTImgPrev();
   $("titleModalOverlay").classList.add("open");
   $("tName").focus();
 }
+function applyDateModeUI(){
+  $("tDateMode").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.m===_tDateMode));
+  $("tEvSLabel").textContent = (_tDateMode==="delivery"?"納品":"本番") + "日(空欄で非表示)";
+}
+$("tDateMode").addEventListener("click", e=>{
+  const btn = e.target.closest("button[data-m]");
+  if(!btn) return;
+  _tDateMode = btn.dataset.m;
+  applyDateModeUI();
+});
+/* 終了日だけ先に触ったときは、基準日の翌日を入れておく(期間の入力を始めやすくする) */
+$("tEvE").addEventListener("focus", ()=>{
+  const s = $("tEvS").value;
+  if(!$("tEvE").value && s) $("tEvE").value = isoAddDays(s, 1);
+});
 $("tUnitSeg").addEventListener("click", e=>{
   const btn = e.target.closest("button[data-u]");
   if(!btn) return;
@@ -5720,17 +5770,98 @@ $("titleModalOverlay").addEventListener("keydown", e=>{
     $("tSave").click();
   }
 });
-$("titleBtn").onclick = openTitleModal;
+/* 引数無しで呼ぶこと。そのまま渡すとクリックイベントが isNew に入り、
+   既存プロジェクトなのに基準日が勝手に入ってしまう */
+$("titleBtn").onclick = ()=>openTitleModal();
 $("tCancel").onclick = closeTitleModal;
 $("tImgPick").onclick = ()=>$("hdrFile").click();
 $("tImgDel").onclick = ()=>{ delete state.headerImg; renderTImgPrev(); };
 $("tSave").onclick = ()=>{
   state.project = $("tName").value.trim();
   state.ui.unit = _tUnit;
+  let evs = $("tEvS").value, eve = $("tEvE").value;
+  const hadEventDate = !!state.eventDate;
+  const oldBase = state.dateMode==="delivery" ? "納品" : "本番";
+  const newBase = _tDateMode==="delivery" ? "納品" : "本番";
+  state.dateMode = _tDateMode;
+  if(newBase !== oldBase) renameEventItems(oldBase, newBase);
+  let seeded = false;
+  if(evs){
+    if(eve && eve < evs) [evs, eve] = [eve, evs]; /* 逆に入れられていたら入れ替える */
+    if(!hadEventDate) seeded = seedStarterTasks(evs, eve, newBase);
+    state.eventDate = evs;
+    state.eventEndDate = eve || "";
+    /* 基準日のタスクの日付は、ここからしか変えられない(バーは動かせないようにしてある) */
+    state.tasks.forEach(t=>{ if(t.evLock){ t.start = evs; t.end = eve || evs; } });
+  }else{
+    state.eventDate = ""; state.eventEndDate = "";
+  }
   applyUnitLabels();
+  applyTitleBar();
   closeTitleModal();
   renderAll();
+  /* 自動生成した下書きが画面に収まるように、ガントの表示範囲を合わせる */
+  if(seeded && typeof Gantt!=="undefined" && Gantt.fitView) Gantt.fitView();
 };
+/* 本番日⇄納品日を切り替えたとき、既定名のままの基準日タスクと専用フェイズも呼称を付け替える
+   (名前を変えているものは触らない) */
+function renameEventItems(oldBase, newBase){
+  const evPhases = new Set(state.tasks.filter(t=>t.evLock).map(t=>t.phase||""));
+  const taken = new Set(state.phases.filter(p=>!evPhases.has(p))); /* 通常フェイズ名とは衝突させない */
+  const rename = {};
+  evPhases.forEach(p=>{
+    if(p && p.startsWith(oldBase+"日")){
+      const np = newBase + "日" + p.slice((oldBase+"日").length);
+      if(!taken.has(np)){ rename[p] = np; taken.add(np); }
+    }
+  });
+  state.phases = state.phases.map(p=>rename[p]!==undefined ? rename[p] : p);
+  state.tasks.forEach(t=>{
+    if(!t.evLock) return;
+    if(t.name === oldBase+"日") t.name = newBase + "日";
+    if(rename[t.phase||""] !== undefined) t.phase = rename[t.phase||""];
+  });
+}
+/* 基準日を初めて設定したときの下書き。旧ガントと同じ考え方で、
+   「今日〜基準日の前日」を3分割したタスクと、基準日当日のタスクを置く。
+   まっさらな画面を見せないためのもので、中身は空のまま(名前だけ連番) */
+function seedStarterTasks(evs, eve, base){
+  const t0 = isoToday();
+  const prepDays = isoDiffDays(t0, evs);
+  const basePhase = state.phases.length ? state.phases[0] : "フェイズ1";
+  if(!state.phases.includes(basePhase)) state.phases.push(basePhase);
+  const made = [];
+  if(prepDays > 0){
+    /* 期間が短い(10日以内)ときは細切れにしても意味が無いので1本にまとめる。
+       3で割り切れない端数は先頭のタスクから1日ずつ足す */
+    const n = prepDays<=10 ? 1 : 3;
+    const q = Math.floor(prepDays/n), rem = prepDays % n;
+    let cur = t0;
+    for(let i=0;i<n;i++){
+      const len = q + (i<rem ? 1 : 0);
+      if(len <= 0) continue;
+      const en = isoAddDays(cur, len-1);
+      const t = normalizeTask({name:`タスク${made.length+1}`, priority:1, phase:basePhase, start:cur, end:en});
+      state.tasks.push(t); made.push(t);
+      cur = isoAddDays(en, 1);
+    }
+  }
+  /* 使い方が伝わるよう、マイルストーンの例も置いておく(3分割できたときだけ)。
+     2本目のタスクの初日に単日、そこから3本目の最終日までを期間として置く */
+  if(made.length >= 3){
+    state.milestones.push({id:uid("ms"), name:"マイルストーン", date:made[1].start});
+    state.milestones.push({id:uid("ms"), name:"マイルストーン(期間)", date:made[1].start, end:made[2].end, imp:2});
+    state.milestones.sort((a,b)=>a.date<b.date ? -1 : 1);
+  }
+  /* 基準日のタスクは動かされると困るので、専用フェイズに分けて evLock で固定する。
+     フェイズ名は識別子も兼ねるため、重複するときだけ連番を付ける */
+  let evPhase = base + "日";
+  for(let i=2; state.phases.includes(evPhase); i++) evPhase = base + "日" + i;
+  state.phases.push(evPhase);
+  state.tasks.push(normalizeTask({name:base+"日", noAsg:true, priority:3, phase:evPhase,
+    start:evs, end:eve||evs, evLock:true}));
+  return true;
+}
 $("hdrFile").addEventListener("change", async e=>{
   const f = e.target.files[0]; e.target.value = "";
   if(!f) return;
@@ -5751,25 +5882,13 @@ function newBoard(){
     return;
   }
   if(!confirm("現在の内容をすべて消去して、新規作成しますか?\n(誤って押しても Ctrl+Z で元に戻せます)")) return;
-  sampleBoard();
+  blankBoard();
 }
 function blankBoard(){
   state = {...emptyBoard(), ui: state.ui}; /* 名前列の幅などの表示設定はそのまま引き継ぐ */
   renderScriptPane();
   renderAll();
-  openTitleModal();
-}
-/* 新規作成は白紙ではなくサンプル入りで始める。
-   まっさらだと何ができるツールなのか分からないため(旧ガントもこの挙動だった)。
-   「白紙にする」を選んだときだけは blankBoard() のまま。あちらは文言どおり空にする約束なので */
-function sampleBoard(){
-  state = {...JSON.parse(JSON.stringify(SAMPLE_DATA)), ui: state.ui};
-  normalizeState();
-  applyTitleBar();
-  applyUnitLabels();
-  renderScriptPane();
-  renderAll();
-  openTitleModal();
+  openTitleModal(true); /* 新規作成直後はタイトル設定から。基準日は2ヶ月後を入れておく */
 }
 $("nbMode").addEventListener("click", e=>{
   const b = e.target.closest("button[data-nb]");
@@ -5782,7 +5901,7 @@ $("nbMode").addEventListener("click", e=>{
     presenceLeave(); stopPresence(); stopSyncStream();
     syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
     setSyncStatus("このパソコンのみ");
-    sampleBoard();
+    blankBoard();
   }else{
     const nm = state.project || "このプロジェクト";
     if(!confirm(`「${nm}」を白紙にします。\n\n共有している人全員の画面も白紙になります。\n本当によろしいですか?`)) return;
@@ -6191,7 +6310,7 @@ $("wcMode").addEventListener("click", e=>{
     openSyncModal("join");
     $("syBoard").value = ""; syncModeUI();
   }else{
-    sampleBoard();
+    blankBoard();
   }
 });
 
@@ -11391,6 +11510,8 @@ return { show, render, dateAtClientX, snapInfo, dropContext, markPlacing, startB
   /* ツールバーの「追加」から呼ぶ。フェイズとマイルストーンはガントだけの概念 */
   addPhase: ()=>openPhaseModal(null),
   addMilestone: ()=>openMsModal(null), _internal: { data, wrapTask, hasDates },
+  /* 統合版が初期タスクを作った直後に、それが全部見えるよう表示範囲を合わせる */
+  fitView: fitViewToContent,
   /* 不具合調査用。モジュール内部の状態を外から覗く */
   _debug: () => ({ editMode, hoverTid: _hoverTid, hoverMid: _hoverMid,
     sel: selectedTaskIds.size, selMs: selectedMsIds.size, zoom,
