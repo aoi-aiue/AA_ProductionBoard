@@ -2281,7 +2281,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
         <label>パスワード <span class="fHint">6文字以上。参加者全員で同じものを使います。中身はこれで暗号化されます</span></label>
         <input type="password" id="syPass" placeholder="6文字以上" autocomplete="off">
       </div>
-      <label class="chk"><input type="checkbox" id="syRemember"><span>このパソコンにパスワードを覚えさせる(共用のパソコンでは外してください)</span></label>
+      <label class="chk"><input type="checkbox" id="syRemember"><span>プロジェクトIDとパスワードを保存する</span></label>
       <details class="syncAdv">
         <summary>詳しい設定(通常は不要)</summary>
         <div class="field" style="margin:10px 0 0">
@@ -2656,7 +2656,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-8405416";
+const APP_VERSION = "2026.08.02-93cc626";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
