@@ -1019,10 +1019,10 @@ body.locked .scChip{cursor:default}
    地続きに見える。下端の左右は擬似要素+box-shadowで外側へ膨らませ、Chromeのタブ形状にしている */
 #tabStrip{
   display:flex;align-items:flex-end;gap:2px;
-  padding:5px 14px 0;background:var(--tabBand,#EDEFF2);
+  padding:6px 14px 0;background:var(--tabBand,#D8DDE3);
   border-bottom:0;overflow:visible;
 }
-body.dark #tabStrip{background:#0B0E11}
+body.dark #tabStrip{background:#07090B}
 #viewTabs{
   display:flex;align-items:flex-end;gap:2px;position:static;
   border:0;background:none;border-radius:0;overflow:visible;height:auto;
@@ -1031,10 +1031,11 @@ body.dark #tabStrip{background:#0B0E11}
 #viewTabs button{
   position:relative;height:auto;padding:7px 16px 8px;line-height:1.4;font-size:12px;
   border:0;border-radius:9px 9px 0 0;background:transparent;color:var(--muted);
-  max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  white-space:nowrap;
+  /* overflow:hidden は付けないこと。下端のカーブ(::before/::after)を自分で切ってしまう */
   transition:background .12s,color .12s;
 }
-#viewTabs button:hover{background:rgba(255,255,255,.5);color:var(--text)}
+#viewTabs button:hover{background:rgba(255,255,255,.55);color:var(--text)}
 body.dark #viewTabs button:hover{background:rgba(255,255,255,.07)}
 /* 選択中: 下のツールバーと同じ色。両端を外へ膨らませて「繋がっている」形にする */
 #viewTabs button.on{
@@ -2396,7 +2397,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-95f8990";
+const APP_VERSION = "2026.08.02-92d6e4d";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
