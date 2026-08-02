@@ -2127,6 +2127,23 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <div class="mFoot"><div class="spacer"></div><button class="btn solid" onclick="document.getElementById('keysOverlay').classList.remove('open')">閉じる</button></div>
   </div>
 </div>
+<!-- 初回だけ出る入口。作るのか、誰かのに参加するのかをまず選ぶ -->
+<div class="overlay" id="welcomeOverlay">
+  <div class="modal" style="width:min(560px,94vw)">
+    <h2>AA_ProductionBoard へようこそ</h2>
+    <p class="syncLead">イベント制作の進行を、タスク・シーン・ガントの3つの見方で管理します。<br>まず、どちらから始めるか選んでください。</p>
+    <div class="aiModeCards syncMode" id="wcMode">
+      <button type="button" data-w="new">
+        <span class="amTitle">新しく作る</span>
+        <span class="amDesc">これから始めるプロジェクト。あとから他の人を招くこともできます</span>
+      </button>
+      <button type="button" data-w="join">
+        <span class="amTitle">共有中のプロジェクトを開く</span>
+        <span class="amDesc">誘われたプロジェクトに参加します。IDとパスワードを教わってください</span>
+      </button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="syncOverlay">
   <div class="modal" style="width:min(560px,94vw)">
     <h2>共有</h2>
@@ -2536,7 +2553,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-7649b29";
+const APP_VERSION = "2026.08.02-6dd314b";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5589,6 +5606,21 @@ function setupToolMenu(groupId, btnId, panelId){
   });
   panel.querySelectorAll(".btn").forEach(b=>b.addEventListener("click", ()=>group.classList.remove("open")));
 }
+/* 初回の入口。作るのか、誰かのプロジェクトに参加するのかをまず選ばせる。
+   このツールは複数人で使うのが前提なので、参加の道を最初から見せておく */
+function openWelcome(){ $("welcomeOverlay").classList.add("open"); }
+$("wcMode").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-w]");
+  if(!b) return;
+  $("welcomeOverlay").classList.remove("open");
+  if(b.dataset.w === "join"){
+    openSyncModal();
+    _syMode = "join"; $("syBoard").value = ""; syncModeUI();
+  }else{
+    openTitleModal();
+  }
+});
+
 /* --- 共有設定モーダル ---
    「新しく始める」と「参加する」を最初に選ばせる。同じ入力欄でも、
    何をしようとしているかで意味が変わる(IDは発行するのか、教わったものを貼るのか)ため */
@@ -10782,7 +10814,7 @@ applyEditMode();   /* Gantt の初期化後に、ロック状態をガント側�
 Promise.resolve(initSync()).then(()=>{
   showLocalOnlyHint();
   const empty = !state.project && !state.tasks.length && !state.scenes.length;
-  if(empty && !document.querySelector(".overlay.open")) openTitleModal();
+  if(empty && !document.querySelector(".overlay.open")) openWelcome();
 });
 
 (function restoreView(){
