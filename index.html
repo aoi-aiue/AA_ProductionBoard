@@ -2554,7 +2554,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-0d2ac20";
+const APP_VERSION = "2026.08.02-68ade8f";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2778,10 +2778,19 @@ function setSyncStatus(txt, warn){
 }
 
 /* --- 送信。persist() から呼ばれる(まとめて1回にするため遅延させる) --- */
+/* 送信の間隔。連続した変更(文字入力など)はまとめたいが、
+   ドラッグを離した後のような「一区切りついた変更」まで待たされると、
+   相手のカーソルだけ動いて中身が遅れて見える。
+   しばらく送っていなければすぐ送り、続けざまの変更だけまとめる */
+let _lastPushAt = 0;
+const PUSH_IDLE_MS = 2000;   /* これだけ間が空いていれば「一区切り」とみなす */
+const PUSH_QUICK_MS = 80;    /* 同じ処理内の複数の書き換えをまとめる程度の待ち */
+const PUSH_BATCH_MS = 900;   /* 連続して変えているときの間隔 */
 function syncPush(){
   if(!syncEnabled()) return;
   clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(doSyncPush, 1200);
+  const idle = Date.now() - _lastPushAt > PUSH_IDLE_MS;
+  _syncTimer = setTimeout(doSyncPush, idle ? PUSH_QUICK_MS : PUSH_BATCH_MS);
 }
 async function doSyncPush(){
   /* 予約を消してから走る。ここで消さないと「送信待ち」が永久に真のままになり、
@@ -2789,6 +2798,7 @@ async function doSyncPush(){
      (一度でも自分が変更すると受信が止まる、という形で表面化した) */
   clearTimeout(_syncTimer); _syncTimer = null;
   if(!syncEnabled()) return;
+  _lastPushAt = Date.now();
   try{
     setSyncStatus("送信中…");
     /* 送る前に、自分が読んだ後で誰かが書いていないか確かめる。
