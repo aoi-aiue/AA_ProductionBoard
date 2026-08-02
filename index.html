@@ -1434,6 +1434,12 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 #view-gantt .rrow.phase.hov .phaseSummaryStart{opacity:1}
 #view-gantt .rrow.phase.hov .phaseSummaryLabel{color:var(--text)}
 #view-gantt .lrow.phase.hov .pbar{background:var(--text)}
+/* マイルストーンの行は縦スクロールしても日付ヘッダーのすぐ下に留める。
+   右ペインは素直に sticky が効くが、左ペインは #lbody 全体を transform で動かしているので
+   sticky が効かない。スクロール量ぶん逆に動かして相殺する(pinMsRow) */
+#view-gantt .rrow.ms{position:sticky;top:var(--headH);z-index:24;background:var(--panel)}
+#view-gantt .lrow.ms{position:relative;z-index:24;background:var(--panel)}
+#view-gantt.vscrolled .rrow.ms,#view-gantt.vscrolled .lrow.ms{box-shadow:0 3px 6px -4px rgba(20,29,40,.35)}
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
 #view-gantt .dia{
   position:absolute;width:9px;height:9px;background:var(--text);
@@ -2483,7 +2489,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-2812f28";
+const APP_VERSION = "2026.08.02-a732788";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -7320,6 +7326,7 @@ function render(){
     }
     pairHover(lms,rms);
     lbody.appendChild(lms);rinner.appendChild(rms);
+    pinMsRow();
   }
 
   /* ---- task groups ---- */
@@ -10080,9 +10087,15 @@ function scheduleStickyUpdate(){
   _stickyLoopActive=true;
   requestAnimationFrame(stickyLoop);
 }
+/* 左ペインのマイルストーン行を、#lbody の移動ぶん戻して見た目上その場に留める */
+function pinMsRow(){
+  const g=$("#rpane"), ms=$("#lbody").querySelector(".lrow.ms");
+  if(ms) ms.style.transform=`translateY(${g.scrollTop}px)`;
+}
 $("#rpane").addEventListener("scroll",()=>{
   const g=$("#rpane");
   $("#lbody").style.transform=`translateY(${-g.scrollTop}px)`;
+  pinMsRow();
   const gt=$("#gantt");
   gt.classList.toggle("hscrolled",g.scrollLeft>2);
   gt.classList.toggle("vscrolled",g.scrollTop>2);
