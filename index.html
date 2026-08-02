@@ -136,7 +136,8 @@ body.themeSwitching,body.themeSwitching *{
 #titleBar.hasImg #titleBtn:hover #titleOverlay{background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.2) 55%,rgba(0,0,0,0) 100%)}
 /* 右上に縦並びで置く小物(進捗表示・暫定ボタン)のまとめ */
 #titleTools{
-  position:absolute;top:14px;right:18px;z-index:2;
+  /* 右端はツールバーの padding(16px)に合わせる。ここだけ18pxで2pxずれていた */
+  position:absolute;top:10px;right:16px;z-index:2;
   display:flex;flex-direction:column;align-items:flex-end;gap:7px;
 }
 #titleMeta{
@@ -237,7 +238,11 @@ body.dark .mfItem.on{background:var(--hover)}
 .mfCnt{flex:none;font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
 .mfFoot{margin-top:4px;padding-top:5px;border-top:1px solid var(--line)}
 .mxFiltNote{margin-left:6px;color:var(--faint);font-size:10px}
-#mfBtn{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;line-height:24px}
+/* 担当者の絞り込み。目のマークで「表示を絞る」ことだと分かるようにする */
+#mfBtn{display:flex;align-items:center;gap:5px}
+.mfEye{flex:none;opacity:.75}
+#mfBtn.solid .mfEye{opacity:1}
+#mfBtnTxt{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 編集ロックのトグル(テーマ切替トグルと全く同じ造形。アイコンだけ錠前に差し替え)
    ロック中(既定)は誤操作防止中であることが一目でわかるよう、背景に色を付ける */
 #btnEditMode{background:#E5392C;border-color:transparent}
@@ -811,8 +816,9 @@ body.dark .chip.on{background:rgba(91,155,230,.14)}
 footer{padding:4px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:10.5px;display:flex;gap:12px;
   flex-wrap:nowrap;background:var(--panel);align-items:center;overflow:hidden;white-space:nowrap}
 /* 説明文だけが縮む。ボタンや状態表示は縮めない */
-footer > span:first-of-type{overflow:hidden;text-overflow:ellipsis;min-width:0}
-footer > :not(span:first-of-type){flex:none}
+footer > *{flex:none}
+footer .spacer{flex:1}
+#btnKeys{font-size:10.5px;padding:2px 9px;height:auto;line-height:1.7;border-radius:4px}
 
 
 @media print{
@@ -1037,7 +1043,7 @@ body.locked .scChip{cursor:default}
    地続きに見える。下端の左右は擬似要素+box-shadowで外側へ膨らませ、Chromeのタブ形状にしている */
 #tabStrip{
   display:flex;align-items:center;gap:2px;
-  padding:4px 12px 0;background:var(--tabBand,#D8DDE3);
+  padding:4px 16px 0;background:var(--tabBand,#D8DDE3);   /* 右端をツールバーと揃える */
   border-bottom:0;overflow:visible;
 }
 body.dark #tabStrip{background:#07090B}
@@ -1105,7 +1111,7 @@ body[data-view="matrix"] .matrixOnly{display:flex}
   background:var(--panel);padding-left:14px;
 }
 /* 版の表示と更新の案内。普段は目立たせず、新しい版が出たときだけボタンを出す */
-#appVer{font-size:10px;color:var(--faint);margin-left:6px;font-variant-numeric:tabular-nums}
+#appVer{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
 #btnUpdate{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
   border:1px solid var(--accent);background:var(--accent);color:#fff}
 #btnUpdate[hidden]{display:none}
@@ -1122,27 +1128,52 @@ body[data-view="matrix"] .matrixOnly{display:flex}
 /* いま開いている人。タブ列の右に小さく並べる */
 /* メンバーの並び替え */
 .memItem{position:relative}
-.memGrip{flex:none;color:var(--faint);cursor:grab;font-size:12px;line-height:1;user-select:none;padding:0 2px}
+/* .memItem span{flex:1} が効いてしまい掴み手が横いっぱいに広がっていたので、
+   詳細度を上げて打ち消す(その結果、左に大きな余白ができていた) */
+.memItem .memGrip{flex:0 0 auto;width:auto;color:var(--faint);cursor:grab;font-size:12px;line-height:1;user-select:none;padding:0}
 .memGrip:active{cursor:grabbing}
 .memItem.dragging{opacity:.45}
+/* 挿入位置の線。行の隙間(.memListのgap:6px)の中央に出す */
 .memItem.dropBefore::before,.memItem.dropAfter::after{
   content:"";position:absolute;left:0;right:0;height:2px;background:var(--accent);border-radius:2px;z-index:2}
-.memItem.dropBefore::before{top:-2px}
-.memItem.dropAfter::after{bottom:-2px}
+.memItem.dropBefore::before{top:-5px}
+.memItem.dropAfter::after{bottom:-5px}
 /* 日程未定にするボタン。日付欄と同じ高さで右に並べる */
 .dateRow #aNoDate{flex:none;align-self:flex-end;height:32px;padding:0 12px;white-space:nowrap}
 #syncState.warn{color:#B3401A;font-weight:600}
 body.dark #syncState.warn{color:#F0A882}
 #syncState:hover{text-decoration:underline}
-#presenceBar{display:flex;align-items:center;gap:3px;margin-right:10px}
+/* タブ列は上だけ4pxの余白があるため、align-items:center だとその分だけ下にずれる。
+   同じ4pxを下に足して、帯の見た目の中央に来るようにする */
+#presenceBar{display:flex;align-items:center;gap:3px;margin:0 0 4px 0}
 #presenceBar[hidden]{display:none}
-.pzLbl{font-size:9.5px;color:var(--muted);margin-right:3px;letter-spacing:.02em}
-.pzAv{width:20px;height:20px;border-radius:50%;flex:none;object-fit:cover;
-  border:1.5px solid var(--panel);box-sizing:border-box;box-shadow:0 0 0 1px rgba(20,29,40,.12)}
-.pzAv+.pzAv{margin-left:-6px}
+.pzLbl{font-size:10px;color:var(--muted);margin-right:4px;letter-spacing:.02em;line-height:1}
+.pzAv{width:24px;height:24px;border-radius:50%;flex:none;object-fit:cover;display:block;
+  border:2px solid var(--panel);box-sizing:border-box;box-shadow:0 0 0 1px rgba(20,29,40,.14)}
+.pzAv+.pzAv{margin-left:-7px}
 .pzDot,.pzUnknown{display:flex;align-items:center;justify-content:center;
-  font-size:9.5px;font-weight:700;color:#fff}
+  font-size:11px;font-weight:700;color:#fff;line-height:1}
 .pzUnknown{background:var(--faint)}
+/* 相手のカーソル。画面の一番上に浮かせるだけで、操作は一切邪魔しない */
+#cursorLayer{position:fixed;inset:0;pointer-events:none;z-index:400}
+.rcur{position:absolute;transform:translate(-2px,-2px);transition:left .12s linear,top .12s linear}
+.rcur svg{display:block;filter:drop-shadow(0 1px 2px rgba(20,29,40,.35))}
+.rcurName{position:absolute;left:13px;top:13px;display:inline-flex;align-items:center;gap:4px;
+  color:#fff;font-size:10px;font-weight:700;line-height:1;padding:3px 7px 3px 4px;border-radius:99px;
+  white-space:nowrap;box-shadow:0 1px 3px rgba(20,29,40,.3)}
+.rcurName img{width:14px;height:14px;border-radius:50%;object-fit:cover;display:block}
+.rcurName:not(:has(img)){padding-left:7px}
+/* 操作とショートカットの一覧 */
+.keysGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px 26px;max-height:62vh;overflow:auto;padding-right:4px}
+.keysSec h3{font-size:11px;color:var(--muted);letter-spacing:.06em;margin:0 0 7px;font-weight:700}
+.keysRow{display:flex;gap:9px;align-items:baseline;font-size:11.5px;line-height:1.7;margin-bottom:3px}
+.keysRow kbd{flex:none;min-width:104px;font-family:inherit;font-size:10.5px;font-weight:600;color:var(--text);
+  background:var(--hover);border:1px solid var(--line);border-radius:4px;padding:1px 6px;text-align:center}
+.keysRow span{color:var(--muted);min-width:0}
+.syncMode{margin-bottom:16px}
+.syncMode button{text-align:left}
+#syCopy[hidden]{display:none}
+#sySOff[hidden],#sySave[hidden]{display:none}
 /* 共有設定: やることを2択で示す */
 .syncHow{display:flex;flex-direction:column;gap:6px;background:var(--hover);border:1px solid var(--line);
   border-radius:7px;padding:10px 12px;font-size:11.5px;line-height:1.75;color:var(--text)}
@@ -1791,12 +1822,14 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   <div class="sep"></div>
   <div class="tgroup" title="指定したメンバーが担当するタスクだけを、すべてのビューで表示します">
     <div class="menuGroup" id="mfGroup">
-      <button class="btn" id="mfBtn" title="表示するメンバーを選びます(選ばなければ全員)">全員 ▾</button>
+      <button class="btn" id="mfBtn" title="担当者で絞り込みます。選ばなければ全員のタスクを表示します">
+        <svg class="mfEye" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M8 3.2C4.6 3.2 1.9 5.6 1 8c.9 2.4 3.6 4.8 7 4.8s6.1-2.4 7-4.8c-.9-2.4-3.6-4.8-7-4.8Z" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2.1" fill="currentColor"/></svg>
+        <span id="mfBtnTxt">全員</span> ▾</button>
       <div class="menuPanel" id="mfPanel"></div>
     </div>
   </div>
   <div class="tgroup" title="台本ペインの表示/非表示です(どのビューでも使えます)">
-    <button class="btn" id="btnScript" onclick="toggleScriptPane()" title="台本ペインの表示/非表示">台本</button>
+    <button class="btn" id="btnScript" onclick="toggleScriptPane()" title="台本を横に開いて読みます">台本を開く</button>
   </div>
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
   <!-- ここから下は「今見ているビューだけの設定」。共通のものと見分けがつくよう枠で囲う -->
@@ -1895,13 +1928,13 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 
 <footer>
-  <span>クリック=編集/セル切替/工程ピップ更新 ・ Shift+クリック=直前のセルとの間を塗りつぶす ・ ドラッグ=並び替え/伸縮/列幅調整 ・ 1〜5=ビュー切替 ・ D=台本表示 ・ Q/W/E=行の高さ(ガント) ・ F=全体ビュー(ガント) ・ Ctrl+Z(⌘Z)=元に戻す ・ Ctrl+Shift+Z=やり直し</span>
+  <button class="btn" id="btnKeys" onclick="openKeysModal()" title="操作方法とショートカットの一覧">操作とショートカット</button>
   <span class="spacer"></span>
   <span id="saveState"></span>
   <span id="syncState" title="共有の状態"></span>
+  <span id="appVer" title="いま開いている版"></span>
   <span class="sep" id="appNameSep"></span>
   <span id="appName">AA_ProductionBoard</span>
-  <span id="appVer" title="いま開いている版"></span>
   <button id="btnRemote" hidden title="他の人がボードを更新しました。押すと画面に反映します">他の人の変更を反映</button>
   <button id="btnUpdate" hidden title="新しい版が公開されています。押すと読み込み直します">新しい版があります</button>
 </footer>
@@ -2048,7 +2081,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     </div>
     <div class="mFoot">
       <!-- 新しく始めるか、既にあるボードに参加するか。入口をここに並べる -->
-      <button class="btn" id="tSync" type="button" title="他の人が作ったプロジェクトに参加します。合言葉を入れると、そのプロジェクトが開きます">既存のプロジェクトを開く</button>
+      <button class="btn" id="tSync" type="button" title="他の人が作ったプロジェクトに参加します。IDとパスワードを入れると開きます">既存のプロジェクトを開く</button>
       <div class="spacer"></div>
       <button class="btn solid" id="tCancel">キャンセル</button>
       <button class="btn primary" id="tSave">保存</button>
@@ -2085,53 +2118,62 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     </div>
   </div>
 </div>
+<div class="overlay" id="keysOverlay">
+  <div class="modal" style="width:min(720px,94vw)">
+    <h2>操作とショートカット</h2>
+    <div class="keysGrid" id="keysBody"></div>
+    <div class="mFoot"><div class="spacer"></div><button class="btn solid" onclick="document.getElementById('keysOverlay').classList.remove('open')">閉じる</button></div>
+  </div>
+</div>
 <div class="overlay" id="syncOverlay">
-  <div class="modal" style="width:min(620px,94vw)">
+  <div class="modal" style="width:min(560px,94vw)">
     <h2>みんなで共有する</h2>
     <p class="syncLead">
-      同じプロジェクトを、離れた場所にいる人と同じ画面で見られるようにします。変更は数秒でお互いに届きます。
+      同じプロジェクトを、離れた場所にいる人と同じ画面で見られるようにします。<br>
+      変更は数秒でお互いに届きます。設定しなければ、今まで通りこのパソコンの中だけで動きます。
     </p>
-    <div class="syncHow">
-      <div><b>新しく始める</b> … 「新規発行」を押して、合言葉を決めます。そのIDと合言葉を仲間に伝えてください</div>
-      <div><b>参加する</b> … 教わったIDと合言葉を入れて「つないで開始」を押します</div>
+    <div class="aiModeCards syncMode" id="syMode">
+      <button type="button" data-mode="new">
+        <span class="amTitle">新しく始める</span>
+        <span class="amDesc">このプロジェクトを共有できるようにして、仲間を招きます</span>
+      </button>
+      <button type="button" data-mode="join">
+        <span class="amTitle">参加する</span>
+        <span class="amDesc">誘われたプロジェクトを開きます。IDとパスワードを教わってください</span>
+      </button>
     </div>
-    <p class="syncLead" style="margin-top:12px">
-      中身は<b>合言葉で暗号化してから送られます</b>。合言葉を知らない人には読めません。<br>
-      設定しなければ、今まで通りこのパソコンの中だけで動きます。
-    </p>
-    <div class="field">
-      <label>プロジェクトID
-        <span class="fHint">新しく始めるなら「新規発行」。参加するなら、誘ってくれた人から教わったIDを貼り付けます</span></label>
-      <div class="syncRow">
-        <input type="text" id="syBoard" placeholder="教わったIDを貼り付け" spellcheck="false">
-        <button class="btn" id="syNewId" type="button" title="新しいプロジェクトを立てます">新規発行</button>
+
+    <div id="syForm" hidden>
+      <div class="field">
+        <label>プロジェクトID <span class="fHint" id="syBoardHint"></span></label>
+        <div class="syncRow">
+          <input type="text" id="syBoard" spellcheck="false" autocomplete="off">
+          <button class="btn" id="syCopy" type="button" title="クリップボードにコピー">コピー</button>
+        </div>
       </div>
-    </div>
-    <div class="field">
-      <label>合言葉
-        <span class="fHint">参加者全員で同じものを使います。中身はこれで暗号化されるので、忘れると開けなくなります</span></label>
-      <input type="password" id="syPass" placeholder="例: hikousen2026" autocomplete="off">
-    </div>
-    <!-- 置き場所は既定のまま使うのが普通なので、畳んでおく -->
-    <details class="syncAdv">
-      <summary>置き場所を変更する(通常は不要)</summary>
-      <div class="field" style="margin:10px 0 0">
-        <label>置き場所のURL <span class="fHint">自分のサーバーを使う場合だけ変更します</span></label>
-        <input type="text" id="syUrl" spellcheck="false">
+      <div class="field">
+        <label>パスワード <span class="fHint">6文字以上。参加者全員で同じものを使います。中身はこれで暗号化されます</span></label>
+        <input type="password" id="syPass" placeholder="6文字以上" autocomplete="off">
       </div>
-    </details>
-    <div class="field">
-      <label>あなたの名前 <span class="fHint">「誰が変えたか」の表示に使います</span></label>
-      <select id="syName"></select>
+      <div class="field">
+        <label>あなたの名前 <span class="fHint">「誰が変えたか」の表示に使います</span></label>
+        <select id="syName"></select>
+      </div>
+      <label class="chk"><input type="checkbox" id="syRemember"><span>このパソコンにパスワードを覚えさせる(共用のパソコンでは外してください)</span></label>
+      <details class="syncAdv">
+        <summary>置き場所を変更する(通常は不要)</summary>
+        <div class="field" style="margin:10px 0 0">
+          <label>置き場所のURL <span class="fHint">自分のサーバーを使う場合だけ変更します</span></label>
+          <input type="text" id="syUrl" spellcheck="false">
+        </div>
+      </details>
     </div>
-    <label class="chk"><input type="checkbox" id="syRemember"><span>このパソコンに合言葉を覚えさせる(共用のパソコンでは外してください)</span></label>
     <div class="syncNote" id="syNote"></div>
     <div class="mFoot">
-      <button class="btn" type="button" id="syPull" title="サーバー上のプロジェクトを、この画面に読み込みます">開く(読み込む)</button>
+      <button class="btn" type="button" id="sySOff" hidden title="このパソコンの中だけで使う状態に戻します(中身は消えません)">共有をやめる</button>
       <div class="spacer"></div>
-      <button class="btn" type="button" id="sySOff" title="このパソコンの中だけで使う状態に戻します(中身は消えません)">共有をやめる</button>
       <button class="btn solid" type="button" onclick="document.getElementById('syncOverlay').classList.remove('open')">キャンセル</button>
-      <button class="btn primary" type="button" id="sySave">つないで開始</button>
+      <button class="btn primary" type="button" id="sySave" hidden>開始</button>
     </div>
   </div>
 </div>
@@ -2489,7 +2531,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-a732788";
+const APP_VERSION = "2026.08.02-adc95d6";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2500,7 +2542,9 @@ function persist(){
     /* ローカル保存と共有は切り離す。以前は同じ try に入れていたため、
        localStorage が一杯になると syncPush() に到達せず、しかも無言で終わっていた */
     try{
-      localStorage.setItem(LS_KEY, JSON.stringify(state));
+      const json = JSON.stringify(state);
+      localStorage.setItem(LS_KEY, json);
+      noteSaved(json);
       $("saveState").textContent = `自動保存済み ${nowHM()}`;
     }catch(e){
       $("saveState").textContent = "⚠ このブラウザに保存できません";
@@ -2510,22 +2554,95 @@ function persist(){
     else syncPush();                          /* 共有設定があるときだけ、まとめて送る */
   }, 300);
 }
+/* ================= 保存漏れの見張り =================
+   「state を書き換えたのに保存(と共有)まで届いていない」状態を自分で見つける。
+
+   このツールは各所で state を直接書き換え、renderAll() / recordGanttChange() を
+   呼ぶことで初めて保存される作りになっている。呼び忘れた経路は黙って保存されず、
+   ページを閉じた時点で変更が消える。実際にメンバー・カテゴリのモーダルがそうだった。
+
+   ここでは定期的に「今の state」と「最後に保存した state」を比べ、
+   食い違っているのに保存予定が無ければコンソールに警告を出す。
+   ユーザーの操作を妨げないよう、画面には出さない(開発中に気づくための仕掛け) */
+let _lastSavedJson = "";
+let _leakWarned = "";
+function noteSaved(json){ _lastSavedJson = json; }
+function checkUnsaved(){
+  if(document.querySelector(".overlay.open")) return;   /* 編集中は判定しない */
+  if(_saveTimer || _syncTimer) return;                  /* 保存・送信の予定があるなら待つ */
+  let now;
+  try{ now = JSON.stringify(state); }catch(e){ return; }
+  if(now === _lastSavedJson) return;
+  if(now === _leakWarned) return;                       /* 同じ内容で繰り返し出さない */
+  _leakWarned = now;
+  console.warn(
+    "[保存漏れ] state が変わっているのに保存されていません。\n" +
+    "変更した処理が renderAll() / recordGanttChange() を呼んでいない可能性があります。",
+    {変更後のサイズ: now.length, 最後に保存したサイズ: _lastSavedJson.length});
+}
+setInterval(checkUnsaved, 4000);
+
 function flushSave(){
   clearTimeout(_saveTimer);
   _saveTimer = null;
-  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+  try{ const json = JSON.stringify(state); localStorage.setItem(LS_KEY, json); noteSaved(json); }catch(e){}
 }
 window.addEventListener("beforeunload", flushSave);
 window.addEventListener("pagehide", flushSave);
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden") flushSave(); });
 window.addEventListener("blur", flushSave);
+/* ================= 操作とショートカットの一覧 ================= */
+const KEYS_HELP = [
+  ["全体", [
+    ["1〜5", "ビューを切り替える(一覧・シーン別・カード・ガント・サマリー)"],
+    ["D", "台本を開く / 閉じる"],
+    ["Ctrl+Z(\u2318Z)", "元に戻す"],
+    ["Ctrl+Shift+Z", "やり直す"],
+    ["Escape", "モーダルを閉じる / 台本の全画面を抜ける"],
+    ["右上の鍵", "編集ロック。オンの間はドラッグやセル操作を止める(起動時は必ずオン)"],
+  ]],
+  ["一覧・シーン別", [
+    ["クリック", "タスク名で編集 / セルで担当シーンの切替 / 工程ピップで進捗を進める"],
+    ["Shift+クリック", "直前に押したセルとの間をまとめて塗る"],
+    ["ドラッグ", "行の並び替え、列幅の調整"],
+  ]],
+  ["ガント", [
+    ["Q / W / E", "行の高さを 低 / 中 / 高 に切り替える"],
+    ["F", "全体ビュー(1画面に収める)のオン・オフ"],
+    ["バーを横ドラッグ", "日程を移動する"],
+    ["バーを縦ドラッグ", "前後関係・所属フェイズを変える"],
+    ["バーの端をつまむ", "期間を伸縮する"],
+    ["バーをクリック", "タスクを編集する"],
+    ["矢印キー", "カーソルを乗せたバーを1日ずつ動かす"],
+    ["Ctrl+D", "複製する"],
+    ["Delete / X", "削除する"],
+    ["Shift+クリック", "複数選択する(空所のドラッグでも可)"],
+    ["フェイズの \u25be", "配下を開閉する(Shift+クリックで全フェイズ)"],
+    ["置き場からドラッグ", "日程未定のタスクに日程を与える(初期は5日間)"],
+  ]],
+  ["共有", [
+    ["ファイル \u25be", "「みんなで共有する…」から、複数人で同じプロジェクトを開く"],
+    ["自動", "変更は1〜2秒で相手に届く。保存操作は不要"],
+    ["他の人の変更を反映", "編集中に届いた変更を、自分のタイミングで取り込む"],
+  ]],
+];
+function openKeysModal(){
+  $("keysBody").innerHTML = KEYS_HELP.map(function(sec){
+    return '<section class="keysSec"><h3>' + esc(sec[0]) + '</h3>' +
+      sec[1].map(function(r){
+        return '<div class="keysRow"><kbd>' + esc(r[0]) + '</kbd><span>' + esc(r[1]) + '</span></div>';
+      }).join("") + '</section>';
+  }).join("");
+  $("keysOverlay").classList.add("open");
+}
+
 /* =====================================================================
    共有(同期) — 段階1: 書き込みと起動時の読み込み
 
    設計の要点:
    - Firebase Realtime Database の **REST API** を直接叩く。SDKを読み込まないので
      単一HTMLのままで済み、外部CDNにも依存しない
-   - ボードは長いランダムID(合言葉URLのようなもの)の下に置く
+   - ボードは長いランダムID(知っている人だけが辿り着けるという考え方)の下に置く
    - 中身は **共有パスワードで暗号化してから送る**(AES-GCM / PBKDF2)。
      アカウントを作らせずに「パスワードを知っている人だけが読める」を実現するため。
      サーバー側にデータが平文で残らないので、DBのルール設定を間違えても中身は漏れない
@@ -2535,7 +2652,7 @@ window.addEventListener("blur", flushSave);
 const SYNC_KEY = "aa_productionboard_sync_v1";
 /* プロジェクトの置き場所。ここに全プロジェクトが「プロジェクトIDごと」に並ぶ。
    IDが違えば互いに見えないので、いくつ作っても混ざらない。
-   中身は合言葉で暗号化してから送るので、この住所が公開されても読まれることはない。
+   中身はパスワードで暗号化してから送るので、この住所が公開されても読まれることはない。
    別のサーバーを使う人は、共有設定の「置き場所を変更」から差し替えられる */
 const DEFAULT_SYNC_URL = "https://productionboard-ea864-default-rtdb.asia-southeast1.firebasedatabase.app";
 const PBKDF2_ITER = 150000;
@@ -2688,7 +2805,7 @@ async function syncPull(opts){
     if(!cur || !cur.ct){ setSyncStatus("共有: まだ何もありません"); return false; }
     let box;
     try{ box = await decryptJSON(cur, _syncKey); }
-    catch(e){ setSyncStatus("⚠ パスワードが違います"); if(!silent) alert("合言葉が違うため、このプロジェクトを開けませんでした。"); return false; }
+    catch(e){ setSyncStatus("⚠ パスワードが違います"); if(!silent) alert("パスワードが違うため、このプロジェクトを開けませんでした。"); return false; }
     /* 新形式は {by, state}。by を平文で置いていた頃のデータもそのまま読めるようにしておく */
     const remote = box && box.state ? box.state : box;
     const byName = (box && box.by) || cur.by || "";
@@ -2807,7 +2924,7 @@ async function applyRemote(d){
    置き換わって presence が消える。
 
    流れてくるのは「メンバーidと時刻」だけで、名前もアイコンも載せない。
-   受け取った側が自分の持っている盤面から引くので、合言葉を知らない人には誰が誰だか分からない */
+   受け取った側が自分の持っている盤面から引くので、パスワードを知らない人には誰が誰だか分からない */
 const PRESENCE_BEAT_MS = 15000;   /* 生存信号の間隔 */
 const PRESENCE_STALE_MS = 45000;  /* これより古い人は「閉じた」とみなす */
 let _presence = {};               /* {接続ID: {m, t}} */
@@ -2825,12 +2942,15 @@ function myMemberId(){
   const m = state.members.find(x=>x.name===nm);
   return m ? m.id : "";
 }
-async function presencePut(){
+let _lastCursor = null;
+async function presencePut(cursor){
   if(!syncEnabled() || syncCfg.url.startsWith("mock://")) return;
+  if(cursor !== undefined) _lastCursor = cursor;
   try{
+    const body = {m: myMemberId(), t: Date.now()};
+    if(_lastCursor) body.c = _lastCursor;   /* カーソルは同じ入れ物に相乗りさせる */
     await fetch(`${syncCfg.url}/boards/${encodeURIComponent(syncCfg.boardId)}/presence/${clientId()}.json`,
-      {method:"PUT", headers:{"Content-Type":"application/json"},
-       body:JSON.stringify({m: myMemberId(), t: Date.now()})});
+      {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
   }catch(e){}
 }
 function presenceLeave(){
@@ -2862,6 +2982,7 @@ function applyPresenceEvent(path, data){
   else if(data === null){ delete _presence[rest]; }
   else { _presence[rest] = data; }
   renderPresence();
+  renderCursors();
 }
 function renderPresence(){
   const box = $("presenceBar");
@@ -2889,13 +3010,92 @@ function renderPresence(){
 /* 古くなった人を消すために定期的に描き直す */
 setInterval(()=>{ if(Object.keys(_presence).length) renderPresence(); }, 10000);
 
+/* ================= 相手のカーソル表示 =================
+   参加者表示と同じ通り道(presence)に座標を相乗りさせる。
+
+   画面の座標をそのまま送っても合わない。ウィンドウの大きさ・スクロール位置・
+   ガントの1日幅・行の高さが人によって違うため。そこで「中身のどこか」に直して送る:
+     v … 見ているビュー(違うビューの人のカーソルは出さない)
+     x … 横方向の割合。ガントは「表示範囲の何日目か」、他は中身の幅に対する割合
+     y … 縦方向。中身の上端からの距離を、中身全体の高さで割った割合
+   受け取った側は自分の表示設定で座標に戻すので、拡大率が違っても同じ場所を指す。
+
+   送る回数は抑える(動いていなければ送らない・最短120ms間隔・タブが裏なら止める) */
+const CURSOR_SEND_MS = 120;
+const CURSOR_STALE_MS = 6000;   /* これより古いカーソルは消す */
+let _curSend = 0, _curLast = "";
+let _curLayer = null;
+
+/* いま見ているビューの「中身」の要素とスクロール量 */
+function cursorSurface(){
+  const v = document.body.dataset.view || "matrix";
+  if(v === "gantt")  return {v, el: $("rinner"), pane: $("rpane")};
+  if(v === "matrix") return {v, el: $("view-matrix").querySelector(".mx"), pane: $("view-matrix").querySelector(".matrix-wrap")};
+  const view = document.getElementById("view-" + v);
+  return {v, el: view, pane: view};
+}
+function onCursorMove(e){
+  if(!syncEnabled() || document.hidden) return;
+  const now = Date.now();
+  if(now - _curSend < CURSOR_SEND_MS) return;
+  const s = cursorSurface();
+  if(!s.el || !s.pane) return;
+  const r = s.el.getBoundingClientRect();
+  if(!r.width || !r.height) return;
+  const x = (e.clientX - r.left) / r.width;
+  const y = (e.clientY - r.top) / r.height;
+  if(x < 0 || x > 1 || y < 0 || y > 1) return;   /* 中身の外は送らない */
+  const packet = s.v + "|" + x.toFixed(4) + "|" + y.toFixed(4);
+  if(packet === _curLast) return;                /* 動いていなければ送らない */
+  _curLast = packet; _curSend = now;
+  presencePut({v: s.v, x: +x.toFixed(4), y: +y.toFixed(4)});
+}
+document.addEventListener("mousemove", onCursorMove);
+
+/* 受け取ったカーソルを描く。自分のビューと同じ人だけ */
+function renderCursors(){
+  if(!_curLayer){
+    _curLayer = document.createElement("div");
+    _curLayer.id = "cursorLayer";
+    document.body.appendChild(_curLayer);
+  }
+  const s = cursorSurface();
+  const now = Date.now(), me = clientId();
+  const shown = [];
+  if(s.el && syncEnabled()){
+    const r = s.el.getBoundingClientRect();
+    const pr = s.pane ? s.pane.getBoundingClientRect() : r;
+    for(const [cid, p] of Object.entries(_presence)){
+      if(!p || cid === me || !p.c) continue;
+      if(now - (p.t||0) > CURSOR_STALE_MS) continue;
+      if(p.c.v !== s.v) continue;                       /* 別のビューを見ている人は出さない */
+      const x = r.left + r.width * p.c.x, y = r.top + r.height * p.c.y;
+      /* ビューの外にはみ出す分は描かない(スクロール位置が違うと画面外を指す) */
+      if(x < pr.left - 4 || x > pr.right + 4 || y < pr.top - 4 || y > pr.bottom + 4) continue;
+      shown.push({m: state.members.find(z=>z.id===p.m) || null, x, y, cid});
+    }
+  }
+  if(!shown.length){ _curLayer.innerHTML = ""; return; }
+  _curLayer.innerHTML = shown.map(c=>{
+    const col = c.m ? c.m.color : "#8A9099";
+    const nm = c.m ? esc(c.m.name) : "?";
+    const av = c.m && c.m.icon ? `<img src="${c.m.icon}" alt="">` : "";
+    return `<div class="rcur" style="left:${Math.round(c.x)}px;top:${Math.round(c.y)}px">
+      <svg viewBox="0 0 12 18" width="14" height="20"><path d="M1 1l9.5 8.5-4.2.5 2.4 5.2-2 .9-2.4-5.3-3.3 3z"
+        fill="${col}" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/></svg>
+      <span class="rcurName" style="background:${col}">${av}${nm}</span></div>`;
+  }).join("");
+}
+/* 画面が動いたら位置を計算し直す */
+setInterval(renderCursors, 200);
+
 /* --- 起動時に設定があれば繋ぐ --- */
 async function initSync(){
   const c = loadSyncConfig();
   if(!c) return;
   if(!cryptoAvailable()){ setSyncStatus("⚠ 共有: この開き方では使えません"); return; }
   syncCfg = c;
-  /* 端末に覚えさせた合言葉 → なければ、このタブが持っている合言葉 */
+  /* 端末に覚えさせたパスワード → なければ、このタブが持っているもの */
   let pw = c.password;
   if(!pw){ try{ pw = sessionStorage.getItem(SYNC_KEY) || ""; }catch(e){} }
   if(pw){
@@ -2907,7 +3107,7 @@ async function initSync(){
     startSyncStream();   /* 以降は他の人の変更を自動で受け取る */
     startPresence();
   }else{
-    setSyncStatus("⚠ 共有: 未接続(合言葉を入れてください)", true);
+    setSyncStatus("⚠ 共有: 未接続(パスワードを入れてください)", true);
   }
 }
 /* ランダムなボードID(URLを知っている人だけが辿り着けるようにするための長さ) */
@@ -3631,7 +3831,8 @@ function renderMemberFilter(){
   const btn = $("mfBtn"), panel = $("mfPanel");
   if(!btn || !panel) return;
   const names = f.map(id=> id===NOASG_KEY ? "担当なし" : (state.members.find(m=>m.id===id)?.name || "")).filter(Boolean);
-  btn.textContent = (names.length ? (names.length<=2 ? names.join("、") : `${names[0]} 他${names.length-1}名`) : "全員") + " ▾";
+  const txt = $("mfBtnTxt");
+  if(txt) txt.textContent = names.length ? (names.length<=2 ? names.join("、") : `${names[0]} 他${names.length-1}名`) : "全員";
   btn.classList.toggle("solid", names.length>0);
   const hid = state.tasks.length - shownTasks().length;
   btn.title = names.length ? `${names.join("、")}のタスクだけを表示中(${hid}件を隠しています)。クリックで変更します`
@@ -4415,10 +4616,11 @@ function openMembersModal(){
       e.preventDefault();
       const r = el.getBoundingClientRect();
       const after = (e.clientY - r.top) > r.height/2;
-      el.classList.toggle("dropBefore", !after);
-      el.classList.toggle("dropAfter", after);
+      /* 線は常に1本だけにする。行ごとに付け外しすると、境目では
+         上の行の「下線」と下の行の「上線」が同時に出て2本に見える */
+      mb.querySelectorAll(".memItem").forEach(x=>x.classList.remove("dropBefore","dropAfter"));
+      el.classList.add(after ? "dropAfter" : "dropBefore");
     });
-    el.addEventListener("dragleave", ()=>el.classList.remove("dropBefore","dropAfter"));
     el.addEventListener("drop", e=>{
       e.preventDefault();
       const from = _memDrag != null ? _memDrag : +e.dataTransfer.getData("text/plain");
@@ -5375,21 +5577,28 @@ function setupToolMenu(groupId, btnId, panelId){
   });
   panel.querySelectorAll(".btn").forEach(b=>b.addEventListener("click", ()=>group.classList.remove("open")));
 }
-/* --- 共有設定モーダル --- */
+/* --- 共有設定モーダル ---
+   「新しく始める」と「参加する」を最初に選ばせる。同じ入力欄でも、
+   何をしようとしているかで意味が変わる(IDは発行するのか、教わったものを貼るのか)ため */
+let _syMode = null;
+const SY_PASS_MIN = 6;
 function openSyncModal(){
   const c = loadSyncConfig() || {};
   $("syUrl").value   = c.url || DEFAULT_SYNC_URL;
-  $("syBoard").value = c.boardId || "";
   $("syPass").value  = (c.password || _syncPassword || "");
   $("syRemember").checked = !!c.remember;
   const sel = $("syName");
   sel.innerHTML = `<option value="">(選択してください)</option>`
     + state.members.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("");
   sel.value = c.name || "";
+  /* 既に接続しているなら、その設定を開いた状態で見せる */
+  _syMode = syncEnabled() ? "join" : null;
+  $("syBoard").value = c.boardId || "";
+  $("sySOff").hidden = !loadSyncConfig();
+  syncModeUI();
   const note = $("syNote"), can = cryptoAvailable();
   note.classList.toggle("warn", !can);
   if(!can){
-    /* 置いてある場所が分かるときはそのパスを、分からないときは一般的な案内を出す */
     const dir = decodeURIComponent(location.pathname.replace(/\/[^/]*$/,"")) || "(index.htmlのあるフォルダ)";
     note.innerHTML = "このページの開き方では暗号化機能(crypto.subtle)が使えないため、共有を設定できません。<br>"
       + "ターミナルで <code>cd " + esc(dir) + "</code> のあと <code>python3 -m http.server 8000</code> を実行し、"
@@ -5398,16 +5607,38 @@ function openSyncModal(){
   }else{
     note.textContent = syncEnabled() ? "いまこのプロジェクトは共有に接続しています。" : "";
   }
-  ["sySave","syPull"].forEach(id=>{ const b=$(id); if(b){ b.disabled = !can; b.style.opacity = can ? "" : ".45"; } });
   $("syncOverlay").classList.add("open");
 }
-$("syNewId").onclick = ()=>{ $("syBoard").value = newBoardId(); };
-/* 編集中で保留になっていた他の人の変更を、本人のタイミングで反映する */
-if($("btnRemote")) $("btnRemote").onclick = ()=>{ if(_pendingRemote) applyRemote(_pendingRemote); };
-/* タイトル設定から共有設定へ。白紙で始めた人が「既にあるボードに参加する」を選べるようにする */
-if($("tSync")) $("tSync").onclick = ()=>{
-  $("titleModalOverlay").classList.remove("open");
-  openSyncModal();
+/* 選んだ道に合わせて、入力欄と説明を切り替える */
+function syncModeUI(){
+  const isNew = _syMode === "new", isJoin = _syMode === "join";
+  $("syMode").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.mode === _syMode));
+  $("syForm").hidden = !_syMode;
+  $("sySave").hidden = !_syMode;
+  $("sySave").textContent = isNew ? "共有を開始" : "参加する";
+  $("syBoardHint").textContent = isNew
+    ? "自動で発行しました。このIDを仲間に伝えてください"
+    : "誘ってくれた人から教わったIDを貼り付けます";
+  $("syBoard").readOnly = isNew;
+  $("syCopy").hidden = !isNew;
+  $("syBoard").placeholder = isNew ? "" : "教わったIDを貼り付け";
+  if(isNew && !$("syBoard").value) $("syBoard").value = newBoardId();
+  if(!cryptoAvailable()){ $("sySave").disabled = true; $("sySave").style.opacity = ".45"; }
+}
+$("syMode").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-mode]");
+  if(!b) return;
+  _syMode = b.dataset.mode;
+  /* 「新しく始める」を選んだら必ず新しいIDを発行する。
+     前に繋いでいたIDが残っていると、新規のつもりで既存に上書きしてしまう */
+  if(_syMode === "new") $("syBoard").value = newBoardId();
+  else $("syBoard").value = (loadSyncConfig()||{}).boardId || "";
+  syncModeUI();
+});
+$("syCopy").onclick = async ()=>{
+  try{ await navigator.clipboard.writeText($("syBoard").value); $("syCopy").textContent = "コピーしました"; }
+  catch(e){ $("syBoard").select(); }
+  setTimeout(()=>{ $("syCopy").textContent = "コピー"; }, 1600);
 };
 $("sySOff").onclick = ()=>{
   localStorage.removeItem(SYNC_KEY);
@@ -5420,11 +5651,11 @@ $("sySOff").onclick = ()=>{
   alert("共有をやめました。これまで通り、このパソコンの中だけで動きます。\n中身は消えていません。");
 };
 $("sySave").onclick = async ()=>{
-  const url = $("syUrl").value.trim().replace(/\/+$/,"");
+  const url = $("syUrl").value.trim().replace(/\/+$/,"") || DEFAULT_SYNC_URL;
   const boardId = $("syBoard").value.trim();
   const password = $("syPass").value;
-  if(!boardId || !password){ alert("プロジェクトIDと合言葉を入れてください。\n新しく始める場合は「新規発行」を押してIDを作ります。"); return; }
-  if(!url){ alert("置き場所のURLが空です。"); return; }
+  if(!boardId){ alert("プロジェクトIDを入れてください。"); return; }
+  if(password.length < SY_PASS_MIN){ alert(`パスワードは${SY_PASS_MIN}文字以上にしてください。`); return; }
   const cfg = {url, boardId, name:$("syName").value, remember:$("syRemember").checked, password};
   saveSyncConfig(cfg);
   syncCfg = cfg;
@@ -5432,26 +5663,12 @@ $("sySave").onclick = async ()=>{
   _syncKey = await deriveSyncKey(password, boardId);
   $("syncOverlay").classList.remove("open");
   setSyncStatus("共有: 接続しました");
-  /* 既に中身があれば読み込みを提案し、無ければ今の内容を送って初期化する */
+  /* 既に中身があれば読み込み、無ければ今の内容で始める */
   const got = await syncPull({});
   if(!got) await doSyncPush();
   startSyncStream();
   startPresence();
 };
-$("syPull").onclick = async ()=>{
-  const url = $("syUrl").value.trim().replace(/\/+$/,"");
-  const boardId = $("syBoard").value.trim();
-  const password = $("syPass").value;
-  if(!boardId || !password){ alert("プロジェクトIDと合言葉を入れてください。\n新しく始める場合は「新規発行」を押してIDを作ります。"); return; }
-  if(!url){ alert("置き場所のURLが空です。"); return; }
-  syncCfg = {url, boardId, name:$("syName").value, remember:$("syRemember").checked, password};
-  _syncKey = await deriveSyncKey(password, boardId);
-  $("syncOverlay").classList.remove("open");
-  await syncPull({});
-  startSyncStream();
-  startPresence();
-};
-
 setupToolMenu("openGroup","openMenuBtn","openMenuPanel");
 setupToolMenu("addGroup","addMenuBtn","addMenuPanel");
 setupToolMenu("mngGroup","mngMenuBtn","mngMenuPanel");
