@@ -1152,7 +1152,12 @@ body.dark #syncState.warn{color:#F0A882}
 .pzLbl{font-size:10px;color:var(--muted);margin-right:4px;letter-spacing:.02em;line-height:1}
 .pzAv{width:24px;height:24px;border-radius:50%;flex:none;object-fit:cover;display:block;
   border:2px solid var(--panel);box-sizing:border-box;box-shadow:0 0 0 1px rgba(20,29,40,.14)}
-.pzAv+.pzAv{margin-left:-7px}
+.pzOne .pzAv{margin-left:0}
+/* 参加者。アイコンの下に、見ているビュー名を小さく添える */
+.pzOne{display:flex;flex-direction:column;align-items:center;gap:1px;flex:none}
+.pzOne+.pzOne{margin-left:2px}
+.pzView{font-size:8.5px;line-height:1;color:var(--muted);max-width:64px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
 .pzDot,.pzUnknown{display:flex;align-items:center;justify-content:center;
   font-size:11px;font-weight:700;color:#fff;line-height:1}
 .pzUnknown{background:var(--faint)}
@@ -1779,10 +1784,10 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 <div id="tabStrip">
   <div class="seg" id="viewTabs">
     <div class="seg-thumb"></div>
-    <button data-view="matrix" class="on">一覧</button>
-    <button data-view="scene">シーン別</button>
-    <button data-view="kanban">カード</button>
-    <button data-view="gantt">ガント</button>
+    <button data-view="matrix" class="on">一覧ビュー</button>
+    <button data-view="scene">シーン別ビュー</button>
+    <button data-view="kanban">カードビュー</button>
+    <button data-view="gantt">ガントチャート</button>
     <button data-view="summary">サマリー</button>
   </div>
   <div class="spacer"></div>
@@ -2540,7 +2545,7 @@ function unitPre(){ return state.ui && state.ui.unit==="area" ? "A" : "S"; }
 /* 静的HTML側の「シーン」表記を現在の呼称に合わせて書き換える(呼称変更時・起動時に呼ぶ) */
 function applyUnitLabels(){
   const u = unitName();
-  const q = document.querySelector("#viewTabs [data-view='scene']"); if(q) q.textContent = u+"別";
+  const q = document.querySelector("#viewTabs [data-view='scene']"); if(q) q.textContent = u+"別ビュー";
   const add = $("btnAddScene"); if(add) add.textContent = u;
   const scLbl = $("aScenesLbl"); if(scLbl) scLbl.textContent = "使用"+u+"(複数可)";
   const nameLbl = $("sNameLbl"); if(nameLbl) nameLbl.textContent = u+"名";
@@ -2554,7 +2559,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-68ade8f";
+const APP_VERSION = "2026.08.02-3d692d2";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2980,7 +2985,7 @@ async function presencePut(cursor){
   if(!syncEnabled() || syncCfg.url.startsWith("mock://")) return;
   if(cursor !== undefined) _lastCursor = cursor;
   try{
-    const body = {m: myMemberId(), t: Date.now()};
+    const body = {m: myMemberId(), t: Date.now(), v: document.body.dataset.view || "matrix"};
     if(_lastCursor) body.c = _lastCursor;   /* カーソルは同じ入れ物に相乗りさせる */
     await fetch(`${syncCfg.url}/boards/${encodeURIComponent(syncCfg.boardId)}/presence/${clientId()}.json`,
       {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
@@ -3017,6 +3022,12 @@ function applyPresenceEvent(path, data){
   renderPresence();
   renderCursors();
 }
+/* ビューの表示名。タブの文字をそのまま使う(シーン別はエリア別になることがある) */
+function viewLabel(v){
+  if(!v) return "";
+  const tab = document.querySelector(`#viewTabs [data-view="${v}"]`);
+  return tab ? tab.textContent.trim() : "";
+}
 function renderPresence(){
   const box = $("presenceBar");
   if(!box) return;
@@ -3029,15 +3040,19 @@ function renderPresence(){
     const key = p.m || cid;
     if(seen.has(key)) continue;
     seen.add(key);
-    others.push(state.members.find(x=>x.id===p.m) || null);
+    others.push({m: state.members.find(x=>x.id===p.m) || null, view: p.v || (p.c && p.c.v)});
   }
   if(!others.length){ box.hidden = true; box.innerHTML = ""; return; }
   box.hidden = false;
-  box.innerHTML = `<span class="pzLbl">閲覧中</span>` + others.map(m=>{
-    if(!m) return `<span class="pzAv pzUnknown" title="名前未設定の人">?</span>`;
-    return m.icon
-      ? `<img class="pzAv" src="${m.icon}" title="${esc(m.name)}" alt="">`
-      : `<span class="pzAv pzDot" style="background:${m.color}" title="${esc(m.name)}">${esc(m.name.slice(0,1))}</span>`;
+  box.innerHTML = `<span class="pzLbl">閲覧中</span>` + others.map(o=>{
+    const m = o.m, vn = viewLabel(o.view);
+    const tip = (m ? m.name : "名前未設定の人") + (vn ? ` — ${vn}` : "");
+    const face = m
+      ? (m.icon ? `<img class="pzAv" src="${m.icon}" alt="">`
+                : `<span class="pzAv pzDot" style="background:${m.color}">${esc(m.name.slice(0,1))}</span>`)
+      : `<span class="pzAv pzUnknown">?</span>`;
+    /* どのビューを見ているかを添える。同じ画面を見ているかが一目で分かる */
+    return `<span class="pzOne" title="${esc(tip)}">${face}${vn?`<span class="pzView">${esc(vn)}</span>`:""}</span>`;
   }).join("");
 }
 /* 古くなった人を消すために定期的に描き直す */
@@ -5574,6 +5589,7 @@ $("viewTabs").addEventListener("click", e=>{
   document.body.classList.toggle("ganttView", e.target.dataset.view==="gantt");
   document.body.dataset.view = e.target.dataset.view;   /* ビュー専用ツールバーの出し分けに使う */
   updateViewToolsLabel();
+  presencePut();   /* 見ているビューが変わったことをすぐ知らせる */
   state.ui.view = e.target.dataset.view;   /* リロードしても同じビューで開けるように覚えておく */
   persist();
   if(e.target.dataset.view==="gantt"){ Gantt.show(); renderUnscheduled(); }
