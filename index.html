@@ -716,6 +716,14 @@ body.dark .stg3{background:#F0F1F2}
 /* 「すべて置き換え」だけは破壊的なので赤系で選択表示 */
 .aiModeCards button.on[data-m=replace]{border-color:var(--danger);background:rgba(180,87,74,.07)}
 .aiModeCards button.on[data-m=replace] .amTitle::before{border-color:var(--danger);background:var(--danger)}
+/* 押した瞬間に次へ進むカードは「選ぶもの」ではないので、ラジオ風の丸を出さない。
+   丸を出すのは、選んだ状態が残るもの(AI取込の取り込み方)だけ */
+#wcMode button .amTitle::before,
+#syMode button .amTitle::before,
+#nbMode button .amTitle::before{display:none}
+#wcMode button .amDesc,
+#syMode button .amDesc,
+#nbMode button .amDesc{line-height:1.7}
 .aiModeReq{font-size:10.5px;color:var(--danger);font-weight:700;margin-left:6px}
 .aiModeCards.needsel{animation:aiShake .3s}
 @keyframes aiShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
@@ -2266,11 +2274,11 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <div class="aiModeCards syncMode" id="wcMode">
       <button type="button" data-w="new">
         <span class="amTitle">新しく作る</span>
-        <span class="amDesc">これから始めるプロジェクト。あとから他の人を招くこともできます</span>
+        <span class="amDesc">これから始めるプロジェクト。<br>あとから他の人を招くこともできます</span>
       </button>
       <button type="button" data-w="join">
         <span class="amTitle">共有中のプロジェクトを開く</span>
-        <span class="amDesc">誘われたプロジェクトに参加します。IDとパスワードを教わってください</span>
+        <span class="amDesc">誘われたプロジェクトに参加します。<br>プロジェクトIDとパスワードを教わってください</span>
       </button>
     </div>
   </div>
@@ -2696,7 +2704,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-e46ccfb";
+const APP_VERSION = "2026.08.02-1f82b91";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
