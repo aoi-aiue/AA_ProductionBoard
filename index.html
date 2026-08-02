@@ -1153,15 +1153,16 @@ body.dark #syncState.warn{color:#F0A882}
 .pzAv{width:24px;height:24px;border-radius:50%;flex:none;object-fit:cover;display:block;
   border:2px solid var(--panel);box-sizing:border-box;box-shadow:0 0 0 1px rgba(20,29,40,.14)}
 .pzOne .pzAv{margin-left:0}
-/* タブの中に出す参加者アイコン。誰がどのビューにいるかタブで分かる */
+/* 自分の表示。他の人(タブの中)とは縦線で分ける */
+#meBar{display:flex;align-items:center;gap:6px;margin:0 0 4px 0;cursor:pointer;flex:none}
+#meBar[hidden]{display:none}
+#meBar:hover .meNm{color:var(--text)}
+.meSep{width:1px;height:18px;background:var(--line);margin-right:6px;flex:none}
+.meNm{font-size:11px;font-weight:600;color:var(--muted);max-width:110px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
 .vtName{flex:none}
-.tabAv{display:inline-flex;align-items:center;margin-left:6px}
-.tabAv:empty{display:none}
-.tabAv .pzAv{width:18px;height:18px;border:1.5px solid var(--panel);box-shadow:none}
-.tabAv .pzAv+.pzAv{margin-left:-6px}
-#viewTabs button:not(.on) .tabAv .pzAv{border-color:var(--tabBand,#D8DDE3)}
-.pzMore{display:flex;align-items:center;justify-content:center;background:var(--muted);
-  font-size:9px;font-weight:700;color:#fff}
+/* 閲覧中の並び。重ねて場所を取らないようにする */
+.pzAv+.pzAv{margin-left:-7px}
 .pzDot,.pzUnknown{display:flex;align-items:center;justify-content:center;
   font-size:11px;font-weight:700;color:#fff;line-height:1}
 .pzUnknown{background:var(--faint)}
@@ -1190,6 +1191,10 @@ body.dark #syncState.warn{color:#F0A882}
 .bkRow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;
   text-align:left;padding:7px 10px;margin-bottom:5px;height:auto;line-height:1.5}
 .bkMeta{font-size:10px;color:var(--muted)}
+/* ようこそ画面。最初に目に入る画面なので、中央寄せで大きめに */
+.wcTitle{font-size:20px;text-align:center;margin:6px 0 14px}
+.wcLead{font-size:13px;line-height:1.9;color:var(--muted);text-align:center;margin:0 0 16px}
+.wcAsk{font-size:12px;color:var(--faint);text-align:center;margin:0 0 16px}
 /* 「あなたは誰か」の選択 */
 .whoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;max-height:44vh;overflow:auto}
 .whoCard{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;cursor:pointer;
@@ -1803,14 +1808,15 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 <div id="tabStrip">
   <div class="seg" id="viewTabs">
     <div class="seg-thumb"></div>
-    <button data-view="matrix" class="on"><span class="vtName">一覧ビュー</span><span class="tabAv"></span></button>
-    <button data-view="scene"><span class="vtName">シーン別ビュー</span><span class="tabAv"></span></button>
-    <button data-view="kanban"><span class="vtName">カードビュー</span><span class="tabAv"></span></button>
-    <button data-view="gantt"><span class="vtName">ガントチャート</span><span class="tabAv"></span></button>
-    <button data-view="summary"><span class="vtName">サマリー</span><span class="tabAv"></span></button>
+    <button data-view="gantt" class="on"><span class="vtName">ガントチャート</span></button>
+    <button data-view="matrix"><span class="vtName">一覧ビュー</span></button>
+    <button data-view="scene"><span class="vtName">シーン別ビュー</span></button>
+    <button data-view="kanban"><span class="vtName">カードビュー</span></button>
+    <button data-view="summary"><span class="vtName">サマリー</span></button>
   </div>
   <div class="spacer"></div>
   <div id="presenceBar" hidden title="いまこのプロジェクトを開いている人"></div>
+  <div id="meBar" hidden title="クリックすると、あなたが誰かを選び直せます"></div>
 </div>
 <header>
   <!-- 上段は「いつでも同じ場所にある」ものだけ。ビューごとの設定は下の #viewBar に置く -->
@@ -1910,10 +1916,10 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 
 <div id="wrap">
   <main id="mainPane">
-    <section class="view active print-target" id="view-matrix"></section>
+    <section class="view print-target" id="view-matrix"></section>
     <section class="view" id="view-scene"></section>
     <section class="view" id="view-kanban"></section>
-    <section class="view" id="view-gantt">
+    <section class="view active" id="view-gantt">
       <div id="gantt">
         <div id="lpane">
           <div id="lhead"></div>
@@ -2154,8 +2160,9 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 <!-- 初回だけ出る入口。作るのか、誰かのに参加するのかをまず選ぶ -->
 <div class="overlay" id="welcomeOverlay">
   <div class="modal" style="width:min(560px,94vw)">
-    <h2>AA_ProductionBoard へようこそ</h2>
-    <p class="syncLead">イベント制作の進行を、タスク・シーン・ガントの3つの見方で管理します。<br>まず、どちらから始めるか選んでください。</p>
+    <h2 class="wcTitle">AA_ProductionBoard へようこそ</h2>
+    <p class="wcLead">VRChat向けのワールド制作を、ガントチャートや場面別、カードビュー等で管理するツールです。<br>同時編集も可能です。</p>
+    <p class="wcAsk">まず、どちらから始めるか選んでください。</p>
     <div class="aiModeCards syncMode" id="wcMode">
       <button type="button" data-w="new">
         <span class="amTitle">新しく作る</span>
@@ -2602,7 +2609,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-3d45bcf";
+const APP_VERSION = "2026.08.02-7a14918";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2755,7 +2762,8 @@ async function historyPrune(){
   try{
     const res = await fetch(`${syncCfg.url}/history/${encodeURIComponent(syncCfg.boardId)}.json?shallow=true`);
     if(!res.ok) return;
-    const keys = Object.keys(await res.json() || {}).map(Number).sort((a,b)=>a-b);
+    const raw = await res.json() || {};
+    const keys = Object.entries(raw).filter(([,v])=>v).map(([k])=>+k).sort((a,b)=>a-b);
     const drop = keys.slice(0, Math.max(0, keys.length - HISTORY_KEEP));
     for(const k of drop){
       fetch(`${syncCfg.url}/history/${encodeURIComponent(syncCfg.boardId)}/${k}.json`, {method:"DELETE"}).catch(()=>{});
@@ -2769,7 +2777,10 @@ async function historyList(){
     const res = await fetch(`${syncCfg.url}/history/${encodeURIComponent(syncCfg.boardId)}.json`);
     if(!res.ok) return [];
     const all = await res.json() || {};
+    /* キーが小さい連番だと Firebase は配列で返してくる。抜けの分が null で混ざるので必ず弾く
+       (これを忘れて一覧が常に空になっていた) */
     return Object.entries(all)
+      .filter(([,v])=>v && v.ct && v.iv)
       .map(([rev, v])=>({rev:+rev, at:v.at, ct:v.ct, iv:v.iv}))
       .sort((a,b)=>b.rev-a.rev);
   }catch(e){ return []; }
@@ -3152,6 +3163,7 @@ function applyPresenceEvent(path, data){
   else { _presence[rest] = data; }
   renderPresence();
   renderCursors();
+  renderMe();
 }
 /* ビューの表示名。タブの文字をそのまま使う(シーン別はエリア別になることがある) */
 function viewLabel(v){
@@ -3173,22 +3185,17 @@ function renderPresence(){
     seen.add(key);
     others.push({m: state.members.find(x=>x.id===p.m) || null, view: p.v || (p.c && p.c.v)});
   }
-  /* 参加者は「そのビューのタブの中」に出す。誰がどこを見ているかタブを見れば分かる */
-  /* others が空でもタブの中を空にするため、早期 return はしない */
-  box.hidden = true; box.innerHTML = "";
-  const byView = {};
-  for(const o of others){ const v = o.view || "matrix"; (byView[v] = byView[v] || []).push(o.m); }
-  document.querySelectorAll("#viewTabs [data-view]").forEach(tab=>{
-    const slot = tab.querySelector(".tabAv");
-    if(!slot) return;
-    const list = byView[tab.dataset.view] || [];
-    slot.innerHTML = list.slice(0,3).map(m=>{
-      if(!m) return `<span class="pzAv pzUnknown" title="名前未設定の人">?</span>`;
-      return m.icon
-        ? `<img class="pzAv" src="${m.icon}" title="${esc(m.name)}" alt="">`
-        : `<span class="pzAv pzDot" style="background:${m.color}" title="${esc(m.name)}">${esc(m.name.slice(0,1))}</span>`;
-    }).join("") + (list.length>3 ? `<span class="pzAv pzMore" title="他${list.length-3}人">+${list.length-3}</span>` : "");
-  });
+  /* 「閲覧中」としてまとめて並べる。ビュー名は出さない(ホバーで分かれば十分) */
+  if(!others.length){ box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = `<span class="pzLbl">閲覧中</span>` + others.map(o=>{
+    const m = o.m, vn = viewLabel(o.view);
+    const tip = (m ? m.name : "名前未設定の人") + (vn ? ` — ${vn}` : "");
+    if(!m) return `<span class="pzAv pzUnknown" title="${esc(tip)}">?</span>`;
+    return m.icon
+      ? `<img class="pzAv" src="${m.icon}" title="${esc(tip)}" alt="">`
+      : `<span class="pzAv pzDot" style="background:${m.color}" title="${esc(tip)}">${esc(m.name.slice(0,1))}</span>`;
+  }).join("");
 }
 /* 古くなった人を消すために定期的に描き直す */
 setInterval(()=>{ if(Object.keys(_presence).length) renderPresence(); }, 10000);
@@ -5875,6 +5882,22 @@ $("syHist").addEventListener("click", async e=>{
   }catch(e){ alert("控えを読めませんでした。パスワードが変わっている可能性があります。"); }
 });
 
+/* 自分が誰として参加しているかを、タブ列の右端に出す。押せば選び直せる */
+function renderMe(){
+  const box = $("meBar");
+  if(!box) return;
+  if(!syncEnabled()){ box.hidden = true; box.innerHTML = ""; return; }
+  const nm = (syncCfg && syncCfg.name) || "";
+  const m = state.members.find(x=>x.name===nm);
+  box.hidden = false;
+  const face = m
+    ? (m.icon ? `<img class="pzAv" src="${m.icon}" alt="">`
+              : `<span class="pzAv pzDot" style="background:${m.color}">${esc(m.name.slice(0,1))}</span>`)
+    : `<span class="pzAv pzUnknown">?</span>`;
+  box.innerHTML = `<span class="meSep"></span>${face}<span class="meNm">${esc(nm || "名前を選ぶ")}</span>`;
+}
+$("meBar").addEventListener("click", ()=>{ if(syncEnabled()) openWhoAmI(); });
+
 /* 接続してメンバー一覧が手に入ってから「あなたは誰か」を選んでもらう。
    参加する側は、繋ぐまで相手のメンバーもアイコンも分からないため */
 function openWhoAmI(){
@@ -5897,6 +5920,7 @@ function chooseWho(name){
   $("whoOverlay").classList.remove("open");
   presencePut();       /* 誰が居るかの一覧にすぐ反映させる */
   renderPresence();
+  renderMe();
 }
 $("whoGrid").addEventListener("click", e=>{
   const b = e.target.closest("[data-who]");
@@ -6116,7 +6140,7 @@ document.addEventListener("keydown", e=>{
   /* 修飾キー無し・入力中でない・モーダルを開いていないときのショートカット:1〜5=ビュー切替、D=台本表示切替 */
   if(!mod && !typing && !document.querySelector(".overlay.open")){
     if(e.key>="1" && e.key<="5"){
-      const btn = document.querySelector(`#viewTabs [data-view="${["matrix","scene","kanban","gantt","summary"][+e.key-1]}"]`);
+      const btn = document.querySelector(`#viewTabs [data-view="${["gantt","matrix","scene","kanban","summary"][+e.key-1]}"]`);
       if(btn){ e.preventDefault(); btn.click(); }
       return;
     }
@@ -6173,6 +6197,7 @@ function renderAll(){
   const donePt = progList.filter(a=>a.stage===STAGES.length-1).reduce((t,a)=>t+SIZE_PT[a.size],0);
   $("titleProg").textContent = totalPt ? `進捗 ${donePt} / ${totalPt}pt(${Math.round(donePt/totalPt*100)}%)${memberFilterActive()?"・絞り込み中":""}` : "";
   renderMemberFilter();
+  renderMe();
   renderMatrix();
   renderSceneView();
   renderKanban();
@@ -6463,7 +6488,8 @@ try{
   }
 }catch(e){}
 normalizeState();
-document.body.dataset.view = "matrix";
+document.body.dataset.view = "gantt";
+document.body.classList.add("ganttView");
 $("sortSel").value = state.ui.sortMode;
 applyUnitLabels();
 applyEditModeFromState();
@@ -11145,10 +11171,15 @@ Promise.resolve(initSync()).then(()=>{
 });
 
 (function restoreView(){
-  const v = state.ui.view;
-  if(!v || v === "matrix") return;                 /* 既定は一覧なので何もしなくてよい */
-  const tab = document.querySelector(`#viewTabs [data-view="${v}"]`);
-  if(tab) tab.click();
+  const v = state.ui.view || "gantt";
+  if(v !== "gantt"){
+    const tab = document.querySelector(`#viewTabs [data-view="${v}"]`);
+    if(tab){ tab.click(); return; }
+  }
+  /* ガントは既定なのでタブを押す処理を通らない。
+     起動時の renderAll() は Gantt の初期化より前に走るため、ここで描き起こす
+     (これを忘れると、開いた直後だけバーが1本も出ない) */
+  if(typeof Gantt !== "undefined" && Gantt){ Gantt.show(); renderUnscheduled(); }
 })();
 
 </script>
