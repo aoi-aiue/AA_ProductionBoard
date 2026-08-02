@@ -1848,18 +1848,18 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <div class="mpSep"></div>
       <button class="btn" id="miShareNew" onclick="openSyncModal('new')" title="いまのプロジェクトを、他の人と一緒に編集できるようにします">共有を開始…</button>
       <button class="btn" id="miShareJoin" onclick="openSyncModal('join')" title="他の人のプロジェクトを開きます。いまの画面は置き換わります">共有プロジェクトを開く…</button>
+      <div class="mpSep" id="mpSepInfo"></div>
+      <!-- いま開いているプロジェクトの確認・巻き戻し -->
+      <button class="btn" id="miShareInfo" onclick="openSyncModal('info')" title="いま開いている共有プロジェクトのIDとパスワードを確認します" hidden>この共有プロジェクトの情報…</button>
+      <button class="btn" onclick="openBackupModal()" title="自動で取っている控えから、以前の状態に戻します">自動バックアップ…</button>
       <div class="mpSep"></div>
       <!-- 手元のパソコンとのやり取り -->
       <button class="btn" onclick="document.getElementById('importFile').click()" title="保存しておいたファイル(JSON)を読み込んで復元します">ローカルから開く</button>
       <button class="btn" onclick="exportJSON()" title="いまの内容をファイル(JSON)として手元に保存します">ローカルに保存</button>
       <div class="mpSep"></div>
-      <!-- 台本からの取り込み。使う場面が限られる -->
+      <!-- 台本からの取り込み。使う場面が限られるので一番下 -->
       <button class="btn" onclick="openScriptTextModal()" title="台本テキストを貼り付け・読み込みます">台本取込</button>
       <button class="btn" onclick="openAiImportModal()" title="AIに台本を分析させた結果(JSON)を取り込みます">AI台本取込</button>
-      <div class="mpSep"></div>
-      <!-- 確認・巻き戻し。普段は触らないので一番下 -->
-      <button class="btn" onclick="openBackupModal()" title="自動で取っている控えから、以前の状態に戻します">自動バックアップ…</button>
-      <button class="btn" id="miShareInfo" onclick="openSyncModal('info')" title="いま開いている共有プロジェクトのIDとパスワードを確認します" hidden>この共有プロジェクトの情報…</button>
     </div>
   </div>
   <div class="sep"></div>
@@ -2666,7 +2666,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-653d79a";
+const APP_VERSION = "2026.08.02-3880485";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
