@@ -1206,7 +1206,8 @@ body.dark #syncState.warn{color:#F0A882}
 .bkMeta{font-size:10px;color:var(--muted)}
 /* ようこそ画面。最初に目に入る画面なので、中央寄せで大きめに */
 .wcTitle{font-size:20px;text-align:center;margin:6px 0 14px}
-.wcLead{font-size:13px;line-height:1.9;color:var(--muted);text-align:center;margin:0 0 16px}
+.wcLead{font-size:13px;line-height:1.9;color:var(--muted);text-align:center;margin:0 0 16px;
+  max-width:600px;margin-left:auto;margin-right:auto}
 .wcAsk{font-size:12px;color:var(--faint);text-align:center;margin:0 0 16px}
 /* 「あなたは誰か」の選択 */
 .whoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;max-height:44vh;overflow:auto}
@@ -1699,7 +1700,9 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   white-space:nowrap;z-index:5;
 }
 #view-gantt .vline{position:absolute;top:0;width:1px;height:100%}
-#view-gantt .vline.today{background:var(--imp);opacity:1;width:2px;z-index:2}
+/* 今日の線は一番上に置く。マイルストーン行(sticky・z-index:24)が不透明なので、
+   それより下にあると線が途切れて見える。日付ヘッダー(30)より下には収める */
+#view-gantt .vline.today{background:var(--imp);opacity:1;width:2px;z-index:26}
 #view-gantt .todayBand{position:absolute;top:0;height:100%;background:var(--todayCol);pointer-events:none}
 #view-gantt .eventBand{position:absolute;top:0;height:100%;background:rgba(var(--impRgb),.16);pointer-events:none;z-index:1}
 #view-gantt .todayFlag{
@@ -2220,7 +2223,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   </div>
 </div>
 <div class="overlay" id="welcomeOverlay">
-  <div class="modal" style="width:min(560px,94vw)">
+  <div class="modal" style="width:min(720px,94vw)">
     <h2 class="wcTitle">AA_ProductionBoard へようこそ</h2>
     <p class="wcLead">VRChat向けのワールド制作を、ガントチャートや場面別、カードビュー等で管理するツールです。<br>同時編集も可能です。</p>
     <p class="wcAsk">まず、どちらから始めるか選んでください。</p>
@@ -2657,7 +2660,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-358baab";
+const APP_VERSION = "2026.08.02-1f2ae4a";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -6074,6 +6077,12 @@ $("whoSkip").onclick = ()=>$("whoOverlay").classList.remove("open");
 /* 初回の入口。作るのか、誰かのプロジェクトに参加するのかをまず選ばせる。
    このツールは複数人で使うのが前提なので、参加の道を最初から見せておく */
 function openWelcome(){ $("welcomeOverlay").classList.add("open"); }
+/* タイトル設定(新規作成)の左下から、共有プロジェクトへ参加する導線。
+   ※ 一度この配線が抜けて「押しても反応しない」状態になっている。消さないこと */
+if($("tSync")) $("tSync").onclick = ()=>{
+  $("titleModalOverlay").classList.remove("open");
+  openSyncModal("join");
+};
 $("wcMode").addEventListener("click", e=>{
   const b = e.target.closest("button[data-w]");
   if(!b) return;
