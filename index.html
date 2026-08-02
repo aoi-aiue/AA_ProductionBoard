@@ -1153,17 +1153,22 @@ body.dark #syncState.warn{color:#F0A882}
 .pzAv{width:24px;height:24px;border-radius:50%;flex:none;object-fit:cover;display:block;
   border:2px solid var(--panel);box-sizing:border-box;box-shadow:0 0 0 1px rgba(20,29,40,.14)}
 .pzOne .pzAv{margin-left:0}
-/* 参加者。アイコンの下に、見ているビュー名を小さく添える */
-.pzOne{display:flex;flex-direction:column;align-items:center;gap:1px;flex:none}
-.pzOne+.pzOne{margin-left:2px}
-.pzView{font-size:8.5px;line-height:1;color:var(--muted);max-width:64px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
+/* タブの中に出す参加者アイコン。誰がどのビューにいるかタブで分かる */
+.vtName{flex:none}
+.tabAv{display:inline-flex;align-items:center;margin-left:6px}
+.tabAv:empty{display:none}
+.tabAv .pzAv{width:18px;height:18px;border:1.5px solid var(--panel);box-shadow:none}
+.tabAv .pzAv+.pzAv{margin-left:-6px}
+#viewTabs button:not(.on) .tabAv .pzAv{border-color:var(--tabBand,#D8DDE3)}
+.pzMore{display:flex;align-items:center;justify-content:center;background:var(--muted);
+  font-size:9px;font-weight:700;color:#fff}
 .pzDot,.pzUnknown{display:flex;align-items:center;justify-content:center;
   font-size:11px;font-weight:700;color:#fff;line-height:1}
 .pzUnknown{background:var(--faint)}
 /* 相手のカーソル。画面の一番上に浮かせるだけで、操作は一切邪魔しない */
 #cursorLayer{position:fixed;inset:0;pointer-events:none;z-index:400}
-.rcur{position:absolute;transform:translate(-2px,-2px);transition:left .12s linear,top .12s linear}
+/* 位置は JS が毎フレーム transform で動かす。CSSのtransitionと二重にすると遅れて見える */
+.rcur{position:absolute;left:0;top:0;will-change:transform}
 .rcur svg{display:block;filter:drop-shadow(0 1px 2px rgba(20,29,40,.35))}
 .rcurName{position:absolute;left:13px;top:13px;display:inline-flex;align-items:center;gap:4px;
   color:#fff;font-size:10px;font-weight:700;line-height:1;padding:3px 7px 3px 4px;border-radius:99px;
@@ -1181,6 +1186,7 @@ body.dark #syncState.warn{color:#F0A882}
 .syncMode button{text-align:left}
 #syCopy[hidden]{display:none}
 #sySOff[hidden],#sySave[hidden]{display:none}
+#syHist{max-height:200px;overflow:auto}
 .bkRow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;
   text-align:left;padding:7px 10px;margin-bottom:5px;height:auto;line-height:1.5}
 .bkMeta{font-size:10px;color:var(--muted)}
@@ -1797,11 +1803,11 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 <div id="tabStrip">
   <div class="seg" id="viewTabs">
     <div class="seg-thumb"></div>
-    <button data-view="matrix" class="on">一覧ビュー</button>
-    <button data-view="scene">シーン別ビュー</button>
-    <button data-view="kanban">カードビュー</button>
-    <button data-view="gantt">ガントチャート</button>
-    <button data-view="summary">サマリー</button>
+    <button data-view="matrix" class="on"><span class="vtName">一覧ビュー</span><span class="tabAv"></span></button>
+    <button data-view="scene"><span class="vtName">シーン別ビュー</span><span class="tabAv"></span></button>
+    <button data-view="kanban"><span class="vtName">カードビュー</span><span class="tabAv"></span></button>
+    <button data-view="gantt"><span class="vtName">ガントチャート</span><span class="tabAv"></span></button>
+    <button data-view="summary"><span class="vtName">サマリー</span><span class="tabAv"></span></button>
   </div>
   <div class="spacer"></div>
   <div id="presenceBar" hidden title="いまこのプロジェクトを開いている人"></div>
@@ -2219,8 +2225,10 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
           <input type="text" id="syUrl" spellcheck="false">
         </div>
         <div class="field">
-          <label>ひとつ前の状態に戻す <span class="fHint">誰かが誤って消してしまったときに使います</span></label>
-          <button class="btn" type="button" id="syRestore" style="width:100%">サーバー上のひとつ前に戻す</button>
+          <label class="withAction"><span>サーバーに残っている過去の状態
+            <span class="fHint">誰かが誤って消したときは、ここから戻せます</span></span>
+            <button type="button" id="syHistLoad">一覧を読み込む</button></label>
+          <div id="syHist"><div class="hint">「一覧を読み込む」を押してください</div></div>
         </div>
         <div class="field">
           <label>この端末に残っている控え <span class="fHint">直近3件。共有していないときも使えます</span></label>
@@ -2580,7 +2588,7 @@ function unitPre(){ return state.ui && state.ui.unit==="area" ? "A" : "S"; }
 /* 静的HTML側の「シーン」表記を現在の呼称に合わせて書き換える(呼称変更時・起動時に呼ぶ) */
 function applyUnitLabels(){
   const u = unitName();
-  const q = document.querySelector("#viewTabs [data-view='scene']"); if(q) q.textContent = u+"別ビュー";
+  const q = document.querySelector("#viewTabs [data-view='scene'] .vtName"); if(q) q.textContent = u+"別ビュー";
   const add = $("btnAddScene"); if(add) add.textContent = u;
   const scLbl = $("aScenesLbl"); if(scLbl) scLbl.textContent = "使用"+u+"(複数可)";
   const nameLbl = $("sNameLbl"); if(nameLbl) nameLbl.textContent = u+"名";
@@ -2594,7 +2602,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-a183a8c";
+const APP_VERSION = "2026.08.02-3d45bcf";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2728,6 +2736,44 @@ function pushBackup(){
 }
 /* 空(または極端に減った内容)で上書きしようとしていないか。
    true を返したら「送ってはいけない」 */
+/* サーバー側の世代控え。本体とは別の場所(/history/{ID}/{rev})に置く。
+   本体の下に置くと、読み込みのたびに全世代まで落ちてきて重くなるため。
+   ※この場所への書き込みには Firebase のルール追加が必要。
+     未設定なら黙って失敗するので、その場合は本体の prev(直前の1世代)だけが効く */
+const HISTORY_KEEP = 20;
+async function historyPut(entry){
+  if(!syncEnabled() || syncCfg.url.startsWith("mock://") || !entry || !entry.ct) return;
+  try{
+    await fetch(`${syncCfg.url}/history/${encodeURIComponent(syncCfg.boardId)}/${entry.rev}.json`,
+      {method:"PUT", headers:{"Content-Type":"application/json"},
+       body:JSON.stringify({at:entry.at, ct:entry.ct, iv:entry.iv})});
+    historyPrune();
+  }catch(e){}
+}
+/* 古い世代を捨てる。件数だけ見たいので shallow で軽く取る */
+async function historyPrune(){
+  try{
+    const res = await fetch(`${syncCfg.url}/history/${encodeURIComponent(syncCfg.boardId)}.json?shallow=true`);
+    if(!res.ok) return;
+    const keys = Object.keys(await res.json() || {}).map(Number).sort((a,b)=>a-b);
+    const drop = keys.slice(0, Math.max(0, keys.length - HISTORY_KEEP));
+    for(const k of drop){
+      fetch(`${syncCfg.url}/history/${encodeURIComponent(syncCfg.boardId)}/${k}.json`, {method:"DELETE"}).catch(()=>{});
+    }
+  }catch(e){}
+}
+/* 世代の一覧(新しい順)。中身は復元するときだけ取りに行く */
+async function historyList(){
+  if(!syncEnabled() || syncCfg.url.startsWith("mock://")) return [];
+  try{
+    const res = await fetch(`${syncCfg.url}/history/${encodeURIComponent(syncCfg.boardId)}.json`);
+    if(!res.ok) return [];
+    const all = await res.json() || {};
+    return Object.entries(all)
+      .map(([rev, v])=>({rev:+rev, at:v.at, ct:v.ct, iv:v.iv}))
+      .sort((a,b)=>b.rev-a.rev);
+  }catch(e){ return []; }
+}
 function guardEmptyOverwrite(remote){
   if(!remote || !remote.ct) return false;              /* 相手が空なら気にしない */
   const mine = state.tasks.length + state.scenes.length;
@@ -2903,6 +2949,7 @@ async function doSyncPush(){
     syncRev = (syncRev || 0) + 1;
     /* 直前の状態を1つだけ控えておく(誰かが壊してもここから戻せる) */
     const prev = (cur && cur.ct) ? {rev:cur.rev, at:cur.at, ct:cur.ct, iv:cur.iv} : null;
+    if(prev) historyPut(prev);   /* 世代として残す(失敗しても本体の保存は続ける) */
     await remotePut(syncCfg, prev
       ? {rev:syncRev, at:new Date().toISOString(), ...payload, prev}
       : {rev:syncRev, at:new Date().toISOString(), ...payload});
@@ -3110,7 +3157,7 @@ function applyPresenceEvent(path, data){
 function viewLabel(v){
   if(!v) return "";
   const tab = document.querySelector(`#viewTabs [data-view="${v}"]`);
-  return tab ? tab.textContent.trim() : "";
+  return tab ? (tab.querySelector(".vtName")||tab).textContent.trim() : "";
 }
 function renderPresence(){
   const box = $("presenceBar");
@@ -3126,18 +3173,22 @@ function renderPresence(){
     seen.add(key);
     others.push({m: state.members.find(x=>x.id===p.m) || null, view: p.v || (p.c && p.c.v)});
   }
-  if(!others.length){ box.hidden = true; box.innerHTML = ""; return; }
-  box.hidden = false;
-  box.innerHTML = `<span class="pzLbl">閲覧中</span>` + others.map(o=>{
-    const m = o.m, vn = viewLabel(o.view);
-    const tip = (m ? m.name : "名前未設定の人") + (vn ? ` — ${vn}` : "");
-    const face = m
-      ? (m.icon ? `<img class="pzAv" src="${m.icon}" alt="">`
-                : `<span class="pzAv pzDot" style="background:${m.color}">${esc(m.name.slice(0,1))}</span>`)
-      : `<span class="pzAv pzUnknown">?</span>`;
-    /* どのビューを見ているかを添える。同じ画面を見ているかが一目で分かる */
-    return `<span class="pzOne" title="${esc(tip)}">${face}${vn?`<span class="pzView">${esc(vn)}</span>`:""}</span>`;
-  }).join("");
+  /* 参加者は「そのビューのタブの中」に出す。誰がどこを見ているかタブを見れば分かる */
+  /* others が空でもタブの中を空にするため、早期 return はしない */
+  box.hidden = true; box.innerHTML = "";
+  const byView = {};
+  for(const o of others){ const v = o.view || "matrix"; (byView[v] = byView[v] || []).push(o.m); }
+  document.querySelectorAll("#viewTabs [data-view]").forEach(tab=>{
+    const slot = tab.querySelector(".tabAv");
+    if(!slot) return;
+    const list = byView[tab.dataset.view] || [];
+    slot.innerHTML = list.slice(0,3).map(m=>{
+      if(!m) return `<span class="pzAv pzUnknown" title="名前未設定の人">?</span>`;
+      return m.icon
+        ? `<img class="pzAv" src="${m.icon}" title="${esc(m.name)}" alt="">`
+        : `<span class="pzAv pzDot" style="background:${m.color}" title="${esc(m.name)}">${esc(m.name.slice(0,1))}</span>`;
+    }).join("") + (list.length>3 ? `<span class="pzAv pzMore" title="他${list.length-3}人">+${list.length-3}</span>` : "");
+  });
 }
 /* 古くなった人を消すために定期的に描き直す */
 setInterval(()=>{ if(Object.keys(_presence).length) renderPresence(); }, 10000);
@@ -3184,6 +3235,24 @@ function onCursorMove(e){
 }
 document.addEventListener("mousemove", onCursorMove);
 
+/* 受け取った位置へ滑らかに寄せるための、描画側の現在位置。
+   通信の回数は増やさず、間を毎フレーム補って動かす(そのまま置くとカクついて見える) */
+const _curSmooth = {};   /* {接続ID: {x, y}} */
+function stepCursors(){
+  for(const k of Object.keys(_curSmooth)){
+    const c = _curSmooth[k];
+    if(!c.tx && c.tx !== 0) continue;
+    /* 目標との差を毎フレーム一定割合ずつ詰める。近づくほど遅くなるので自然に止まる */
+    c.x += (c.tx - c.x) * 0.28;
+    c.y += (c.ty - c.y) * 0.28;
+    if(c.el){
+      c.el.style.transform = `translate(${Math.round(c.x)}px,${Math.round(c.y)}px)`;
+    }
+  }
+  requestAnimationFrame(stepCursors);
+}
+requestAnimationFrame(stepCursors);
+
 /* 受け取ったカーソルを描く。自分のビューと同じ人だけ */
 function renderCursors(){
   if(!_curLayer){
@@ -3207,19 +3276,34 @@ function renderCursors(){
       shown.push({m: state.members.find(z=>z.id===p.m) || null, x, y, cid});
     }
   }
-  if(!shown.length){ _curLayer.innerHTML = ""; return; }
-  _curLayer.innerHTML = shown.map(c=>{
-    const col = c.m ? c.m.color : "#8A9099";
-    const nm = c.m ? esc(c.m.name) : "?";
-    const av = c.m && c.m.icon ? `<img src="${c.m.icon}" alt="">` : "";
-    return `<div class="rcur" style="left:${Math.round(c.x)}px;top:${Math.round(c.y)}px">
-      <svg viewBox="0 0 12 18" width="14" height="20"><path d="M1 1l9.5 8.5-4.2.5 2.4 5.2-2 .9-2.4-5.3-3.3 3z"
-        fill="${col}" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/></svg>
-      <span class="rcurName" style="background:${col}">${av}${nm}</span></div>`;
-  }).join("");
+  /* 要素は作り直さず使い回す。作り直すと補間の途中経過が消えてカクつく */
+  const alive = new Set();
+  for(const c of shown){
+    alive.add(c.cid);
+    let sm = _curSmooth[c.cid];
+    if(!sm){
+      const el = document.createElement("div");
+      el.className = "rcur";
+      const col = c.m ? c.m.color : "#8A9099";
+      const nm = c.m ? esc(c.m.name) : "?";
+      const av = c.m && c.m.icon ? `<img src="${c.m.icon}" alt="">` : "";
+      el.innerHTML = `<svg viewBox="0 0 12 18" width="14" height="20"><path d="M1 1l9.5 8.5-4.2.5 2.4 5.2-2 .9-2.4-5.3-3.3 3z"
+          fill="${col}" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/></svg>
+        <span class="rcurName" style="background:${col}">${av}${nm}</span>`;
+      _curLayer.appendChild(el);
+      sm = _curSmooth[c.cid] = {x:c.x, y:c.y, el};
+    }
+    sm.tx = c.x; sm.ty = c.y;
+  }
+  /* 居なくなった人の分は片付ける */
+  for(const k of Object.keys(_curSmooth)){
+    if(alive.has(k)) continue;
+    if(_curSmooth[k].el) _curSmooth[k].el.remove();
+    delete _curSmooth[k];
+  }
 }
 /* 画面が動いたら位置を計算し直す */
-setInterval(renderCursors, 200);
+setInterval(renderCursors, 200);   /* 位置の更新のみ。実際の動きは stepCursors が毎フレーム補間する */
 
 /* --- 起動時に設定があれば繋ぐ --- */
 async function initSync(){
@@ -5661,22 +5745,26 @@ function updateSegThumb(seg){
   thumb.style.transform = `translateX(${on.offsetLeft}px)`;
 }
 $("viewTabs").addEventListener("click", e=>{
-  if(!e.target.dataset.view) return;
-  $("viewTabs").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b===e.target));
+  /* タブの中にアイコンを入れたので、e.target がアイコンになることがある。
+     必ずボタンまで遡ってから判定すること */
+  const tab = e.target.closest("[data-view]");
+  if(!tab) return;
+  const view = tab.dataset.view;
+  $("viewTabs").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b===tab));
   updateSegThumb($("viewTabs"));
   document.querySelectorAll(".view").forEach(v=>{
-    const on = v.id === "view-"+e.target.dataset.view;
+    const on = v.id === "view-"+view;
     v.classList.toggle("active", on);
     v.classList.toggle("print-target", on);
   });
   /* ガントは表示された瞬間に幅を測って描画する(非表示のままだと0幅で計算されてしまう) */
-  document.body.classList.toggle("ganttView", e.target.dataset.view==="gantt");
-  document.body.dataset.view = e.target.dataset.view;   /* ビュー専用ツールバーの出し分けに使う */
+  document.body.classList.toggle("ganttView", view==="gantt");
+  document.body.dataset.view = view;   /* ビュー専用ツールバーの出し分けに使う */
   updateViewToolsLabel();
   presencePut();   /* 見ているビューが変わったことをすぐ知らせる */
-  state.ui.view = e.target.dataset.view;   /* リロードしても同じビューで開けるように覚えておく */
+  state.ui.view = view;   /* リロードしても同じビューで開けるように覚えておく */
   persist();
-  if(e.target.dataset.view==="gantt"){ Gantt.show(); renderUnscheduled(); }
+  if(view==="gantt"){ Gantt.show(); renderUnscheduled(); }
 });
 updateSegThumb($("viewTabs"));
 window.addEventListener("resize", ()=>updateSegThumb($("viewTabs")));
@@ -5739,21 +5827,53 @@ $("syLocalBk").addEventListener("click", e=>{
   $("syncOverlay").classList.remove("open");
   alert("控えに戻しました。共有している場合は、この内容が全員に反映されます。");
 });
-$("syRestore").onclick = async ()=>{
-  if(!syncEnabled()){ alert("共有に接続しているときだけ使えます。"); return; }
+/* サーバーの世代一覧。中身(タスク件数)を出すために、その場で復号して数える */
+let _histCache = [];
+$("syHistLoad").onclick = async ()=>{
+  if(!syncEnabled()){ $("syHist").innerHTML = `<div class="hint">共有に接続しているときだけ使えます。</div>`; return; }
+  $("syHist").innerHTML = `<div class="hint">読み込んでいます…</div>`;
+  let list = await historyList();
+  /* 世代の置き場が使えない場合は、本体に持たせている直前の1件だけでも出す */
+  if(!list.length){
+    const cur = await remoteGet(syncCfg).catch(()=>null);
+    if(cur && cur.prev && cur.prev.ct) list = [{rev:cur.prev.rev, at:cur.prev.at, ct:cur.prev.ct, iv:cur.prev.iv}];
+  }
+  if(!list.length){
+    $("syHist").innerHTML = `<div class="hint">まだ控えがありません。<br>
+      多くの世代を残すには、Firebase のルールに <code>history</code> の許可を足してください(手順書に記載)。</div>`;
+    return;
+  }
+  _histCache = list;
+  const rows = [];
+  for(let i=0;i<list.length;i++){
+    let n = "?", pj = "";
+    try{
+      const box = await decryptJSON(list[i], _syncKey);
+      const st = box && box.state ? box.state : box;
+      n = (st.tasks||[]).length; pj = st.project || "";
+    }catch(e){}
+    rows.push(`<button class="btn bkRow" type="button" data-hist="${i}">
+      <span>${list[i].at ? new Date(list[i].at).toLocaleString() : "(日時不明)"}</span>
+      <span class="bkMeta">${esc(pj||"(名称未設定)")} / タスク${n}件</span></button>`);
+  }
+  $("syHist").innerHTML = rows.join("");
+};
+$("syHist").addEventListener("click", async e=>{
+  const b = e.target.closest("[data-hist]");
+  if(!b) return;
+  const item = _histCache[+b.dataset.hist];
+  if(!item) return;
   try{
-    const cur = await remoteGet(syncCfg);
-    if(!cur || !cur.prev || !cur.prev.ct){ alert("サーバーにひとつ前の控えがありません。"); return; }
-    const box = await decryptJSON(cur.prev, _syncKey);
+    const box = await decryptJSON(item, _syncKey);
     const remote = box && box.state ? box.state : box;
     const n = (remote.tasks||[]).length;
-    if(!confirm(`サーバー上のひとつ前の状態に戻します。\n\n${cur.prev.at ? new Date(cur.prev.at).toLocaleString() : ""}\nタスク${n}件\n\nいまの内容は置き換わり、全員に反映されます。よろしいですか?`)) return;
+    if(!confirm(`この状態に戻します。\n\n${item.at ? new Date(item.at).toLocaleString() : ""}\nタスク${n}件\n\nいまの内容は置き換わり、全員に反映されます。よろしいですか?`)) return;
     adoptState(remote);
     applyTitleBar(); applyUnitLabels(); renderScriptPane(); renderAll();
     $("syncOverlay").classList.remove("open");
-    alert("ひとつ前の状態に戻しました。");
+    alert("この状態に戻しました。");
   }catch(e){ alert("控えを読めませんでした。パスワードが変わっている可能性があります。"); }
-};
+});
 
 /* 接続してメンバー一覧が手に入ってから「あなたは誰か」を選んでもらう。
    参加する側は、繋ぐまで相手のメンバーもアイコンも分からないため */
