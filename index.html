@@ -1839,7 +1839,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <div class="menuPanel" id="openMenuPanel">
       <button class="btn" onclick="newBoard()" title="現在の内容を消去して、新しい白紙のボードから始めます">新規作成</button>
       <div class="mpSep"></div>
-      <button class="btn" onclick="openSyncModal('new')" title="いまのプロジェクトを、他の人と一緒に編集できるようにします">共有を開始…</button>
+      <button class="btn" id="miShareNew" onclick="openSyncModal('new')" title="いまのプロジェクトを、他の人と一緒に編集できるようにします">共有を開始…</button>
+      <button class="btn" id="miShareInfo" onclick="openSyncModal('info')" title="このプロジェクトのIDとパスワードを確認します" hidden>共有中の情報…</button>
       <button class="btn" onclick="openSyncModal('join')" title="他の人のプロジェクトを開きます。いまの画面は置き換わります">共有プロジェクトを開く…</button>
       <button class="btn" onclick="openBackupModal()" title="自動で取っている控えから、以前の状態に戻します">自動バックアップ…</button>
       <div class="mpSep"></div>
@@ -2656,7 +2657,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-93cc626";
+const APP_VERSION = "2026.08.02-358baab";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2773,6 +2774,24 @@ function openKeysModal(){
 const BACKUP_KEY = "aa_productionboard_backups_v1";
 const BACKUP_KEEP = 3;
 
+/* いまの内容と、戻そうとしている内容の差。総数より「何が変わるか」が知りたいので、
+   タスクをidで突き合わせて 追加/変更/削除 を数える */
+function diffCount(from, to){
+  const A = new Map(((from&&from.tasks)||[]).map(t=>[t.id, JSON.stringify(t)]));
+  const B = new Map(((to&&to.tasks)||[]).map(t=>[t.id, JSON.stringify(t)]));
+  let add=0, del=0, chg=0;
+  for(const [id,v] of B){ if(!A.has(id)) add++; else if(A.get(id)!==v) chg++; }
+  for(const id of A.keys()) if(!B.has(id)) del++;
+  return {add, chg, del};
+}
+function diffText(from, to){
+  const d = diffCount(from, to);
+  const p = [];
+  if(d.add) p.push(`追加 ${d.add}`);
+  if(d.chg) p.push(`変更 ${d.chg}`);
+  if(d.del) p.push(`削除 ${d.del}`);
+  return p.length ? p.join(" / ") : "変更なし";
+}
 function loadBackups(){
   try{ return JSON.parse(localStorage.getItem(BACKUP_KEY) || "[]"); }catch(e){ return []; }
 }
@@ -3040,7 +3059,7 @@ async function syncPull(opts){
     const label = byName ? `${byName}さんが` : "";
     const localEmpty = !state.project && !state.tasks.length && !state.scenes.length;
     if((opts && opts.quiet) || localEmpty){ /* 自動受信・手元が空なら黙って反映する */ }
-    else if(!silent && !confirm(`共有プロジェクトを読み込みます。\n\n${label}${cur.at ? new Date(cur.at).toLocaleString() : ""} に更新\nタスク ${(remote.tasks||[]).length}件\n\n今このブラウザで開いている内容は置き換わります。よろしいですか?`)){
+    else if(!silent && !confirm(`共有プロジェクトを読み込みます。\n\n${label}${cur.at ? new Date(cur.at).toLocaleString() : ""} に更新\n\nいまの内容との差: ${diffText(state, remote)}\n\n今このブラウザで開いている内容は置き換わります。よろしいですか?`)){
       setSyncStatus("");
       return false;
     }
@@ -5893,6 +5912,14 @@ function updateViewToolsLabel(){
   const hasTools = [...box.querySelectorAll(".tgroup")].some(g=>getComputedStyle(g).display !== "none");
   box.hidden = !hasTools;
 }
+/* 共有中かどうかで、ファイルメニューの項目自体を切り替える。
+   同じ項目を押したのに中身が違う、という状態を作らないため */
+function syncMenuState(){
+  const on = syncEnabled();
+  const a = $("miShareNew"), b = $("miShareInfo");
+  if(a) a.hidden = on;
+  if(b) b.hidden = !on;
+}
 function setupToolMenu(groupId, btnId, panelId){
   const group=$(groupId), btn=$(btnId), panel=$(panelId);
   btn.addEventListener("click", e=>{
@@ -5923,7 +5950,7 @@ function renderLocalBackups(){
   box.innerHTML = list.length
     ? list.map((b,i)=>`<button class="btn bkRow" type="button" data-bk="${i}">
         <span>${new Date(b.at).toLocaleString()}</span>
-        <span class="bkMeta">${esc(b.p||"(名称未設定)")} / タスク${b.n}件</span></button>`).join("")
+        <span class="bkMeta">${esc(b.p||"(名称未設定)")} / ${esc(diffText(state, JSON.parse(b.json)))}</span></button>`).join("")
     : `<div class="hint">まだ控えがありません</div>`;
 }
 $("syLocalBk").addEventListener("click", e=>{
@@ -5931,7 +5958,8 @@ $("syLocalBk").addEventListener("click", e=>{
   if(!b) return;
   const item = loadBackups()[+b.dataset.bk];
   if(!item) return;
-  if(!confirm(`この控えに戻します。\n\n${new Date(item.at).toLocaleString()}\n${item.p||"(名称未設定)"} / タスク${item.n}件\n\nいまの内容は置き換わります。よろしいですか?`)) return;
+  const dv = diffText(state, JSON.parse(item.json));
+  if(!confirm(`この控えに戻します。\n\n${new Date(item.at).toLocaleString()}\n${item.p||"(名称未設定)"}\n\nいまの内容との差: ${dv}\n\nよろしいですか?`)) return;
   adoptState(JSON.parse(item.json));
   applyTitleBar(); applyUnitLabels(); renderScriptPane(); renderAll();
   $("backupOverlay").classList.remove("open");
@@ -5956,15 +5984,15 @@ $("syHistLoad").onclick = async ()=>{
   _histCache = list;
   const rows = [];
   for(let i=0;i<list.length;i++){
-    let n = "?", pj = "";
+    let dv = "(読めません)", pj = "";
     try{
       const box = await decryptJSON(list[i], _syncKey);
       const st = box && box.state ? box.state : box;
-      n = (st.tasks||[]).length; pj = st.project || "";
+      dv = diffText(state, st); pj = st.project || "";
     }catch(e){}
     rows.push(`<button class="btn bkRow" type="button" data-hist="${i}">
       <span>${list[i].at ? new Date(list[i].at).toLocaleString() : "(日時不明)"}</span>
-      <span class="bkMeta">${esc(pj||"(名称未設定)")} / タスク${n}件</span></button>`);
+      <span class="bkMeta">${esc(pj||"(名称未設定)")} / ${esc(dv)}</span></button>`);
   }
   $("syHist").innerHTML = rows.join("");
 };
@@ -5977,7 +6005,8 @@ $("syHist").addEventListener("click", async e=>{
     const box = await decryptJSON(item, _syncKey);
     const remote = box && box.state ? box.state : box;
     const n = (remote.tasks||[]).length;
-    if(!confirm(`この状態に戻します。\n\n${item.at ? new Date(item.at).toLocaleString() : ""}\nタスク${n}件\n\nいまの内容は置き換わり、全員に反映されます。よろしいですか?`)) return;
+    const dv2 = diffText(state, remote);
+    if(!confirm(`この状態に戻します。\n\n${item.at ? new Date(item.at).toLocaleString() : ""}\n\nいまの内容との差: ${dv2}\n\n全員に反映されます。よろしいですか?`)) return;
     adoptState(remote);
     applyTitleBar(); applyUnitLabels(); renderScriptPane(); renderAll();
     $("backupOverlay").classList.remove("open");
@@ -6069,8 +6098,11 @@ function openSyncModal(mode){
   $("syRemember").checked = !!c.remember;
   /* 入口で「開始」か「参加」かが決まっているならそこから始める。
      接続済みならいまの設定を見せる。指定が無いときだけ2択を出す */
-  _syMode = syncEnabled() ? "join" : (mode || null);
-  $("syBoard").value = (_syMode === "new" && !syncEnabled()) ? newBoardId() : (c.boardId || "");
+  /* 入口の指定を優先する。ここで接続中を先に見ていたため、
+     共有中に「共有を開始」を押すと「参加」の画面が出てしまっていた */
+  _syMode = mode || (syncEnabled() ? "join" : null);
+  $("syBoard").value = (_syMode === "new") ? newBoardId() : (c.boardId || "");
+  if(_syMode === "info") $("syPass").value = _syncPassword || c.password || "";
   $("sySOff").hidden = !loadSyncConfig();
   syncModeUI();
   const note = $("syNote"), can = cryptoAvailable();
@@ -6088,23 +6120,30 @@ function openSyncModal(mode){
 }
 /* 選んだ道に合わせて、入力欄と説明を切り替える */
 function syncModeUI(){
-  const isNew = _syMode === "new", isJoin = _syMode === "join";
+  const isInfo = _syMode === "info";
+  const isNew = _syMode === "new" || isInfo, isJoin = _syMode === "join";
   $("syMode").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.mode === _syMode));
   /* 入口で決まっているなら2択は出さない。見出しでどちらかを示す */
   $("syMode").hidden = !!_syMode;
-  $("syTitle").textContent = isNew ? "共有を開始" : isJoin ? "共有プロジェクトを開く" : "共有";
-  $("syLead").innerHTML = isNew
+  $("syTitle").textContent = isInfo ? "共有中の情報" : isNew ? "共有を開始" : isJoin ? "共有プロジェクトを開く" : "共有";
+  $("syLead").innerHTML = isInfo
+    ? "このプロジェクトは共有中です。<br>下のIDとパスワードを伝えると、その人も同じ画面を見られます。"
+    : isNew
     ? "いまのプロジェクトを、他の人と一緒に編集できるようにします。<br>下のIDとパスワードを仲間に伝えてください。"
     : isJoin
       ? "他の人のプロジェクトを開きます。<b>いまこの画面にある内容は、開いたプロジェクトに置き換わります。</b>"
       : "同じプロジェクトを、離れた場所にいる人と同じ画面で見られるようにします。<br>変更は数秒でお互いに届きます。";
   $("syForm").hidden = !_syMode;
   $("sySave").hidden = !_syMode;
+  /* 共有中の確認は見るだけ。押すと何かが起きるボタンは出さない */
+  $("sySave").hidden = isInfo;
   $("sySave").textContent = isNew ? "共有を開始" : "参加する";
   $("syBoardHint").textContent = isNew
     ? "自動で発行しました。このIDを仲間に伝えてください"
     : "誘ってくれた人から教わったIDを貼り付けます";
   $("syBoard").readOnly = isNew;
+  $("syPass").readOnly = isInfo;
+  $("syPass").type = isInfo ? "text" : "password";   /* 伝えるために見える必要がある */
   $("syCopy").hidden = !isNew;
   $("syBoard").placeholder = isNew ? "" : "教わったIDを貼り付け";
   if(isNew && !$("syBoard").value) $("syBoard").value = newBoardId();
@@ -6134,6 +6173,7 @@ $("sySOff").onclick = ()=>{
   stopSyncStream();
   syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
   setSyncStatus("このパソコンのみ");
+  syncMenuState();
   $("syncOverlay").classList.remove("open");
   /* 繋がっていないのに前のプロジェクトが残っていると、まだ共有中だと思ってしまう。
      白紙に戻して「どのプロジェクトにも居ない」状態をはっきりさせる */
@@ -6175,6 +6215,7 @@ $("sySave").onclick = async ()=>{
   }
   startSyncStream();
   startPresence();
+  syncMenuState();
   /* ここで初めてメンバー一覧が手に入る。自分が誰かをまだ決めていなければ選んでもらう */
   const known = syncCfg.name && state.members.some(m=>m.name===syncCfg.name);
   if(!known) openWhoAmI();
@@ -11280,6 +11321,7 @@ applyEditMode();   /* Gantt の初期化後に、ロック状態をガント側�
    そのうえで中身がまだ空なら、まずタイトル設定から始めてもらう */
 Promise.resolve(initSync()).then(()=>{
   showLocalOnlyHint();
+  syncMenuState();
   const empty = !state.project && !state.tasks.length && !state.scenes.length;
   if(empty && !document.querySelector(".overlay.open")) openWelcome();
 });
