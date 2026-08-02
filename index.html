@@ -1055,7 +1055,7 @@ body.dark #tabStrip{background:#07090B}
 #viewTabs .seg-thumb{display:none}
 #viewTabs button{
   position:relative;height:auto;padding:6px 15px 7px;line-height:1.35;font-size:12px;
-  min-width:0;flex:0 1 auto;
+  min-width:0;flex:0 1 auto;display:flex;align-items:center;
   border:0;border-radius:9px 9px 0 0;background:transparent;color:var(--muted);
   white-space:nowrap;
   /* overflow:hidden は付けないこと。下端のカーブ(::before/::after)を自分で切ってしまう */
@@ -1165,6 +1165,14 @@ body.dark #syncState.warn{color:#F0A882}
 /* 幅が足りないときはタブ名を省略して縮める。
    ボタン自体に overflow:hidden を付けると下端のカーブが切れるので、内側のこの span に付ける */
 .vtName{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* タブの中に出す参加者アイコン */
+.tabAv{display:inline-flex;align-items:center;margin-left:6px;flex:none}
+.tabAv:empty{display:none}
+.tabAv .pzAv{width:17px;height:17px;border:1.5px solid var(--panel);box-shadow:none}
+.tabAv .pzAv+.pzAv{margin-left:-6px}
+#viewTabs button:not(.on) .tabAv .pzAv{border-color:var(--tabBand,#D8DDE3)}
+.pzMore{display:flex;align-items:center;justify-content:center;background:var(--muted);
+  font-size:9px;font-weight:700;color:#fff}
 /* 閲覧中の並び。重ねて場所を取らないようにする */
 .pzAv+.pzAv{margin-left:-7px}
 .pzDot,.pzUnknown{display:flex;align-items:center;justify-content:center;
@@ -1321,7 +1329,7 @@ body.dark{
 #view-gantt #lhead .hl2{width:var(--asgW);flex:none}
 #view-gantt #gantt.vscrolled #lhead, #view-gantt #gantt.vscrolled .rhead{box-shadow:0 8px 10px -8px rgba(20,29,40,.10)}
 #view-gantt #lclip{position:absolute;top:var(--headH);bottom:0;left:0;right:0;overflow:hidden}
-#view-gantt #lbody{will-change:transform;position:relative}
+#view-gantt #lbody{position:relative}
 #view-gantt .colRes{position:absolute;width:11px;cursor:col-resize;z-index:20}
 #view-gantt .colRes::before{content:"";position:absolute;top:11px;left:3px;width:4px;height:16px;
   border-left:1.5px solid var(--faint);border-right:1.5px solid var(--faint)}
@@ -1505,7 +1513,8 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
    右ペインは素直に sticky が効くが、左ペインは #lbody 全体を transform で動かしているので
    sticky が効かない。スクロール量ぶん逆に動かして相殺する(pinMsRow) */
 #view-gantt .rrow.ms{position:sticky;top:var(--headH);z-index:24;background:var(--panel)}
-#view-gantt .lrow.ms{position:relative;z-index:24;background:var(--panel)}
+/* 左ペイン(#lclip)も実際にスクロールするので、sticky がそのまま効く */
+#view-gantt .lrow.ms{position:sticky;top:0;z-index:24;background:var(--panel);transition:none}
 #view-gantt.vscrolled .rrow.ms,#view-gantt.vscrolled .lrow.ms{box-shadow:0 3px 6px -4px rgba(20,29,40,.35)}
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
 #view-gantt .dia{
@@ -1729,7 +1738,7 @@ body.locked #view-gantt .phToggle{cursor:pointer}
 #view-gantt #gantt.pngCap #lpane, #view-gantt #gantt.pngCap #lclip, #view-gantt #gantt.pngCap #rpane{
   height:auto!important;overflow:visible!important;
 }
-#view-gantt #gantt.pngCap #lbody{transform:none!important}
+#view-gantt #gantt.pngCap #lclip{overflow:visible}
 #view-gantt #gantt.pngCap .colRes, #view-gantt #gantt.pngCap #hoverCol, #view-gantt #gantt.pngCap #hoverDate, #view-gantt #gantt.pngCap .rowAdd{display:none!important}
 #view-gantt #gantt.pngCap .grip{opacity:0!important}
 #view-gantt #calView{display:none;flex:1;overflow:auto;padding:18px 22px;flex-direction:column}
@@ -1813,11 +1822,11 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 <div id="tabStrip">
   <div class="seg" id="viewTabs">
     <div class="seg-thumb"></div>
-    <button data-view="gantt" class="on"><span class="vtName">ガントチャート</span></button>
-    <button data-view="matrix"><span class="vtName">一覧ビュー</span></button>
-    <button data-view="scene"><span class="vtName">シーン別ビュー</span></button>
-    <button data-view="kanban"><span class="vtName">カードビュー</span></button>
-    <button data-view="summary"><span class="vtName">サマリー</span></button>
+    <button data-view="gantt" class="on"><span class="vtName">ガントチャート</span><span class="tabAv"></span></button>
+    <button data-view="matrix"><span class="vtName">一覧ビュー</span><span class="tabAv"></span></button>
+    <button data-view="scene"><span class="vtName">シーン別ビュー</span><span class="tabAv"></span></button>
+    <button data-view="kanban"><span class="vtName">カードビュー</span><span class="tabAv"></span></button>
+    <button data-view="summary"><span class="vtName">サマリー</span><span class="tabAv"></span></button>
   </div>
   <div class="spacer"></div>
   <div id="presenceBar" hidden title="いまこのプロジェクトを開いている人"></div>
@@ -2647,7 +2656,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-3d8da58";
+const APP_VERSION = "2026.08.02-8405416";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -3227,8 +3236,25 @@ function renderPresence(){
     others.push({m: state.members.find(x=>x.id===p.m) || null, view: p.v || (p.c && p.c.v)});
   }
   /* 「閲覧中」としてまとめて並べる。ビュー名は出さない(ホバーで分かれば十分) */
-  if(!others.length){ box.hidden = true; box.innerHTML = ""; return; }
+  if(!others.length){
+    box.hidden = true; box.innerHTML = "";
+    document.querySelectorAll("#viewTabs .tabAv").forEach(e=>e.innerHTML = "");
+    return;
+  }
   box.hidden = false;
+  /* タブにも配る。どのビューに誰がいるかタブ側でも分かるようにする */
+  const byView = {};
+  for(const o of others){ const v = o.view || "matrix"; (byView[v] = byView[v] || []).push(o.m); }
+  document.querySelectorAll("#viewTabs [data-view]").forEach(tab=>{
+    const slot = tab.querySelector(".tabAv");
+    if(!slot) return;
+    const list = byView[tab.dataset.view] || [];
+    slot.innerHTML = list.slice(0,3).map(m=>
+      m && m.icon ? `<img class="pzAv" src="${m.icon}" alt="">`
+      : m ? `<span class="pzAv pzDot" style="background:${m.color}">${esc(m.name.slice(0,1))}</span>`
+      : `<span class="pzAv pzUnknown">?</span>`).join("")
+      + (list.length>3 ? `<span class="pzAv pzMore">+${list.length-3}</span>` : "");
+  });
   box.innerHTML = `<span class="pzLbl">閲覧中</span>` + others.map(o=>{
     const m = o.m, vn = viewLabel(o.view);
     const tip = (m ? m.name : "名前未設定の人") + (vn ? ` — ${vn}` : "");
@@ -10790,15 +10816,14 @@ function scheduleStickyUpdate(){
   _stickyLoopActive=true;
   requestAnimationFrame(stickyLoop);
 }
-/* 左ペインのマイルストーン行を、#lbody の移動ぶん戻して見た目上その場に留める */
-function pinMsRow(){
-  const g=$("#rpane"), ms=$("#lbody").querySelector(".lrow.ms");
-  if(ms) ms.style.transform=`translateY(${g.scrollTop}px)`;
-}
+/* 左ペインの縦位置を右ペインに合わせる。
+   以前は #lbody を transform で動かしていたが、それだと中の行に position:sticky が効かず、
+   マイルストーン行を固定できなかった(transformで打ち消す方法は追従が遅れて流れてしまう)。
+   #lclip は overflow:hidden なのでスクロールバーは出ないが、scrollTop は動かせる */
+function pinMsRow(){ /* sticky に任せるので何もしない(呼び出し側の互換のため残す) */ }
 $("#rpane").addEventListener("scroll",()=>{
   const g=$("#rpane");
-  $("#lbody").style.transform=`translateY(${-g.scrollTop}px)`;
-  pinMsRow();
+  $("#lclip").scrollTop=g.scrollTop;
   const gt=$("#gantt");
   gt.classList.toggle("hscrolled",g.scrollLeft>2);
   gt.classList.toggle("vscrolled",g.scrollTop>2);
