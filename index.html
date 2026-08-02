@@ -1246,10 +1246,9 @@ body.dark #syncState.warn{color:#F0A882}
   text-align:left;padding:7px 10px;margin-bottom:5px;height:auto;line-height:1.5}
 .bkMeta{font-size:10px;color:var(--muted)}
 /* ようこそ画面。最初に目に入る画面なので、中央寄せで大きめに */
-.wcTitle{font-size:20px;text-align:center;margin:6px 0 14px}
-.wcLead{font-size:13px;line-height:1.9;color:var(--muted);text-align:center;margin:0 0 16px;
+.wcTitle{font-size:27px;text-align:center;margin:10px 0 16px;letter-spacing:.01em}
+.wcLead{font-size:13px;line-height:1.9;color:var(--muted);text-align:center;margin:0 0 26px;
   max-width:600px;margin-left:auto;margin-right:auto}
-.wcAsk{font-size:12px;color:var(--faint);text-align:center;margin:0 0 16px}
 /* 「あなたは誰か」の選択 */
 .whoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;max-height:44vh;overflow:auto}
 .whoCard{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;cursor:pointer;
@@ -2269,16 +2268,15 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 <div class="overlay" id="welcomeOverlay">
   <div class="modal" style="width:min(720px,94vw)">
     <h2 class="wcTitle">AA_ProductionBoard へようこそ</h2>
-    <p class="wcLead">VRChat向けのワールド制作を、ガントチャートや場面別、カードビュー等で管理するツールです。<br>同時編集も可能です。</p>
-    <p class="wcAsk">まず、どちらから始めるか選んでください。</p>
+    <p class="wcLead">VRChat向けのワールド制作をガントチャートや場面別、カードビュー等で管理するツールです。<br>複数人での同時編集も可能です。</p>
     <div class="aiModeCards syncMode" id="wcMode">
       <button type="button" data-w="new">
         <span class="amTitle">新しく作る</span>
         <span class="amDesc">これから始めるプロジェクト。<br>あとから他の人を招くこともできます</span>
       </button>
       <button type="button" data-w="join">
-        <span class="amTitle">共有中のプロジェクトを開く</span>
-        <span class="amDesc">誘われたプロジェクトに参加します。<br>プロジェクトIDとパスワードを教わってください</span>
+        <span class="amTitle">既存の共有プロジェクトを開く</span>
+        <span class="amDesc">誘われたプロジェクトに参加します。<br>プロジェクトIDとパスワードを入力してください</span>
       </button>
     </div>
   </div>
@@ -2704,7 +2702,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-3b3f48e";
+const APP_VERSION = "2026.08.02-f094006";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
