@@ -1119,6 +1119,30 @@ body[data-view="matrix"] .matrixOnly{display:flex}
 .syncRow{display:flex;gap:8px;align-items:center}
 .syncRow input{flex:1;min-width:0}
 .fHint{font-weight:400;font-size:10.5px;color:var(--faint);margin-left:6px}
+/* いま開いている人。タブ列の右に小さく並べる */
+/* メンバーの並び替え */
+.memItem{position:relative}
+.memGrip{flex:none;color:var(--faint);cursor:grab;font-size:12px;line-height:1;user-select:none;padding:0 2px}
+.memGrip:active{cursor:grabbing}
+.memItem.dragging{opacity:.45}
+.memItem.dropBefore::before,.memItem.dropAfter::after{
+  content:"";position:absolute;left:0;right:0;height:2px;background:var(--accent);border-radius:2px;z-index:2}
+.memItem.dropBefore::before{top:-2px}
+.memItem.dropAfter::after{bottom:-2px}
+/* 日程未定にするボタン。日付欄と同じ高さで右に並べる */
+.dateRow #aNoDate{flex:none;align-self:flex-end;height:32px;padding:0 12px;white-space:nowrap}
+#syncState.warn{color:#B3401A;font-weight:600}
+body.dark #syncState.warn{color:#F0A882}
+#syncState:hover{text-decoration:underline}
+#presenceBar{display:flex;align-items:center;gap:3px;margin-right:10px}
+#presenceBar[hidden]{display:none}
+.pzLbl{font-size:9.5px;color:var(--muted);margin-right:3px;letter-spacing:.02em}
+.pzAv{width:20px;height:20px;border-radius:50%;flex:none;object-fit:cover;
+  border:1.5px solid var(--panel);box-sizing:border-box;box-shadow:0 0 0 1px rgba(20,29,40,.12)}
+.pzAv+.pzAv{margin-left:-6px}
+.pzDot,.pzUnknown{display:flex;align-items:center;justify-content:center;
+  font-size:9.5px;font-weight:700;color:#fff}
+.pzUnknown{background:var(--faint)}
 /* 共有設定: やることを2択で示す */
 .syncHow{display:flex;flex-direction:column;gap:6px;background:var(--hover);border:1px solid var(--line);
   border-radius:7px;padding:10px 12px;font-size:11.5px;line-height:1.75;color:var(--text)}
@@ -1723,7 +1747,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <button data-view="summary">サマリー</button>
   </div>
   <div class="spacer"></div>
-  <button id="btnSample" onclick="loadSampleData()" title="サンプルデータを表示します(暫定機能)">サンプルを出す</button>
+  <div id="presenceBar" hidden title="いまこのプロジェクトを開いている人"></div>
 </div>
 <header>
   <!-- 上段は「いつでも同じ場所にある」ものだけ。ビューごとの設定は下の #viewBar に置く -->
@@ -1934,6 +1958,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
         <div class="tmRow dateRow">
           <div class="field dateF"><label>開始日</label><input type="date" id="aStart"></div>
           <div class="field dateF"><label>終了日</label><input type="date" id="aEnd"></div>
+          <button class="btn" type="button" id="aNoDate" title="日程を空にして、ガント下の「日程未定」に置きます">日程未定にする</button>
         </div>
         <div class="field phaseRow"><label>フェイズ</label><select id="aPhase"></select></div>
         <div class="hint" id="aDateHint" style="margin:0">日程を入れるとガントに並びます。空のままなら「日程未定」として扱われます。</div>
@@ -2458,7 +2483,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-4ad6028";
+const APP_VERSION = "2026.08.02-2812f28";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2538,6 +2563,13 @@ function saveSyncConfig(c){
   const keep = {url:c.url, boardId:c.boardId, name:c.name||"", remember:!!c.remember};
   if(c.remember && c.password) keep.password = c.password;  /* 端末に残す選択をしたときだけ */
   localStorage.setItem(SYNC_KEY, JSON.stringify(keep));
+  /* 「覚えさせない」場合でも、そのタブが開いている間は保持する。
+     こうしないと再読み込みのたびに接続が切れ、画面には中身が残るので
+     繋がっているつもりで編集してしまう(実際に分かりにくいと指摘を受けた) */
+  try{
+    if(c.password) sessionStorage.setItem(SYNC_KEY, c.password);
+    else sessionStorage.removeItem(SYNC_KEY);
+  }catch(e){}
 }
 
 /* --- 暗号 --- */
@@ -2580,13 +2612,24 @@ async function remoteGet(cfg){
 }
 async function remotePut(cfg, body){
   if(cfg.url.startsWith("mock://")){ _mockRemote.calls.put++; _mockRemote.store = body; return body; }
+  /* PATCH にすること。PUT だとノードごと置き換わり、同じノードにぶら下げている
+     presence(誰が開いているか)が毎回消えてしまう */
   const res = await fetch(`${cfg.url}/boards/${encodeURIComponent(cfg.boardId)}.json`,
-    {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+    {method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
   if(!res.ok) throw new Error("書き込みに失敗しました (" + res.status + ")");
   return await res.json();
 }
 
-function setSyncStatus(txt){ const el = $("syncState"); if(el) el.textContent = txt; }
+/* 共有の状態表示。異常時は色を変え、押すと共有設定が開く(放置されないように) */
+function setSyncStatus(txt, warn){
+  const el = $("syncState");
+  if(!el) return;
+  el.textContent = txt;
+  const bad = warn || /^⚠/.test(txt);
+  el.classList.toggle("warn", !!bad);
+  el.style.cursor = txt ? "pointer" : "";
+  el.onclick = txt ? (()=>openSyncModal()) : null;
+}
 
 /* --- 送信。persist() から呼ばれる(まとめて1回にするため遅延させる) --- */
 function syncPush(){
@@ -2691,9 +2734,12 @@ function startSyncStream(){
     const onEv = ev=>{
       let msg; try{ msg = JSON.parse(ev.data); }catch(e){ return; }
       if(!msg) return;
-      /* path が "/" 以外(部分更新)のときは、全体を取り直す */
+      /* 参加者の出入りは盤面とは関係ないので、取り直さずここで処理する */
+      if(msg.path && msg.path.startsWith("/presence")){ applyPresenceEvent(msg.path, msg.data); return; }
+      /* それ以外で path が "/" でない(部分更新)ときは、全体を取り直す */
       if(msg.path !== "/"){ syncPull({silent:true, quiet:true}); return; }
       const d = msg.data;
+      if(d && d.presence){ _presence = d.presence; renderPresence(); }
       if(!d || typeof d.rev !== "number" || !d.ct) return;
       if(d.rev <= syncRev) return;   /* 自分が書いたぶんのこだま */
       receiveRemote(d);
@@ -2744,20 +2790,118 @@ async function applyRemote(d){
   }
 }
 
+/* ================= 参加者表示 =================
+   「いま誰がこのプロジェクトを開いているか」をアイコンで並べる。
+
+   置き場所は盤面と同じノードの下:
+     /boards/{ID}/rev,at,ct,iv    … 盤面(暗号化)
+     /boards/{ID}/presence/{接続ID} … {m:メンバーid, t:時刻}
+   こうするとFirebaseのルールを足さずに済む(盤面への書き込み許可がそのまま効く)。
+   代わりに盤面の書き込みは PUT ではなく PATCH にすること。PUTだとノードごと
+   置き換わって presence が消える。
+
+   流れてくるのは「メンバーidと時刻」だけで、名前もアイコンも載せない。
+   受け取った側が自分の持っている盤面から引くので、合言葉を知らない人には誰が誰だか分からない */
+const PRESENCE_BEAT_MS = 15000;   /* 生存信号の間隔 */
+const PRESENCE_STALE_MS = 45000;  /* これより古い人は「閉じた」とみなす */
+let _presence = {};               /* {接続ID: {m, t}} */
+let _beatTimer = null;
+
+/* 接続ID。タブごとに1つ。再読み込みでは同じものを使う(同じ人が2人に見えないように) */
+function clientId(){
+  let id = sessionStorage.getItem("aa_pb_client");
+  if(!id){ id = Math.random().toString(36).slice(2,10); sessionStorage.setItem("aa_pb_client", id); }
+  return id;
+}
+/* 自分が誰か。共有設定で選んだ名前からメンバーidを引く */
+function myMemberId(){
+  const nm = (syncCfg && syncCfg.name) || "";
+  const m = state.members.find(x=>x.name===nm);
+  return m ? m.id : "";
+}
+async function presencePut(){
+  if(!syncEnabled() || syncCfg.url.startsWith("mock://")) return;
+  try{
+    await fetch(`${syncCfg.url}/boards/${encodeURIComponent(syncCfg.boardId)}/presence/${clientId()}.json`,
+      {method:"PUT", headers:{"Content-Type":"application/json"},
+       body:JSON.stringify({m: myMemberId(), t: Date.now()})});
+  }catch(e){}
+}
+function presenceLeave(){
+  if(!syncEnabled() || syncCfg.url.startsWith("mock://")) return;
+  try{
+    /* 閉じる途中でも送り切れるよう keepalive を付ける */
+    fetch(`${syncCfg.url}/boards/${encodeURIComponent(syncCfg.boardId)}/presence/${clientId()}.json`,
+      {method:"DELETE", keepalive:true});
+  }catch(e){}
+}
+function startPresence(){
+  stopPresence();
+  if(!syncEnabled()) return;
+  presencePut();
+  _beatTimer = setInterval(presencePut, PRESENCE_BEAT_MS);
+}
+function stopPresence(){
+  if(_beatTimer){ clearInterval(_beatTimer); _beatTimer = null; }
+  _presence = {};
+  renderPresence();
+}
+window.addEventListener("pagehide", presenceLeave);
+window.addEventListener("beforeunload", presenceLeave);
+
+/* 受け取った presence を反映する。path は "/presence/xxxx" の形 */
+function applyPresenceEvent(path, data){
+  const rest = path.replace(/^\/presence\/?/, "");
+  if(!rest){ _presence = data || {}; }
+  else if(data === null){ delete _presence[rest]; }
+  else { _presence[rest] = data; }
+  renderPresence();
+}
+function renderPresence(){
+  const box = $("presenceBar");
+  if(!box) return;
+  const now = Date.now(), me = clientId();
+  /* 自分は出さない。古い信号も出さない。同じ人が複数タブで開いていたら1つにまとめる */
+  const seen = new Set(); const others = [];
+  for(const [cid, p] of Object.entries(_presence)){
+    if(!p || cid === me) continue;
+    if(now - (p.t||0) > PRESENCE_STALE_MS) continue;
+    const key = p.m || cid;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    others.push(state.members.find(x=>x.id===p.m) || null);
+  }
+  if(!others.length){ box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = `<span class="pzLbl">閲覧中</span>` + others.map(m=>{
+    if(!m) return `<span class="pzAv pzUnknown" title="名前未設定の人">?</span>`;
+    return m.icon
+      ? `<img class="pzAv" src="${m.icon}" title="${esc(m.name)}" alt="">`
+      : `<span class="pzAv pzDot" style="background:${m.color}" title="${esc(m.name)}">${esc(m.name.slice(0,1))}</span>`;
+  }).join("");
+}
+/* 古くなった人を消すために定期的に描き直す */
+setInterval(()=>{ if(Object.keys(_presence).length) renderPresence(); }, 10000);
+
 /* --- 起動時に設定があれば繋ぐ --- */
 async function initSync(){
   const c = loadSyncConfig();
   if(!c) return;
   if(!cryptoAvailable()){ setSyncStatus("⚠ 共有: この開き方では使えません"); return; }
   syncCfg = c;
-  if(c.password){
-    _syncPassword = c.password;
-    _syncKey = await deriveSyncKey(c.password, c.boardId);
+  /* 端末に覚えさせた合言葉 → なければ、このタブが持っている合言葉 */
+  let pw = c.password;
+  if(!pw){ try{ pw = sessionStorage.getItem(SYNC_KEY) || ""; }catch(e){} }
+  if(pw){
+    syncCfg.password = pw;
+    _syncPassword = pw;
+    _syncKey = await deriveSyncKey(pw, c.boardId);
     setSyncStatus("共有: 接続済み");
     await syncPull({});
     startSyncStream();   /* 以降は他の人の変更を自動で受け取る */
+    startPresence();
   }else{
-    setSyncStatus("共有: パスワード待ち");
+    setSyncStatus("⚠ 共有: 未接続(合言葉を入れてください)", true);
   }
 }
 /* ランダムなボードID(URLを知っている人だけが辿り着けるようにするための長さ) */
@@ -4116,6 +4260,11 @@ function isoAfterDays(n){
   });
 });
 ["aName","aStart","aEnd"].forEach(id=>$(id).addEventListener("input", renderTaskPreview));
+/* 日程を消して「日程未定」に戻す。ガントから外れ、下の置き場に並ぶ */
+$("aNoDate").onclick = ()=>{
+  $("aStart").value = ""; $("aEnd").value = "";
+  renderTaskPreview();
+};
 $("aScenesAll").onclick = ()=>setAllScenes(true);
 $("aScenesNone").onclick = ()=>setAllScenes(false);
 /* 新規追加の入力欄は普段は隠しておき、＋ を押したときだけ出す */
@@ -4213,7 +4362,8 @@ let _memRen = null; /* 名前を編集中のメンバーの位置 */
 let _palOpen = null, _avIdx = null;
 function openMembersModal(){
   const list = state.members.map((m,i)=>`
-    <div class="memItem">
+    <div class="memItem" draggable="true" data-mi="${i}">
+      <span class="memGrip" title="ドラッグで並び替え">⠿</span>
       <div class="mAv" data-av="${i}" title="クリックでアイコン画像を設定">${m.icon?`<img src="${m.icon}">`:"＋"}</div>
       <div class="dot" style="background:${m.color}" data-i="${i}" title="クリックで色を選択"></div>
       ${_memRen===i
@@ -4242,6 +4392,44 @@ function openMembersModal(){
   $("memberOverlay").classList.add("open");
 
   const mb = $("memberModalBody");
+  /* ドラッグで並び替え。並び順は担当欄・絞り込み・サマリーの表示順に効く */
+  let _memDrag = null;
+  mb.querySelectorAll(".memItem").forEach(el=>{
+    el.addEventListener("dragstart", e=>{
+      _memDrag = +el.dataset.mi;
+      e.dataTransfer.effectAllowed = "move";
+      try{ e.dataTransfer.setData("text/plain", String(_memDrag)); }catch(err){}
+      el.classList.add("dragging");
+    });
+    el.addEventListener("dragend", ()=>{
+      el.classList.remove("dragging");
+      mb.querySelectorAll(".memItem").forEach(x=>x.classList.remove("dropBefore","dropAfter"));
+    });
+    el.addEventListener("dragover", e=>{
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      const after = (e.clientY - r.top) > r.height/2;
+      el.classList.toggle("dropBefore", !after);
+      el.classList.toggle("dropAfter", after);
+    });
+    el.addEventListener("dragleave", ()=>el.classList.remove("dropBefore","dropAfter"));
+    el.addEventListener("drop", e=>{
+      e.preventDefault();
+      const from = _memDrag != null ? _memDrag : +e.dataTransfer.getData("text/plain");
+      let to = +el.dataset.mi;
+      const r = el.getBoundingClientRect();
+      if((e.clientY - r.top) > r.height/2) to++;
+      _memDrag = null;
+      if(!Number.isInteger(from)){ return; }
+      if(from === to || from + 1 === to){ memChanged(); return; }
+      const [moved] = state.members.splice(from, 1);
+      if(from < to) to--;
+      state.members.splice(to, 0, moved);
+      _palOpen = null; _memRen = null;
+      memChanged();
+    });
+  });
+
   /* メンバーへの変更は、その場で保存して全ビューにも反映する。
      以前は「モーダルを閉じたとき」だけ保存していたため、背景クリックやEscapeで閉じると
      追加・削除・色替えが保存されず、共有にも流れていなかった */
@@ -4973,7 +5161,8 @@ function newBoard(){
   openTitleModal();
 }
 
-/* ================= サンプルを出す(一時ボタン。保存済みデータを退避せず上書きする) ================= */
+/* ================= サンプルを出す =================
+   ボタンは一旦画面から外した。関数は残してあるので、コンソールから loadSampleData() で出せる */
 function loadSampleData(){
   if(!confirm("現在の内容を消去して、サンプルデータを表示しますか?\n(誤って押しても Ctrl+Z で元に戻せます)")) return;
   state = JSON.parse(JSON.stringify(SAMPLE_DATA));
@@ -5216,6 +5405,8 @@ if($("tSync")) $("tSync").onclick = ()=>{
 };
 $("sySOff").onclick = ()=>{
   localStorage.removeItem(SYNC_KEY);
+  try{ sessionStorage.removeItem(SYNC_KEY); }catch(e){}
+  presenceLeave(); stopPresence();
   stopSyncStream();
   syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
   setSyncStatus("");
@@ -5239,6 +5430,7 @@ $("sySave").onclick = async ()=>{
   const got = await syncPull({});
   if(!got) await doSyncPush();
   startSyncStream();
+  startPresence();
 };
 $("syPull").onclick = async ()=>{
   const url = $("syUrl").value.trim().replace(/\/+$/,"");
@@ -5251,6 +5443,7 @@ $("syPull").onclick = async ()=>{
   $("syncOverlay").classList.remove("open");
   await syncPull({});
   startSyncStream();
+  startPresence();
 };
 
 setupToolMenu("openGroup","openMenuBtn","openMenuPanel");
