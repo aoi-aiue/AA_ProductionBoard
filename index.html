@@ -259,7 +259,9 @@ body.dark #btnEditMode.editing{background:var(--hover)}
    それぞれ自分の領域内だけでスクロールする(position:stickyの基準を単純な1つのスクロールペインに
    限定するため。main全体をスクロールさせる方式だとGanttに無い入れ子スクロール文脈ができてしまい、
    マトリクスのsticky見出しがずれる不具合があった) */
-main{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0;
+/* min-width:0 が要る。既定の min-width:auto だと「中身より狭くならない」ため、
+   ガントのような横に広い中身があるときに台本ペインが押し潰される(実際に1pxになっていた) */
+main{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;padding:0;
   border-radius:0 0 10px 10px;background:var(--bg)}
 .view{display:none}
 .view.active{
@@ -292,6 +294,17 @@ body.scriptResizing #scriptPane{transition:none}
   border-bottom:1px solid var(--line);font-size:12px;font-weight:700;color:var(--text);
 }
 #scriptHead .btn{margin-left:auto}
+#scriptHead .btn ~ .btn{margin-left:0}
+/* 全画面: 台本だけを画面いっぱいに広げて読む。幅指定を上書きするので !important が要る
+   (通常時の幅は applyScriptWidth がインラインで指定しているため) */
+body.scriptFull #scriptPane{width:100% !important;border-left-color:transparent}
+body.scriptFull #scriptPaneInner{width:100% !important}
+body.scriptFull #scriptResizer{display:none}
+body.scriptFull main{display:none}
+/* 全画面のときは読みやすさ優先で、本文を中央に寄せて行長を抑える */
+body.scriptFull #scriptBody{padding:26px 0}
+body.scriptFull #scriptBody > *{max-width:820px;margin-left:auto;margin-right:auto}
+body.scriptFull #scriptHead{padding:10px 22px}
 #scriptBody{
   flex:1;overflow:auto;padding:14px 16px;font-size:12px;line-height:1.9;
   white-space:pre-wrap;word-break:break-word;color:var(--text);
@@ -1842,6 +1855,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <div id="scriptResizer"></div>
     <div id="scriptPaneInner">
       <div id="scriptHead">台本
+        <button class="btn" id="btnScriptFull" onclick="toggleScriptFull()" title="台本を画面いっぱいに広げて読みます">全画面</button>
         <button class="btn" onclick="openScriptTextModal()">編集</button>
         <button class="btn" onclick="toggleScriptPane()">閉じる ✕</button>
       </div>
@@ -1851,7 +1865,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 
 <footer>
-  <span>クリック=編集/セル切替/工程ピップ更新 ・ Shift+クリック=直前のセルとの間を塗りつぶす ・ ドラッグ=並び替え/伸縮/列幅調整 ・ 1〜5=ビュー切替 ・ D=台本表示 ・ Q/W/E=行の高さ(ガント) ・ Ctrl+Z(⌘Z)=元に戻す ・ Ctrl+Shift+Z=やり直し</span>
+  <span>クリック=編集/セル切替/工程ピップ更新 ・ Shift+クリック=直前のセルとの間を塗りつぶす ・ ドラッグ=並び替え/伸縮/列幅調整 ・ 1〜5=ビュー切替 ・ D=台本表示 ・ Q/W/E=行の高さ(ガント) ・ F=全体ビュー(ガント) ・ Ctrl+Z(⌘Z)=元に戻す ・ Ctrl+Shift+Z=やり直し</span>
   <span class="spacer"></span>
   <span id="saveState"></span>
   <span id="syncState" title="共有の状態"></span>
@@ -2444,7 +2458,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-bce6d36";
+const APP_VERSION = "2026.08.02-7f90952";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4502,14 +4516,47 @@ function toggleScriptPane(){
     openScriptTextModal();
     return;
   }
-  document.body.classList.toggle("scriptOn");
-  $("btnScript").classList.toggle("on", document.body.classList.contains("scriptOn"));
+  const willOpen = !document.body.classList.contains("scriptOn");
+  document.body.classList.toggle("scriptOn", willOpen);
+  if(!willOpen) document.body.classList.remove("scriptFull");   /* 閉じるときは全画面も解除 */
+  $("btnScript").classList.toggle("on", willOpen);
   /* パネルの開閉はスライドアニメーション(#scriptPaneのwidth transition)で見せる。
      古いスクロール位置を引きずらないよう、マトリクスの再計算はアニメーション開始と同時に行っておく */
   const w = $("view-matrix").querySelector(".matrix-wrap");
   if(w) w.scrollLeft = 0;
   renderMatrix();
   applyScriptWidth();
+  refitGantt();
+  syncScriptFullBtn();
+}
+/* ガントは「今の表示幅」に合わせて描くので、台本ペインの開閉で幅が変わったら描き直す。
+   特に「全体ビュー」は画面幅に収める描画なので、やらないと収まらないまま残る。
+   幅はアニメーションしながら変わるので、終わってからもう一度描く */
+function refitGantt(){
+  const draw = ()=>{
+    if(typeof Gantt === "undefined") return;
+    if(!document.getElementById("view-gantt")?.classList.contains("active")) return;
+    Gantt.render();
+  };
+  draw();
+  const pane = $("scriptPane");
+  const onEnd = e=>{
+    if(e.propertyName !== "width") return;
+    pane.removeEventListener("transitionend", onEnd);
+    draw();
+  };
+  pane.addEventListener("transitionend", onEnd);
+  setTimeout(draw, 320);   /* transitionend が来ない場合の保険 */
+}
+function toggleScriptFull(){
+  document.body.classList.toggle("scriptFull");
+  syncScriptFullBtn();
+  refitGantt();
+}
+function syncScriptFullBtn(){
+  const full = document.body.classList.contains("scriptFull");
+  const b = $("btnScriptFull");
+  if(b){ b.textContent = full ? "元に戻す" : "全画面"; b.classList.toggle("on", full); }
 }
 /* ================= AI分析結果の取り込み =================
    組み込みの要素出しはキーワードの正規表現マッチなので、台本を読んで判断する種類の
@@ -5250,7 +5297,12 @@ function redo(){
 
 document.addEventListener("keydown", e=>{
   if(e.isComposing) return; /* IME変換中のキーは無視(日本語確定Enterでの誤動作防止) */
-  if(e.key==="Escape"){ document.querySelectorAll(".overlay.open").forEach(o=>o.classList.remove("open")); return; }
+  if(e.key==="Escape"){
+    if(!document.querySelector(".overlay.open") && document.body.classList.contains("scriptFull")){
+      toggleScriptFull(); return;   /* 台本の全画面を抜ける */
+    }
+    document.querySelectorAll(".overlay.open").forEach(o=>o.classList.remove("open")); return;
+  }
   const mod = e.ctrlKey || e.metaKey;
   const typing = ["input","textarea","select"].includes((e.target.tagName||"").toLowerCase()) || e.target.isContentEditable;
   /* 修飾キー無し・入力中でない・モーダルを開いていないときのショートカット:1〜5=ビュー切替、D=台本表示切替 */
