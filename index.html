@@ -103,7 +103,7 @@ body.themeSwitching,body.themeSwitching *{
 
 /* ---------- title bar(Ganttの#titleBarと同じ造形: 見出しは大きく・ヘッダー画像はクリックで設定) ---------- */
 #titleBar{
-  position:relative;width:100%;min-height:64px;overflow:hidden;
+  position:relative;width:100%;min-height:48px;overflow:hidden;
   background:var(--panel);border-bottom:1px solid var(--line);
 }
 #hdrImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
@@ -117,19 +117,19 @@ body.themeSwitching,body.themeSwitching *{
 #titleBar.hasImg #titleOverlay{display:block}
 #titleBtn{
   position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:100%;text-align:left;
-  padding:14px 22px;cursor:pointer;
+  padding:8px 18px;cursor:pointer;
 }
 /* タイトル+ツール名を縦に積んだ分とだいたい釣り合う固定サイズ(aspect-ratio+stretchでの自動計算は
    意図せず巨大化する不具合があったため、安全な固定値に変更) */
-#titleIcon{width:48px;height:48px;flex:none;border-radius:8px}
+#titleIcon{width:36px;height:36px;flex:none;border-radius:7px}
 /* 画像を背景にすると透過部分が画像と混ざってアイコンが見えづらいので、白の台紙+影で浮かせる */
 #titleBar.hasImg #titleIcon{background:#fff;box-sizing:border-box;padding:4px;box-shadow:0 1px 5px rgba(0,0,0,.4)}
 #titleTextWrap{display:flex;flex-direction:column;justify-content:center;min-width:0}
 #titleText{
-  font-size:26px;font-weight:700;letter-spacing:.01em;color:var(--text);
-  line-height:1.25;max-width:80vw;
+  font-size:20px;font-weight:700;letter-spacing:.01em;color:var(--text);
+  line-height:1.2;max-width:80vw;
 }
-#titleSub{font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--faint);margin-top:2px}
+#titleSub{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--faint);margin-top:1px}
 #titleBar.hasImg #titleText{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.45)}
 #titleBar.hasImg #titleSub{color:rgba(255,255,255,.75);text-shadow:0 1px 3px rgba(0,0,0,.4)}
 #titleBtn:hover #titleText{opacity:.82}
@@ -157,7 +157,7 @@ body.themeSwitching,body.themeSwitching *{
 /* ---------- toolbar ---------- */
 /* 幅が足りないときに折り返して2行になり崩れるのを避け、横スクロールにする */
 header{
-  display:flex;align-items:center;gap:11px;padding:9px 16px;
+  display:flex;align-items:center;gap:11px;padding:6px 16px;
   border-bottom:1px solid var(--line);flex-wrap:nowrap;background:var(--panel);
   overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
 }
@@ -789,7 +789,7 @@ body.dark .chip.on{background:rgba(91,155,230,.14)}
   font-size:12px;line-height:1.6;resize:vertical;white-space:pre;overflow:auto;
 }
 
-footer{padding:6px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:11px;display:flex;gap:12px;
+footer{padding:4px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:10.5px;display:flex;gap:12px;
   flex-wrap:nowrap;background:var(--panel);align-items:center;overflow:hidden;white-space:nowrap}
 /* 説明文だけが縮む。ボタンや状態表示は縮めない */
 footer > span:first-of-type{overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -1018,7 +1018,7 @@ body.locked .scChip{cursor:default}
    地続きに見える。下端の左右は擬似要素+box-shadowで外側へ膨らませ、Chromeのタブ形状にしている */
 #tabStrip{
   display:flex;align-items:flex-end;gap:2px;
-  padding:6px 14px 0;background:var(--tabBand,#D8DDE3);
+  padding:4px 12px 0;background:var(--tabBand,#D8DDE3);
   border-bottom:0;overflow:visible;
 }
 body.dark #tabStrip{background:#07090B}
@@ -1028,7 +1028,7 @@ body.dark #tabStrip{background:#07090B}
 }
 #viewTabs .seg-thumb{display:none}
 #viewTabs button{
-  position:relative;height:auto;padding:7px 16px 8px;line-height:1.4;font-size:12px;
+  position:relative;height:auto;padding:6px 15px 7px;line-height:1.35;font-size:12px;
   border:0;border-radius:9px 9px 0 0;background:transparent;color:var(--muted);
   white-space:nowrap;
   /* overflow:hidden は付けないこと。下端のカーブ(::before/::after)を自分で切ってしまう */
@@ -1705,7 +1705,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <button class="btn" onclick="openScriptTextModal()" title="台本テキストを貼り付け・読み込みます">台本取込</button>
       <button class="btn" onclick="openAiImportModal()" title="AIに台本を分析させた結果(JSON)を取り込みます">AI台本取込</button>
       <div class="mpSep"></div>
-      <button class="btn" onclick="openSyncModal()" title="同じボードを複数人で使うための設定">共有設定</button>
+      <button class="btn" onclick="openSyncModal()" title="このプロジェクトを他の人と共有する / 他の人のプロジェクトに参加する">みんなで共有する…</button>
       <div class="mpSep"></div>
       <button class="btn" onclick="exportJSON()" title="編集を再開できるデータファイルとして保存します">ファイルに保存</button>
     </div>
@@ -1978,7 +1978,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     </div>
     <div class="mFoot">
       <!-- 新しく始めるか、既にあるボードに参加するか。入口をここに並べる -->
-      <button class="btn" id="tSync" type="button" title="既にあるボードに参加する / 複数人で共有する設定">共有設定</button>
+      <button class="btn" id="tSync" type="button" title="他の人が作ったプロジェクトに参加します。合言葉を入れると、そのプロジェクトが開きます">既存のプロジェクトを開く</button>
       <div class="spacer"></div>
       <button class="btn solid" id="tCancel">キャンセル</button>
       <button class="btn primary" id="tSave">保存</button>
@@ -2017,38 +2017,39 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 <div class="overlay" id="syncOverlay">
   <div class="modal" style="width:min(620px,94vw)">
-    <h2>共有設定</h2>
+    <h2>みんなで共有する</h2>
     <p class="syncLead">
-      同じボードを複数人で使うための設定です。設定しなければ今まで通り、このブラウザの中だけで動きます。<br>
-      内容は<b>共有パスワードで暗号化してから送られる</b>ので、パスワードを知っている人だけが読めます。
+      同じプロジェクトを、複数人で同じ画面で見られるようにします。<br>
+      <b>新しく共有を始める</b>ときも、<b>他の人のプロジェクトに参加する</b>ときも、この画面から行います。<br>
+      設定しなければ、今まで通りこのパソコンの中だけで動きます。
     </p>
     <div class="field">
-      <label>データベースURL <span class="fHint">Firebase Realtime Database の URL</span></label>
+      <label>置き場所のURL <span class="fHint">プロジェクトを預けるサーバーの住所。参加する場合は、誘ってくれた人から教わります</span></label>
       <input type="text" id="syUrl" placeholder="https://〇〇〇-default-rtdb.asia-southeast1.firebasedatabase.app" spellcheck="false">
     </div>
     <div class="field">
-      <label>ボードID <span class="fHint">このIDを知っている人だけが辿り着けます。共有相手に伝えてください</span></label>
+      <label>プロジェクトID <span class="fHint">プロジェクト1つにつき1つ。新しく始めるなら「新規発行」、参加するなら教わったIDを貼ります</span></label>
       <div class="syncRow">
-        <input type="text" id="syBoard" placeholder="(新規作成を押すと発行されます)" spellcheck="false">
-        <button class="btn" id="syNewId" type="button">新規発行</button>
+        <input type="text" id="syBoard" placeholder="参加する場合は、教わったIDを貼り付け" spellcheck="false">
+        <button class="btn" id="syNewId" type="button" title="新しくプロジェクトを立てるときに押します">新規発行</button>
       </div>
     </div>
     <div class="field">
-      <label>共有パスワード <span class="fHint">全員で同じものを使います。忘れると共有ボードを読めなくなります</span></label>
+      <label>合言葉 <span class="fHint">参加者全員で同じものを使います。中身はこれで暗号化されるので、忘れると開けなくなります</span></label>
       <input type="password" id="syPass" placeholder="合言葉" autocomplete="off">
     </div>
     <div class="field">
-      <label>あなたの名前 <span class="fHint">「誰が更新したか」の表示に使います</span></label>
+      <label>あなたの名前 <span class="fHint">「誰が変えたか」の表示に使います</span></label>
       <select id="syName"></select>
     </div>
-    <label class="chk"><input type="checkbox" id="syRemember"><span>この端末にパスワードを保存する(共有PCでは外してください)</span></label>
+    <label class="chk"><input type="checkbox" id="syRemember"><span>このパソコンに合言葉を覚えさせる(共用のパソコンでは外してください)</span></label>
     <div class="syncNote" id="syNote"></div>
     <div class="mFoot">
-      <button class="btn" type="button" id="syPull" title="共有ボードの内容をこのブラウザに読み込みます">共有から読み込む</button>
+      <button class="btn" type="button" id="syPull" title="サーバー上のプロジェクトを、この画面に読み込みます">開く(読み込む)</button>
       <div class="spacer"></div>
-      <button class="btn" type="button" id="sySOff">共有をやめる</button>
+      <button class="btn" type="button" id="sySOff" title="このパソコンの中だけで使う状態に戻します(中身は消えません)">共有をやめる</button>
       <button class="btn solid" type="button" onclick="document.getElementById('syncOverlay').classList.remove('open')">キャンセル</button>
-      <button class="btn primary" type="button" id="sySave">保存して接続</button>
+      <button class="btn primary" type="button" id="sySave">つないで開始</button>
     </div>
   </div>
 </div>
@@ -2406,7 +2407,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-046c256";
+const APP_VERSION = "2026.08.02-a0c77c1";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2556,7 +2557,7 @@ async function syncPull(opts){
     if(!cur || !cur.ct){ setSyncStatus("共有: まだ何もありません"); return false; }
     let box;
     try{ box = await decryptJSON(cur, _syncKey); }
-    catch(e){ setSyncStatus("⚠ パスワードが違います"); if(!silent) alert("共有パスワードが違うため、共有ボードを読み込めませんでした。"); return false; }
+    catch(e){ setSyncStatus("⚠ パスワードが違います"); if(!silent) alert("合言葉が違うため、このプロジェクトを開けませんでした。"); return false; }
     /* 新形式は {by, state}。by を平文で置いていた頃のデータもそのまま読めるようにしておく */
     const remote = box && box.state ? box.state : box;
     const byName = (box && box.by) || cur.by || "";
@@ -5077,7 +5078,7 @@ function openSyncModal(){
       + "<code>http://localhost:8000/index.html</code> を開いてから設定してください。<br>"
       + "(ネットに公開したあとは、公開URLでそのまま使えます)";
   }else{
-    note.textContent = syncEnabled() ? "現在このボードは共有に接続しています。" : "";
+    note.textContent = syncEnabled() ? "いまこのプロジェクトは共有に接続しています。" : "";
   }
   ["sySave","syPull"].forEach(id=>{ const b=$(id); if(b){ b.disabled = !can; b.style.opacity = can ? "" : ".45"; } });
   $("syncOverlay").classList.add("open");
@@ -5096,13 +5097,13 @@ $("sySOff").onclick = ()=>{
   syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
   setSyncStatus("");
   $("syncOverlay").classList.remove("open");
-  alert("共有をやめました。これまで通り、このブラウザの中だけで動きます。");
+  alert("共有をやめました。これまで通り、このパソコンの中だけで動きます。\n中身は消えていません。");
 };
 $("sySave").onclick = async ()=>{
   const url = $("syUrl").value.trim().replace(/\/+$/,"");
   const boardId = $("syBoard").value.trim();
   const password = $("syPass").value;
-  if(!url || !boardId || !password){ alert("データベースURL・ボードID・共有パスワードは必須です。"); return; }
+  if(!url || !boardId || !password){ alert("置き場所のURL・プロジェクトID・合言葉は、すべて必要です。"); return; }
   const cfg = {url, boardId, name:$("syName").value, remember:$("syRemember").checked, password};
   saveSyncConfig(cfg);
   syncCfg = cfg;
@@ -5119,7 +5120,7 @@ $("syPull").onclick = async ()=>{
   const url = $("syUrl").value.trim().replace(/\/+$/,"");
   const boardId = $("syBoard").value.trim();
   const password = $("syPass").value;
-  if(!url || !boardId || !password){ alert("データベースURL・ボードID・共有パスワードは必須です。"); return; }
+  if(!url || !boardId || !password){ alert("置き場所のURL・プロジェクトID・合言葉は、すべて必要です。"); return; }
   syncCfg = {url, boardId, name:$("syName").value, remember:$("syRemember").checked, password};
   _syncKey = await deriveSyncKey(password, boardId);
   $("syncOverlay").classList.remove("open");
