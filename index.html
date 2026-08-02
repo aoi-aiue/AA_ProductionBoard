@@ -1829,6 +1829,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <div class="menuPanel" id="openMenuPanel">
       <button class="btn" onclick="newBoard()" title="現在の内容を消去して、新しい白紙のボードから始めます">新規作成</button>
       <button class="btn" onclick="openSyncModal()" title="他の人と同じ画面で編集できるようにします">共有…</button>
+      <button class="btn" onclick="openBackupModal()" title="自動で取っている控えから、以前の状態に戻します">自動バックアップ…</button>
       <div class="mpSep"></div>
       <button class="btn" onclick="openScriptTextModal()" title="台本テキストを貼り付け・読み込みます">台本取込</button>
       <button class="btn" onclick="openAiImportModal()" title="AIに台本を分析させた結果(JSON)を取り込みます">AI台本取込</button>
@@ -2163,6 +2164,27 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 <!-- 初回だけ出る入口。作るのか、誰かのに参加するのかをまず選ぶ -->
 <!-- 接続中の新規作成。共有相手を巻き込むかどうかは、はっきり選ばせる -->
+<!-- 自動で取っている控えの一覧。ファイルメニューから開く -->
+<div class="overlay" id="backupOverlay">
+  <div class="modal" style="width:min(620px,94vw)">
+    <h2>自動バックアップ</h2>
+    <p class="syncLead">保存のたびに自動で控えを取っています。誤って消してしまったときは、ここから戻せます。</p>
+    <div class="field">
+      <label class="withAction"><span>共有プロジェクト
+        <span class="fHint">最大20世代。共有している人全員に反映されます</span></span>
+        <button type="button" id="syHistLoad">一覧を読み込む</button></label>
+      <div id="syHist"><div class="hint">「一覧を読み込む」を押してください</div></div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>このパソコン <span class="fHint">直近3件。共有していないときも使えます</span></label>
+      <div id="syLocalBk"></div>
+    </div>
+    <div class="mFoot">
+      <div class="spacer"></div>
+      <button class="btn solid" type="button" onclick="document.getElementById('backupOverlay').classList.remove('open')">閉じる</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="newBoardOverlay">
   <div class="modal" style="width:min(560px,94vw)">
     <h2>新規作成</h2>
@@ -2255,16 +2277,6 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
         <div class="field" style="margin:10px 0 0">
           <label>置き場所のURL <span class="fHint">自分のサーバーを使う場合だけ変更します</span></label>
           <input type="text" id="syUrl" spellcheck="false">
-        </div>
-        <div class="field">
-          <label class="withAction"><span>サーバーに残っている過去の状態
-            <span class="fHint">誰かが誤って消したときは、ここから戻せます</span></span>
-            <button type="button" id="syHistLoad">一覧を読み込む</button></label>
-          <div id="syHist"><div class="hint">「一覧を読み込む」を押してください</div></div>
-        </div>
-        <div class="field">
-          <label>この端末に残っている控え <span class="fHint">直近3件。共有していないときも使えます</span></label>
-          <div id="syLocalBk"></div>
         </div>
         <div class="field" style="margin:0">
           <label>接続を解除する <span class="fHint">このパソコンだけで編集する状態に戻します。中身は消えません</span></label>
@@ -2634,7 +2646,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-2fa2179";
+const APP_VERSION = "2026.08.02-4c7d7ad";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5870,6 +5882,13 @@ function setupToolMenu(groupId, btnId, panelId){
   panel.querySelectorAll(".btn").forEach(b=>b.addEventListener("click", ()=>group.classList.remove("open")));
 }
 /* --- 巻き戻し --- */
+function openBackupModal(){
+  renderLocalBackups();
+  $("syHist").innerHTML = syncEnabled()
+    ? `<div class="hint">「一覧を読み込む」を押してください</div>`
+    : `<div class="hint">共有に接続しているときだけ使えます。</div>`;
+  $("backupOverlay").classList.add("open");
+}
 function renderLocalBackups(){
   const box = $("syLocalBk");
   if(!box) return;
@@ -5888,7 +5907,7 @@ $("syLocalBk").addEventListener("click", e=>{
   if(!confirm(`この控えに戻します。\n\n${new Date(item.at).toLocaleString()}\n${item.p||"(名称未設定)"} / タスク${item.n}件\n\nいまの内容は置き換わります。よろしいですか?`)) return;
   adoptState(JSON.parse(item.json));
   applyTitleBar(); applyUnitLabels(); renderScriptPane(); renderAll();
-  $("syncOverlay").classList.remove("open");
+  $("backupOverlay").classList.remove("open");
   alert("控えに戻しました。共有している場合は、この内容が全員に反映されます。");
 });
 /* サーバーの世代一覧。中身(タスク件数)を出すために、その場で復号して数える */
@@ -5934,7 +5953,7 @@ $("syHist").addEventListener("click", async e=>{
     if(!confirm(`この状態に戻します。\n\n${item.at ? new Date(item.at).toLocaleString() : ""}\nタスク${n}件\n\nいまの内容は置き換わり、全員に反映されます。よろしいですか?`)) return;
     adoptState(remote);
     applyTitleBar(); applyUnitLabels(); renderScriptPane(); renderAll();
-    $("syncOverlay").classList.remove("open");
+    $("backupOverlay").classList.remove("open");
     alert("この状態に戻しました。");
   }catch(e){ alert("控えを読めませんでした。パスワードが変わっている可能性があります。"); }
 });
@@ -6037,7 +6056,6 @@ function openSyncModal(){
   }else{
     note.textContent = syncEnabled() ? "いまこのプロジェクトは共有に接続しています。" : "";
   }
-  renderLocalBackups();
   $("syncOverlay").classList.add("open");
 }
 /* 選んだ道に合わせて、入力欄と説明を切り替える */
@@ -6072,14 +6090,18 @@ $("syCopy").onclick = async ()=>{
   setTimeout(()=>{ $("syCopy").textContent = "コピー"; }, 1600);
 };
 $("sySOff").onclick = ()=>{
+  const nm = state.project || "このプロジェクト";
+  if(!confirm(`「${nm}」との接続を解除します。\n\nこの画面は白紙に戻ります。\nプロジェクトはサーバーに残るので、いつでも開き直せます。\n\nよろしいですか?`)) return;
   localStorage.removeItem(SYNC_KEY);
   try{ sessionStorage.removeItem(SYNC_KEY); }catch(e){}
   presenceLeave(); stopPresence();
   stopSyncStream();
   syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
-  setSyncStatus("");
+  setSyncStatus("このパソコンのみ");
   $("syncOverlay").classList.remove("open");
-  alert("接続を解除しました。これまで通り編集できます。\n中身は消えていません。");
+  /* 繋がっていないのに前のプロジェクトが残っていると、まだ共有中だと思ってしまう。
+     白紙に戻して「どのプロジェクトにも居ない」状態をはっきりさせる */
+  blankBoard();
 };
 $("sySave").onclick = async ()=>{
   const url = $("syUrl").value.trim().replace(/\/+$/,"") || DEFAULT_SYNC_URL;
