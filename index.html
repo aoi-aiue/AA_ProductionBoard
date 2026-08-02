@@ -257,7 +257,8 @@ body.dark #btnEditMode.editing{background:var(--hover)}
    それぞれ自分の領域内だけでスクロールする(position:stickyの基準を単純な1つのスクロールペインに
    限定するため。main全体をスクロールさせる方式だとGanttに無い入れ子スクロール文脈ができてしまい、
    マトリクスのsticky見出しがずれる不具合があった) */
-main{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0}
+main{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0;
+  border-radius:0 0 10px 10px;background:var(--bg)}
 .view{display:none}
 .view.active{
   display:flex;flex-direction:column;flex:1;overflow:hidden;
@@ -788,7 +789,9 @@ body.dark .chip.on{background:rgba(91,155,230,.14)}
   font-size:12px;line-height:1.6;resize:vertical;white-space:pre;overflow:auto;
 }
 
-footer{padding:6px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:11px;display:flex;gap:18px;flex-wrap:wrap;background:var(--panel);align-items:center}
+footer{padding:6px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:11px;display:flex;gap:12px;flex-wrap:wrap;background:var(--panel);align-items:center}
+/* 左下の共有設定。普段は目立たせない */
+#btnSyncFoot{flex:none;font-size:10.5px;padding:2px 9px;height:auto;line-height:1.7;border-radius:4px}
 
 @media print{
   body{background:#fff;overflow:visible;display:block}
@@ -1007,26 +1010,42 @@ body.locked .scChip{cursor:default}
 /* ガントは自分でスクロールを持つので、他ビュー向けの下余白(60px)は要らない */
 #view-gantt.view.active{padding-bottom:0;overflow-y:hidden}
 
-/* ビュー切替はブラウザのタブと同じ見立てにする。選択中のタブだけが下の面と地続きになり、
-   「いまこの面を見ている」が形で分かる(セグメント表示より切替の意味が伝わりやすい) */
+/* ================= ビュー切替のタブ列 =================
+   ブラウザのタブと同じ造り。タブ列は一段暗い帯、選択中のタブだけがツールバーと同じ色になり
+   地続きに見える。下端の左右は擬似要素+box-shadowで外側へ膨らませ、Chromeのタブ形状にしている */
+#tabStrip{
+  display:flex;align-items:flex-end;gap:2px;
+  padding:5px 14px 0;background:var(--tabBand,#EDEFF2);
+  border-bottom:0;overflow-x:auto;overflow-y:visible;scrollbar-width:none;
+}
+#tabStrip::-webkit-scrollbar{display:none}
+body.dark #tabStrip{background:#0B0E11}
 #viewTabs{
-  align-self:stretch;margin:-9px 0 -10px;padding:0;gap:2px;
-  border:0;background:none;border-radius:0;overflow:visible;align-items:flex-end;
+  display:flex;align-items:flex-end;gap:2px;position:static;
+  border:0;background:none;border-radius:0;overflow:visible;height:auto;
 }
 #viewTabs .seg-thumb{display:none}
 #viewTabs button{
-  height:auto;padding:6px 14px 7px;line-height:1.5;font-size:12px;
-  border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;
-  background:transparent;color:var(--muted);position:relative;bottom:-1px;
+  position:relative;height:auto;padding:7px 16px 8px;line-height:1.4;font-size:12px;
+  border:0;border-radius:9px 9px 0 0;background:transparent;color:var(--muted);
+  max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   transition:background .12s,color .12s;
 }
-#viewTabs button:hover{background:rgba(20,29,40,.05);color:var(--text)}
-body.dark #viewTabs button:hover{background:rgba(255,255,255,.06)}
-/* 選択中: 下の面と同じ色で塗り、境界線を消して繋げる */
+#viewTabs button:hover{background:rgba(255,255,255,.5);color:var(--text)}
+body.dark #viewTabs button:hover{background:rgba(255,255,255,.07)}
+/* 選択中: 下のツールバーと同じ色。両端を外へ膨らませて「繋がっている」形にする */
 #viewTabs button.on{
-  background:var(--bg);border-color:var(--line);color:var(--text);font-weight:600;
+  background:var(--panel);color:var(--text);font-weight:600;z-index:1;
 }
-body.dark #viewTabs button.on{background:var(--bg)}
+#viewTabs button.on::before,
+#viewTabs button.on::after{
+  content:"";position:absolute;bottom:0;width:9px;height:9px;pointer-events:none;
+}
+#viewTabs button.on::before{left:-9px;border-bottom-right-radius:9px;box-shadow:4px 4px 0 4px var(--panel)}
+#viewTabs button.on::after{right:-9px;border-bottom-left-radius:9px;box-shadow:-4px 4px 0 4px var(--panel)}
+/* ヘッダーは上の角丸を持たない(タブと地続きにするため) */
+header{border-top:0}
+
 /* ビュー固有の道具は、共通の道具と見分けがつくように一段沈めた面に載せる。
    「今見ているビューの設定はここ」と分かるよう、左肩にビュー名を出す */
 .viewTools{
@@ -1645,6 +1664,17 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 <input type="file" id="hdrFile" accept="image/*" style="display:none">
 
+<!-- タブ列。ブラウザのタブと同じで、選択中のタブだけが下のツールバーと地続きになる -->
+<div id="tabStrip">
+  <div class="seg" id="viewTabs">
+    <div class="seg-thumb"></div>
+    <button data-view="matrix" class="on">一覧</button>
+    <button data-view="scene">シーン別</button>
+    <button data-view="kanban">カード</button>
+    <button data-view="gantt">ガント</button>
+    <button data-view="summary">サマリー</button>
+  </div>
+</div>
 <header>
   <!-- 上段は「いつでも同じ場所にある」ものだけ。ビューごとの設定は下の #viewBar に置く -->
   <div class="menuGroup" id="openGroup">
@@ -1655,21 +1685,11 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <button class="btn" onclick="document.getElementById('importFile').click()" title="保存したファイル(JSON)を読み込んで復元します">ファイルから開く</button>
       <button class="btn" onclick="openScriptTextModal()" title="台本テキストを貼り付け・読み込みます">台本取込</button>
       <button class="btn" onclick="openAiImportModal()" title="AIに台本を分析させた結果(JSON)を取り込みます">AI台本取込</button>
-      <button class="btn" onclick="openCommonDataModal()" title="ガントチャートとメンバー・カテゴリ・タスクを受け渡します">共通データ</button>
       <div class="mpSep"></div>
       <button class="btn" onclick="openSyncModal()" title="同じボードを複数人で使うための設定">共有設定</button>
       <div class="mpSep"></div>
       <button class="btn" onclick="exportJSON()" title="編集を再開できるデータファイルとして保存します">ファイルに保存</button>
     </div>
-  </div>
-  <div class="sep"></div>
-  <div class="seg" id="viewTabs">
-    <div class="seg-thumb"></div>
-    <button data-view="matrix" class="on">一覧</button>
-    <button data-view="scene">シーン別</button>
-    <button data-view="kanban">カード</button>
-    <button data-view="gantt">ガント</button>
-    <button data-view="summary">サマリー</button>
   </div>
   <div class="sep"></div>
   <div class="menuGroup" id="addGroup">
@@ -1692,6 +1712,9 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <button class="btn" id="mfBtn" title="表示するメンバーを選びます(選ばなければ全員)">全員 ▾</button>
       <div class="menuPanel" id="mfPanel"></div>
     </div>
+  </div>
+  <div class="tgroup" title="台本ペインの表示/非表示です(どのビューでも使えます)">
+    <button class="btn" id="btnScript" onclick="toggleScriptPane()" title="台本ペインの表示/非表示">台本</button>
   </div>
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
   <!-- ここから下は「今見ているビューだけの設定」。共通のものと見分けがつくよう枠で囲う -->
@@ -1728,9 +1751,6 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
       <button id="scaleUp" title="拡大">＋</button>
       <button id="scaleReset" class="stepReset" title="等倍(100%)に戻す">↺</button>
     </div>
-  </div>
-  <div class="tgroup" title="台本ペインの表示/非表示です">
-    <button class="btn" id="btnScript" onclick="toggleScriptPane()" title="台本ペインの表示/非表示">台本</button>
   </div>
   </div><!-- /viewTools -->
   <!-- 編集ロックとテーマは右端に貼り付けておく。横に溢れてもスクロールで見失わないように -->
@@ -1792,6 +1812,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 
 <footer>
+  <button class="btn" id="btnSyncFoot" onclick="openSyncModal()" title="同じボードを複数人で使うための設定">共有設定</button>
   <span>クリック=編集/セル切替/工程ピップ更新 ・ Shift+クリック=直前のセルとの間を塗りつぶす ・ ドラッグ=並び替え/伸縮/列幅調整 ・ 1〜5=ビュー切替 ・ D=台本表示 ・ Q/W/E=行の高さ(ガント) ・ Ctrl+Z(⌘Z)=元に戻す ・ Ctrl+Shift+Z=やり直し</span>
   <span class="spacer"></span>
   <span id="saveState"></span>
@@ -2061,39 +2082,6 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   </div>
 </div>
 <!-- 共通データ(ガントチャートとの受け渡し)。統合を見送る場合はこのブロックごと削除する -->
-<div class="overlay" id="commonDataOverlay">
-  <div class="modal" style="width:min(560px,94vw)">
-    <h2>共通データ(ガントチャートと共有)</h2>
-    <div class="hint" style="margin-bottom:14px">
-      メンバー(アイコン込み)・カテゴリ・タスク・シーンを、AA_GanttChartBoard と受け渡すための形式です。
-      同じ内容を2回入力しなくて済むようにするためのものです。<br>
-      相手ツールでしか使わない項目(開始日・終了日・フェイズなど)も保持されるので、行き来しても消えません。
-    </div>
-    <div class="aiSteps">
-      <div class="aiStep">
-        <div class="aiStepNo">1</div>
-        <div class="aiStepBody">
-          <div class="aiStepTitle">このボードの内容を書き出す</div>
-          <button class="btn solid" type="button" onclick="exportCommonData()" style="width:100%">共通形式で書き出す</button>
-        </div>
-      </div>
-      <div class="aiStep">
-        <div class="aiStepNo">2</div>
-        <div class="aiStepBody">
-          <div class="aiStepTitle">共通データを読み込む</div>
-          <button class="btn" type="button" onclick="document.getElementById('commonFile').click()" style="width:100%">ファイルを選んで読み込む</button>
-          <div class="hint">読み込むと<b>現在の内容は置き換わります</b>。必要なら先に「ファイルに保存」でバックアップしてください。</div>
-        </div>
-      </div>
-    </div>
-    <div class="mFoot">
-      <span id="cdMsg" style="font-size:11px;color:var(--muted);align-self:center"></span>
-      <div class="spacer"></div>
-      <button class="btn solid" onclick="closeCommonDataModal()">閉じる</button>
-    </div>
-  </div>
-</div>
-<input type="file" id="commonFile" accept=".json" style="display:none" onchange="importCommonData(event)">
 
 <script>
 /* =====================================================================
@@ -2397,7 +2385,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-438de4b";
+const APP_VERSION = "2026.08.02-d3b1963";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4872,44 +4860,6 @@ function adoptState(d, keepUi){
   return true;
 }
 function fromCommonData(d){ adoptState(d, true); }
-function openCommonDataModal(){
-  $("cdMsg").textContent = "";
-  $("commonDataOverlay").classList.add("open");
-}
-function closeCommonDataModal(){ $("commonDataOverlay").classList.remove("open"); }
-function exportCommonData(){
-  const blob = new Blob([JSON.stringify(toCommonData(),null,2)],{type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = (state.project||"project") + "-共通データ.json";
-  a.click();
-  URL.revokeObjectURL(a.href);
-  $("cdMsg").textContent = "書き出しました。ガント側の「共通データ」から読み込めます。";
-}
-function importCommonData(ev){
-  const f = ev.target.files[0];
-  ev.target.value = "";
-  if(!f) return;
-  const r = new FileReader();
-  r.onload = ()=>{
-    let d;
-    try{ d = JSON.parse(r.result); }
-    catch{ $("cdMsg").textContent = "JSONとして読み込めませんでした"; return; }
-    if(d.format!==AA_FORMAT || !Array.isArray(d.tasks)){
-      $("cdMsg").textContent = "共通データのファイルではありません(「共通形式で書き出す」で作ったファイルを指定してください)";
-      return;
-    }
-    if(!confirm(`現在の内容を、読み込んだ共通データで置き換えます。よろしいですか?\n(タスク ${d.tasks.length}件 / メンバー ${(d.members||[]).length}件)`)) return;
-    fromCommonData(d);
-    applyTitleBar();
-    applyUnitLabels();
-    renderScriptPane();
-    renderAll();
-    closeCommonDataModal();
-    alert(`共通データを読み込みました。\nタスク: ${state.tasks.length}件 / メンバー: ${state.members.length}件`);
-  };
-  r.readAsText(f);
-}
 function exportJSON(){
   const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
   const a = document.createElement("a");
@@ -10144,7 +10094,12 @@ applyEditMode();   /* Gantt の初期化後に、ロック状態をガント側�
     })
     .catch(()=>{});   /* 確認できなくても動作には影響させない */
 })();
-initSync();   /* 共有設定があれば接続して読み込む(無ければ何もしない) */
+/* 共有設定があれば接続して読み込む(無ければ何もしない)。
+   そのうえで中身がまだ空なら、まずタイトル設定から始めてもらう */
+Promise.resolve(initSync()).then(()=>{
+  const empty = !state.project && !state.tasks.length && !state.scenes.length;
+  if(empty && !document.querySelector(".overlay.open")) openTitleModal();
+});
 
 (function restoreView(){
   const v = state.ui.view;
