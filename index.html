@@ -1071,6 +1071,10 @@ body[data-view="matrix"] .matrixOnly{display:flex}
 #btnUpdate{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
   border:1px solid var(--accent);background:var(--accent);color:#fff}
 #btnUpdate[hidden]{display:none}
+#btnRemote{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
+  border:1px solid #C98A1E;background:#E0A020;color:#2A2000;font-weight:600}
+#btnRemote[hidden]{display:none}
+#btnRemote:hover{opacity:.88}
 #btnUpdate:hover{opacity:.88}
 /* 共有設定モーダル */
 .syncLead{font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 14px}
@@ -1820,6 +1824,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   <span class="sep" id="appNameSep"></span>
   <span id="appName">AA_ProductionBoard</span>
   <span id="appVer" title="いま開いている版"></span>
+  <button id="btnRemote" hidden title="他の人がボードを更新しました。押すと画面に反映します">他の人の変更を反映</button>
   <button id="btnUpdate" hidden title="新しい版が公開されています。押すと読み込み直します">新しい版があります</button>
 </footer>
 
@@ -2385,7 +2390,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-d3b1963";
+const APP_VERSION = "2026.08.02-ded0564";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2507,6 +2512,7 @@ async function doSyncPush(){
       try{ byName = (await decryptJSON(cur, _syncKey)).by || ""; }catch(e){}
       const who = byName ? `${byName}さん` : "他の人";
       if(!confirm(`${who}がこのボードを更新しています。\n\nこのまま自分の内容で上書きすると、その変更は失われます。\n上書きしますか?\n\n(キャンセルすると共有を一旦止めます。「ファイル ▾ → 共有設定」から読み直せます)`)){
+        stopSyncStream();
         syncCfg = null; _syncKey = null; setSyncStatus("共有: 停止中");
         return;
       }
@@ -2540,7 +2546,8 @@ async function syncPull(opts){
     const byName = (box && box.by) || cur.by || "";
     syncRev = cur.rev || 0;
     const label = byName ? `${byName}さんが` : "";
-    if(!silent && !confirm(`共有ボードを読み込みます。\n\n${label}${cur.at ? new Date(cur.at).toLocaleString() : ""} に更新\nタスク ${(remote.tasks||[]).length}件\n\n今このブラウザで開いている内容は置き換わります。よろしいですか?`)){
+    if(opts && opts.quiet){ /* 自動受信からの取り直しは黙って反映する */ }
+    else if(!silent && !confirm(`共有ボードを読み込みます。\n\n${label}${cur.at ? new Date(cur.at).toLocaleString() : ""} に更新\nタスク ${(remote.tasks||[]).length}件\n\n今このブラウザで開いている内容は置き換わります。よろしいですか?`)){
       setSyncStatus("共有: 読み込みを見送りました");
       return false;
     }
@@ -2556,6 +2563,86 @@ async function syncPull(opts){
   }
 }
 
+/* ================= 共有(段階2): 他の人の変更を受け取る =================
+   Firebase の REST は EventSource でそのまま購読できる(SDK不要)。
+   受け取ったら基本は自動で画面に反映するが、**編集中は絶対に上書きしない**。
+   その場合は保留して、フッターのボタンで本人のタイミングで反映させる */
+let _sse = null;
+let _pendingRemote = null;
+
+/* 「今いじっている最中」かどうか。1つでも当てはまれば自動反映しない */
+function isBusyEditing(){
+  if(document.querySelector(".overlay.open")) return true;      /* モーダルを開いている */
+  if(document.body.classList.contains("placing")) return true;  /* 日程未定を置いている最中 */
+  if(document.body.classList.contains("marqueeActive")) return true;
+  if(_saveTimer || _syncTimer) return true;                     /* 自分の変更がまだ送られていない */
+  return false;
+}
+
+function startSyncStream(){
+  stopSyncStream();
+  if(!syncEnabled()) return;
+  if(syncCfg.url.startsWith("mock://")) return;   /* 検証用の擬似サーバーは購読しない */
+  if(typeof EventSource === "undefined") return;
+  try{
+    const url = `${syncCfg.url}/boards/${encodeURIComponent(syncCfg.boardId)}.json`;
+    const es = new EventSource(url);
+    _sse = es;
+    const onEv = ev=>{
+      let msg; try{ msg = JSON.parse(ev.data); }catch(e){ return; }
+      if(!msg) return;
+      /* path が "/" 以外(部分更新)のときは、全体を取り直す */
+      if(msg.path !== "/"){ syncPull({silent:true, quiet:true}); return; }
+      const d = msg.data;
+      if(!d || typeof d.rev !== "number" || !d.ct) return;
+      if(d.rev <= syncRev) return;   /* 自分が書いたぶんのこだま */
+      receiveRemote(d);
+    };
+    es.addEventListener("put", onEv);
+    es.addEventListener("patch", onEv);
+    es.addEventListener("open", ()=>{ if(syncEnabled()) setSyncStatus(`共有中 ${nowHM()}`); });
+    es.onerror = ()=>{ if(syncEnabled()) setSyncStatus("共有: 再接続中…"); };
+  }catch(e){ console.warn("[sync] stream failed", e); }
+}
+function stopSyncStream(){
+  if(_sse){ try{ _sse.close(); }catch(e){} _sse = null; }
+  _pendingRemote = null;
+  const b = $("btnRemote"); if(b) b.hidden = true;
+}
+
+/* 受け取った変更を反映する(編集中なら保留してボタンを出す) */
+async function receiveRemote(d){
+  if(isBusyEditing()){
+    _pendingRemote = d;
+    const b = $("btnRemote");
+    if(b){ b.hidden = false; b.textContent = "他の人の変更を反映"; }
+    setSyncStatus("⚠ 他の人が更新しました");
+    return;
+  }
+  await applyRemote(d);
+}
+async function applyRemote(d){
+  try{
+    const box = await decryptJSON(d, _syncKey);
+    const remote = box && box.state ? box.state : box;
+    const byName = (box && box.by) || "";
+    syncRev = d.rev || 0;
+    _pendingRemote = null;
+    const b = $("btnRemote"); if(b) b.hidden = true;
+    /* 表示設定(列幅・行の高さ・絞り込み・開いているビュー)は自分のものを保つ。
+       他の人の見え方に合わせて画面が動くと、作業の邪魔になるため */
+    const keepUi = state.ui;
+    adoptState(remote);
+    state.ui = {...keepUi};
+    applyEditModeFromState();   /* 受け取った直後は必ずロック */
+    _histLock = true; renderAll(); _histLock = false;
+    setSyncStatus(byName ? `${byName}さんの変更を反映 ${nowHM()}` : `変更を反映 ${nowHM()}`);
+  }catch(e){
+    setSyncStatus("⚠ 受信した変更を読めませんでした");
+    console.warn("[sync] apply failed", e);
+  }
+}
+
 /* --- 起動時に設定があれば繋ぐ --- */
 async function initSync(){
   const c = loadSyncConfig();
@@ -2567,6 +2654,7 @@ async function initSync(){
     _syncKey = await deriveSyncKey(c.password, c.boardId);
     setSyncStatus("共有: 接続済み");
     await syncPull({});
+    startSyncStream();   /* 以降は他の人の変更を自動で受け取る */
   }else{
     setSyncStatus("共有: パスワード待ち");
   }
@@ -4979,8 +5067,11 @@ function openSyncModal(){
   $("syncOverlay").classList.add("open");
 }
 $("syNewId").onclick = ()=>{ $("syBoard").value = newBoardId(); };
+/* 編集中で保留になっていた他の人の変更を、本人のタイミングで反映する */
+if($("btnRemote")) $("btnRemote").onclick = ()=>{ if(_pendingRemote) applyRemote(_pendingRemote); };
 $("sySOff").onclick = ()=>{
   localStorage.removeItem(SYNC_KEY);
+  stopSyncStream();
   syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
   setSyncStatus("");
   $("syncOverlay").classList.remove("open");
@@ -5001,6 +5092,7 @@ $("sySave").onclick = async ()=>{
   /* 既に中身があれば読み込みを提案し、無ければ今の内容を送って初期化する */
   const got = await syncPull({});
   if(!got) await doSyncPush();
+  startSyncStream();
 };
 $("syPull").onclick = async ()=>{
   const url = $("syUrl").value.trim().replace(/\/+$/,"");
@@ -5011,6 +5103,7 @@ $("syPull").onclick = async ()=>{
   _syncKey = await deriveSyncKey(password, boardId);
   $("syncOverlay").classList.remove("open");
   await syncPull({});
+  startSyncStream();
 };
 
 setupToolMenu("openGroup","openMenuBtn","openMenuPanel");
