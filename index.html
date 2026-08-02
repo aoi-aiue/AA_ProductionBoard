@@ -1246,7 +1246,8 @@ body.dark #syncState.warn{color:#F0A882}
   text-align:left;padding:7px 10px;margin-bottom:5px;height:auto;line-height:1.5}
 .bkMeta{font-size:10px;color:var(--muted)}
 /* ようこそ画面。最初に目に入る画面なので、中央寄せで大きめに */
-.wcTitle{font-size:27px;text-align:center;margin:10px 0 16px;letter-spacing:.01em}
+/* .modal h2 の方が詳細度が高いので、h2 を含めて上書きしないと級数が効かない */
+.modal h2.wcTitle{font-size:27px;text-align:center;margin:10px 0 16px;letter-spacing:.01em}
 .wcLead{font-size:13px;line-height:1.9;color:var(--muted);text-align:center;margin:0 0 26px;
   max-width:600px;margin-left:auto;margin-right:auto}
 /* 「あなたは誰か」の選択 */
@@ -2702,7 +2703,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-f094006";
+const APP_VERSION = "2026.08.02-f52e675";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
