@@ -1181,6 +1181,19 @@ body.dark #syncState.warn{color:#F0A882}
 .syncMode button{text-align:left}
 #syCopy[hidden]{display:none}
 #sySOff[hidden],#sySave[hidden]{display:none}
+.bkRow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;
+  text-align:left;padding:7px 10px;margin-bottom:5px;height:auto;line-height:1.5}
+.bkMeta{font-size:10px;color:var(--muted)}
+/* 「あなたは誰か」の選択 */
+.whoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;max-height:44vh;overflow:auto}
+.whoCard{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;cursor:pointer;
+  border:1px solid var(--line);border-radius:9px;background:var(--panel);transition:border-color .12s,background .12s}
+.whoCard:hover{border-color:var(--accent);background:var(--hover)}
+.whoCard.on{border-color:var(--accent);background:var(--hover);box-shadow:0 0 0 1px var(--accent) inset}
+.whoCard img,.whoDot{width:44px;height:44px;border-radius:50%;object-fit:cover;display:flex;
+  align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:17px}
+.whoNm{font-size:11.5px;font-weight:600;color:var(--text);max-width:92px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
 /* 共有設定: やることを2択で示す */
 .syncHow{display:flex;flex-direction:column;gap:6px;background:var(--hover);border:1px solid var(--line);
   border-radius:7px;padding:10px 12px;font-size:11.5px;line-height:1.75;color:var(--text)}
@@ -1799,11 +1812,10 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <button class="btn" id="openMenuBtn" title="新規作成・読み込み・保存">ファイル ▾</button>
     <div class="menuPanel" id="openMenuPanel">
       <button class="btn" onclick="newBoard()" title="現在の内容を消去して、新しい白紙のボードから始めます">新規作成</button>
+      <button class="btn" onclick="openSyncModal()" title="他の人と同じ画面で編集できるようにします">共有…</button>
       <div class="mpSep"></div>
       <button class="btn" onclick="openScriptTextModal()" title="台本テキストを貼り付け・読み込みます">台本取込</button>
       <button class="btn" onclick="openAiImportModal()" title="AIに台本を分析させた結果(JSON)を取り込みます">AI台本取込</button>
-      <div class="mpSep"></div>
-      <button class="btn" onclick="openSyncModal()" title="他の人と同じ画面で編集できるようにします">共有…</button>
       <div class="mpSep"></div>
       <!-- 手元のパソコンとのやり取り。普段は共有で完結するので、まとめて一番下に置く -->
       <button class="btn" onclick="document.getElementById('importFile').click()" title="保存しておいたファイル(JSON)を読み込んで復元します">ローカルから開く</button>
@@ -2150,6 +2162,25 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     </div>
   </div>
 </div>
+<!-- 接続してメンバー一覧を受け取ったあとに出す。参加する側は、繋ぐまで誰が居るか分からない -->
+<div class="overlay" id="whoOverlay">
+  <div class="modal" style="width:min(560px,94vw)">
+    <h2>あなたはどの人ですか?</h2>
+    <p class="syncLead">「誰が変えたか」の表示と、いま開いている人の一覧に使います。</p>
+    <div class="whoGrid" id="whoGrid"></div>
+    <div class="field" style="margin-top:14px">
+      <label>一覧に自分がいない場合 <span class="fHint">名前を入れると、メンバーとして追加します</span></label>
+      <div class="syncRow">
+        <input type="text" id="whoNew" placeholder="あなたの名前">
+        <button class="btn" type="button" id="whoAdd">追加して選ぶ</button>
+      </div>
+    </div>
+    <div class="mFoot">
+      <div class="spacer"></div>
+      <button class="btn solid" type="button" id="whoSkip">あとで決める</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="syncOverlay">
   <div class="modal" style="width:min(560px,94vw)">
     <h2>共有</h2>
@@ -2180,16 +2211,20 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
         <label>パスワード <span class="fHint">6文字以上。参加者全員で同じものを使います。中身はこれで暗号化されます</span></label>
         <input type="password" id="syPass" placeholder="6文字以上" autocomplete="off">
       </div>
-      <div class="field">
-        <label>あなたの名前 <span class="fHint">「誰が変えたか」の表示に使います</span></label>
-        <select id="syName"></select>
-      </div>
       <label class="chk"><input type="checkbox" id="syRemember"><span>このパソコンにパスワードを覚えさせる(共用のパソコンでは外してください)</span></label>
       <details class="syncAdv">
         <summary>詳しい設定(通常は不要)</summary>
         <div class="field" style="margin:10px 0 0">
           <label>置き場所のURL <span class="fHint">自分のサーバーを使う場合だけ変更します</span></label>
           <input type="text" id="syUrl" spellcheck="false">
+        </div>
+        <div class="field">
+          <label>ひとつ前の状態に戻す <span class="fHint">誰かが誤って消してしまったときに使います</span></label>
+          <button class="btn" type="button" id="syRestore" style="width:100%">サーバー上のひとつ前に戻す</button>
+        </div>
+        <div class="field">
+          <label>この端末に残っている控え <span class="fHint">直近3件。共有していないときも使えます</span></label>
+          <div id="syLocalBk"></div>
         </div>
         <div class="field" style="margin:0">
           <label>接続を解除する <span class="fHint">このパソコンだけで編集する状態に戻します。中身は消えません</span></label>
@@ -2559,7 +2594,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-3d692d2";
+const APP_VERSION = "2026.08.02-a183a8c";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2664,6 +2699,41 @@ function openKeysModal(){
   $("keysOverlay").classList.add("open");
 }
 
+/* ================= 巻き戻し用の控え =================
+   共有は「最後に書いた人の内容」で上書きされる。誰かが誤って空にすると、
+   そのまま全員に伝わってしまう。実際に、参加時の読み込みを断ると自分の空の内容で
+   相手のプロジェクトを潰す不具合を出した。
+
+   そこで三重に備える:
+     1. 空で上書きしそうなときは止める(下の guardEmptyOverwrite)
+     2. サーバーに直前の状態を1つ残す(/boards/{ID}/prev)
+     3. この端末にも直近3つを残す(localStorage) */
+const BACKUP_KEY = "aa_productionboard_backups_v1";
+const BACKUP_KEEP = 3;
+
+function loadBackups(){
+  try{ return JSON.parse(localStorage.getItem(BACKUP_KEY) || "[]"); }catch(e){ return []; }
+}
+/* 手元の控え。中身が実際に変わったときだけ積む */
+function pushBackup(){
+  try{
+    const json = JSON.stringify(state);
+    if(!state.tasks.length && !state.scenes.length) return;   /* 空は控えない */
+    const list = loadBackups();
+    if(list[0] && list[0].json === json) return;
+    list.unshift({at: new Date().toISOString(), json,
+                  n: state.tasks.length, p: state.project || ""});
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(list.slice(0, BACKUP_KEEP)));
+  }catch(e){ /* 容量が足りないだけなので、本体の動作は止めない */ }
+}
+/* 空(または極端に減った内容)で上書きしようとしていないか。
+   true を返したら「送ってはいけない」 */
+function guardEmptyOverwrite(remote){
+  if(!remote || !remote.ct) return false;              /* 相手が空なら気にしない */
+  const mine = state.tasks.length + state.scenes.length;
+  if(mine > 0) return false;                            /* こちらに中身があるなら通常の更新 */
+  return true;                                          /* こちらが空 = 事故の可能性が高い */
+}
 /* =====================================================================
    共有(同期) — 段階1: 書き込みと起動時の読み込み
 
@@ -2809,6 +2879,12 @@ async function doSyncPush(){
     /* 送る前に、自分が読んだ後で誰かが書いていないか確かめる。
        上書きしてしまう事故を防ぐのが目的(段階2でここを自動マージにする) */
     const cur = await remoteGet(syncCfg);
+    /* こちらが空なのに相手に中身がある = 事故の可能性が高いので送らない */
+    if(guardEmptyOverwrite(cur)){
+      setSyncStatus("⚠ 送信を中止しました(中身が空)", true);
+      console.warn("[sync] 空の内容で上書きしようとしたため中止しました");
+      return;
+    }
     if(cur && typeof cur.rev === "number" && cur.rev > syncRev){
       setSyncStatus("⚠ 他の人が更新しています");
       let byName = "";
@@ -2825,7 +2901,12 @@ async function doSyncPush(){
        メンバー名が分かってしまうため。衝突時は下で復号して名前を取り出す */
     const payload = await encryptJSON({by:syncCfg.name||"", state}, _syncKey);
     syncRev = (syncRev || 0) + 1;
-    await remotePut(syncCfg, {rev:syncRev, at:new Date().toISOString(), ...payload});
+    /* 直前の状態を1つだけ控えておく(誰かが壊してもここから戻せる) */
+    const prev = (cur && cur.ct) ? {rev:cur.rev, at:cur.at, ct:cur.ct, iv:cur.iv} : null;
+    await remotePut(syncCfg, prev
+      ? {rev:syncRev, at:new Date().toISOString(), ...payload, prev}
+      : {rev:syncRev, at:new Date().toISOString(), ...payload});
+    pushBackup();
     setSyncStatus(`送信済み ${nowHM()}`);
   }catch(e){
     setSyncStatus("⚠ 送れませんでした(" + (e && e.message ? e.message.slice(0,40) : "原因不明") + ")");
@@ -2849,8 +2930,9 @@ async function syncPull(opts){
     const byName = (box && box.by) || cur.by || "";
     syncRev = cur.rev || 0;
     const label = byName ? `${byName}さんが` : "";
-    if(opts && opts.quiet){ /* 自動受信からの取り直しは黙って反映する */ }
-    else if(!silent && !confirm(`共有ボードを読み込みます。\n\n${label}${cur.at ? new Date(cur.at).toLocaleString() : ""} に更新\nタスク ${(remote.tasks||[]).length}件\n\n今このブラウザで開いている内容は置き換わります。よろしいですか?`)){
+    const localEmpty = !state.project && !state.tasks.length && !state.scenes.length;
+    if((opts && opts.quiet) || localEmpty){ /* 自動受信・手元が空なら黙って反映する */ }
+    else if(!silent && !confirm(`共有プロジェクトを読み込みます。\n\n${label}${cur.at ? new Date(cur.at).toLocaleString() : ""} に更新\nタスク ${(remote.tasks||[]).length}件\n\n今このブラウザで開いている内容は置き換わります。よろしいですか?`)){
       setSyncStatus("");
       return false;
     }
@@ -2897,6 +2979,7 @@ function startSyncStream(){
       if(!msg) return;
       /* 参加者の出入りは盤面とは関係ないので、取り直さずここで処理する */
       if(msg.path && msg.path.startsWith("/presence")){ applyPresenceEvent(msg.path, msg.data); return; }
+      if(msg.path && msg.path.startsWith("/prev")) return;   /* 控えの更新は本体と関係ない */
       /* それ以外で path が "/" でない(部分更新)ときは、全体を取り直す */
       if(msg.path !== "/"){ syncPull({silent:true, quiet:true}); return; }
       const d = msg.data;
@@ -2944,6 +3027,7 @@ async function applyRemote(d){
     applyEditModeFromState();   /* 受け取った直後は必ずロック */
     _skipNextPush = true;
     _histLock = true; renderAll(); _histLock = false;
+    pushBackup();
     setSyncStatus(byName ? `${byName}さんの変更を反映 ${nowHM()}` : `変更を反映 ${nowHM()}`);
   }catch(e){
     setSyncStatus("⚠ 受信した変更を読めませんでした");
@@ -5633,6 +5717,84 @@ function setupToolMenu(groupId, btnId, panelId){
   });
   panel.querySelectorAll(".btn").forEach(b=>b.addEventListener("click", ()=>group.classList.remove("open")));
 }
+/* --- 巻き戻し --- */
+function renderLocalBackups(){
+  const box = $("syLocalBk");
+  if(!box) return;
+  const list = loadBackups();
+  box.innerHTML = list.length
+    ? list.map((b,i)=>`<button class="btn bkRow" type="button" data-bk="${i}">
+        <span>${new Date(b.at).toLocaleString()}</span>
+        <span class="bkMeta">${esc(b.p||"(名称未設定)")} / タスク${b.n}件</span></button>`).join("")
+    : `<div class="hint">まだ控えがありません</div>`;
+}
+$("syLocalBk").addEventListener("click", e=>{
+  const b = e.target.closest("[data-bk]");
+  if(!b) return;
+  const item = loadBackups()[+b.dataset.bk];
+  if(!item) return;
+  if(!confirm(`この控えに戻します。\n\n${new Date(item.at).toLocaleString()}\n${item.p||"(名称未設定)"} / タスク${item.n}件\n\nいまの内容は置き換わります。よろしいですか?`)) return;
+  adoptState(JSON.parse(item.json));
+  applyTitleBar(); applyUnitLabels(); renderScriptPane(); renderAll();
+  $("syncOverlay").classList.remove("open");
+  alert("控えに戻しました。共有している場合は、この内容が全員に反映されます。");
+});
+$("syRestore").onclick = async ()=>{
+  if(!syncEnabled()){ alert("共有に接続しているときだけ使えます。"); return; }
+  try{
+    const cur = await remoteGet(syncCfg);
+    if(!cur || !cur.prev || !cur.prev.ct){ alert("サーバーにひとつ前の控えがありません。"); return; }
+    const box = await decryptJSON(cur.prev, _syncKey);
+    const remote = box && box.state ? box.state : box;
+    const n = (remote.tasks||[]).length;
+    if(!confirm(`サーバー上のひとつ前の状態に戻します。\n\n${cur.prev.at ? new Date(cur.prev.at).toLocaleString() : ""}\nタスク${n}件\n\nいまの内容は置き換わり、全員に反映されます。よろしいですか?`)) return;
+    adoptState(remote);
+    applyTitleBar(); applyUnitLabels(); renderScriptPane(); renderAll();
+    $("syncOverlay").classList.remove("open");
+    alert("ひとつ前の状態に戻しました。");
+  }catch(e){ alert("控えを読めませんでした。パスワードが変わっている可能性があります。"); }
+};
+
+/* 接続してメンバー一覧が手に入ってから「あなたは誰か」を選んでもらう。
+   参加する側は、繋ぐまで相手のメンバーもアイコンも分からないため */
+function openWhoAmI(){
+  const cur = (syncCfg && syncCfg.name) || "";
+  $("whoGrid").innerHTML = state.members.length
+    ? state.members.map(m=>`
+        <button type="button" class="whoCard${m.name===cur?" on":""}" data-who="${esc(m.name)}">
+          ${m.icon ? `<img src="${m.icon}" alt="">`
+                   : `<span class="whoDot" style="background:${m.color}">${esc(m.name.slice(0,1))}</span>`}
+          <span class="whoNm">${esc(m.name)}</span>
+        </button>`).join("")
+    : `<div class="hint" style="grid-column:1/-1">まだメンバーがいません。下の欄から追加してください。</div>`;
+  $("whoNew").value = "";
+  $("whoOverlay").classList.add("open");
+}
+function chooseWho(name){
+  if(!syncCfg) return;
+  syncCfg.name = name;
+  saveSyncConfig(syncCfg);
+  $("whoOverlay").classList.remove("open");
+  presencePut();       /* 誰が居るかの一覧にすぐ反映させる */
+  renderPresence();
+}
+$("whoGrid").addEventListener("click", e=>{
+  const b = e.target.closest("[data-who]");
+  if(b) chooseWho(b.dataset.who);
+});
+$("whoAdd").onclick = ()=>{
+  const n = $("whoNew").value.trim();
+  if(!n) return;
+  let m = state.members.find(x=>x.name===n);
+  if(!m){
+    m = {id:uid("m"), name:n, color:resolveMemberColor(n, PALETTE[state.members.length%PALETTE.length])};
+    state.members.push(m);
+    renderAll();       /* 追加したメンバーを共有にも流す */
+  }
+  chooseWho(n);
+};
+$("whoSkip").onclick = ()=>$("whoOverlay").classList.remove("open");
+
 /* 初回の入口。作るのか、誰かのプロジェクトに参加するのかをまず選ばせる。
    このツールは複数人で使うのが前提なので、参加の道を最初から見せておく */
 function openWelcome(){ $("welcomeOverlay").classList.add("open"); }
@@ -5658,10 +5820,6 @@ function openSyncModal(){
   $("syUrl").value   = c.url || DEFAULT_SYNC_URL;
   $("syPass").value  = (c.password || _syncPassword || "");
   $("syRemember").checked = !!c.remember;
-  const sel = $("syName");
-  sel.innerHTML = `<option value="">(選択してください)</option>`
-    + state.members.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("");
-  sel.value = c.name || "";
   /* 既に接続しているなら、その設定を開いた状態で見せる */
   _syMode = syncEnabled() ? "join" : null;
   $("syBoard").value = c.boardId || "";
@@ -5678,6 +5836,7 @@ function openSyncModal(){
   }else{
     note.textContent = syncEnabled() ? "いまこのプロジェクトは共有に接続しています。" : "";
   }
+  renderLocalBackups();
   $("syncOverlay").classList.add("open");
 }
 /* 選んだ道に合わせて、入力欄と説明を切り替える */
@@ -5727,7 +5886,7 @@ $("sySave").onclick = async ()=>{
   const password = $("syPass").value;
   if(!boardId){ alert("プロジェクトIDを入れてください。"); return; }
   if(password.length < SY_PASS_MIN){ alert(`パスワードは${SY_PASS_MIN}文字以上にしてください。`); return; }
-  const cfg = {url, boardId, name:$("syName").value, remember:$("syRemember").checked, password};
+  const cfg = {url, boardId, name:(loadSyncConfig()||{}).name||"", remember:$("syRemember").checked, password};
   saveSyncConfig(cfg);
   syncCfg = cfg;
   _syncPassword = password;
@@ -5735,10 +5894,31 @@ $("sySave").onclick = async ()=>{
   $("syncOverlay").classList.remove("open");
   setSyncStatus("接続しました");
   /* 既に中身があれば読み込み、無ければ今の内容で始める */
-  const got = await syncPull({});
-  if(!got) await doSyncPush();
+  if(_syMode === "join"){
+    /* 参加するときは読むだけ。ここで書き込むと、読めなかった場合に
+       自分の(空の)内容で相手のプロジェクトを消してしまう */
+    const got = await syncPull({});
+    if(!got){
+      setSyncStatus("⚠ 開けませんでした", true);
+      alert("そのプロジェクトを開けませんでした。\n\nプロジェクトIDとパスワードを確認してください。\n(まだ何も入っていないプロジェクトの可能性もあります)");
+      openSyncModal();
+      return;
+    }
+  }else{
+    /* 新しく始めるときだけ書き込む。既に中身があるIDなら上書きしない */
+    const cur = await remoteGet(syncCfg).catch(()=>null);
+    if(cur && cur.ct){
+      alert("そのプロジェクトIDには既に中身があります。\n「参加する」から開いてください。");
+      openSyncModal();
+      return;
+    }
+    await doSyncPush();
+  }
   startSyncStream();
   startPresence();
+  /* ここで初めてメンバー一覧が手に入る。自分が誰かをまだ決めていなければ選んでもらう */
+  const known = syncCfg.name && state.members.some(m=>m.name===syncCfg.name);
+  if(!known) openWhoAmI();
 };
 setupToolMenu("openGroup","openMenuBtn","openMenuPanel");
 setupToolMenu("addGroup","addMenuBtn","addMenuPanel");
