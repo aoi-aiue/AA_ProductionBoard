@@ -2458,7 +2458,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-7f90952";
+const APP_VERSION = "2026.08.02-2181d83";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2466,12 +2466,17 @@ function persist(){
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(()=>{
     _saveTimer = null;
+    /* ローカル保存と共有は切り離す。以前は同じ try に入れていたため、
+       localStorage が一杯になると syncPush() に到達せず、しかも無言で終わっていた */
     try{
       localStorage.setItem(LS_KEY, JSON.stringify(state));
       $("saveState").textContent = `自動保存済み ${nowHM()}`;
-      if(_skipNextPush) _skipNextPush = false;   /* 受信を反映しただけなので送り返さない */
-      else syncPush();                          /* 共有設定があるときだけ、まとめて送る */
-    }catch(e){ $("saveState").textContent = ""; }
+    }catch(e){
+      $("saveState").textContent = "⚠ このブラウザに保存できません";
+      console.warn("[save] localStorage failed", e);
+    }
+    if(_skipNextPush) _skipNextPush = false;   /* 受信を反映しただけなので送り返さない */
+    else syncPush();                          /* 共有設定があるときだけ、まとめて送る */
   }, 300);
 }
 function flushSave(){
@@ -2543,7 +2548,17 @@ async function deriveSyncKey(password, boardId){
     {name:"PBKDF2", salt:enc.encode("aa-pb:"+boardId), iterations:PBKDF2_ITER, hash:"SHA-256"},
     base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
 }
-const _b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+/* バイト列→base64。`String.fromCharCode(...配列)` で一度に渡すと、
+   100KBほどで「Maximum call stack size exceeded」になる(引数の個数制限)。
+   アイコンを一括取込した瞬間にこの閾値を超え、以降の送信が全部失敗していた。
+   小分けにして渡すこと */
+const _b64 = buf => {
+  const a = new Uint8Array(buf);
+  const CHUNK = 0x8000;
+  let s = "";
+  for(let i = 0; i < a.length; i += CHUNK) s += String.fromCharCode.apply(null, a.subarray(i, i + CHUNK));
+  return btoa(s);
+};
 const _unb64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 async function encryptJSON(obj, key){
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -2609,7 +2624,7 @@ async function doSyncPush(){
     await remotePut(syncCfg, {rev:syncRev, at:new Date().toISOString(), ...payload});
     setSyncStatus(`共有済み ${nowHM()}`);
   }catch(e){
-    setSyncStatus("⚠ 共有できませんでした");
+    setSyncStatus("⚠ 共有できませんでした(" + (e && e.message ? e.message.slice(0,40) : "原因不明") + ")");
     console.warn("[sync] push failed", e);
   }
 }
