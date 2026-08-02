@@ -1188,6 +1188,7 @@ body.dark #syncState.warn{color:#F0A882}
   background:var(--hover);border:1px solid var(--line);border-radius:4px;padding:1px 6px;text-align:center}
 .keysRow span{color:var(--muted);min-width:0}
 .syncMode{margin-bottom:16px}
+.syncMode[hidden]{display:none}
 .syncMode button{text-align:left}
 #syCopy[hidden]{display:none}
 #sySOff[hidden],#sySave[hidden]{display:none}
@@ -1828,7 +1829,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     <button class="btn" id="openMenuBtn" title="新規作成・読み込み・保存">ファイル ▾</button>
     <div class="menuPanel" id="openMenuPanel">
       <button class="btn" onclick="newBoard()" title="現在の内容を消去して、新しい白紙のボードから始めます">新規作成</button>
-      <button class="btn" onclick="openSyncModal()" title="他の人と同じ画面で編集できるようにします">共有…</button>
+      <button class="btn" onclick="openSyncModal('new')" title="いまのプロジェクトを、他の人と一緒に編集できるようにします">共有を開始…</button>
+      <button class="btn" onclick="openSyncModal('join')" title="他の人のプロジェクトを開きます。いまの画面は置き換わります">共有プロジェクトを開く…</button>
       <button class="btn" onclick="openBackupModal()" title="自動で取っている控えから、以前の状態に戻します">自動バックアップ…</button>
       <div class="mpSep"></div>
       <button class="btn" onclick="openScriptTextModal()" title="台本テキストを貼り付け・読み込みます">台本取込</button>
@@ -2118,7 +2120,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     </div>
     <div class="mFoot">
       <!-- 新しく始めるか、既にあるボードに参加するか。入口をここに並べる -->
-      <button class="btn" id="tSync" type="button" title="共有中のプロジェクトに参加する / このプロジェクトを共有できるようにする">共有…</button>
+      <button class="btn" id="tSync" type="button" title="他の人のプロジェクトを開きます">共有プロジェクトを開く</button>
       <div class="spacer"></div>
       <button class="btn solid" id="tCancel">キャンセル</button>
       <button class="btn primary" id="tSave">保存</button>
@@ -2243,11 +2245,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 <div class="overlay" id="syncOverlay">
   <div class="modal" style="width:min(560px,94vw)">
-    <h2>共有</h2>
-    <p class="syncLead">
-      同じプロジェクトを、離れた場所にいる人と同じ画面で見られるようにします。<br>
-      変更は数秒でお互いに届きます。設定しなければ、今まで通りこのパソコンの中だけで動きます。
-    </p>
+    <h2 id="syTitle">共有</h2>
+    <p class="syncLead" id="syLead"></p>
     <div class="aiModeCards syncMode" id="syMode">
       <button type="button" data-mode="new">
         <span class="amTitle">新しく始める</span>
@@ -2646,7 +2645,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-4c7d7ad";
+const APP_VERSION = "2026.08.02-8590f4f";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2736,7 +2735,7 @@ const KEYS_HELP = [
     ["置き場からドラッグ", "日程未定のタスクに日程を与える(初期は5日間)"],
   ]],
   ["共有", [
-    ["ファイル \u25be", "「共有…」から、複数人で同じプロジェクトを開く"],
+    ["ファイル \u25be", "「共有を開始…」で仲間を招く / 「共有プロジェクトを開く…」で参加する"],
     ["自動", "変更は1〜2秒で相手に届く。保存操作は不要"],
     ["他の人の変更を反映", "編集中に届いた変更を、自分のタイミングで取り込む"],
   ]],
@@ -6023,8 +6022,8 @@ $("wcMode").addEventListener("click", e=>{
   if(!b) return;
   $("welcomeOverlay").classList.remove("open");
   if(b.dataset.w === "join"){
-    openSyncModal();
-    _syMode = "join"; $("syBoard").value = ""; syncModeUI();
+    openSyncModal("join");
+    $("syBoard").value = ""; syncModeUI();
   }else{
     openTitleModal();
   }
@@ -6035,14 +6034,15 @@ $("wcMode").addEventListener("click", e=>{
    何をしようとしているかで意味が変わる(IDは発行するのか、教わったものを貼るのか)ため */
 let _syMode = null;
 const SY_PASS_MIN = 6;
-function openSyncModal(){
+function openSyncModal(mode){
   const c = loadSyncConfig() || {};
   $("syUrl").value   = c.url || DEFAULT_SYNC_URL;
   $("syPass").value  = (c.password || _syncPassword || "");
   $("syRemember").checked = !!c.remember;
-  /* 既に接続しているなら、その設定を開いた状態で見せる */
-  _syMode = syncEnabled() ? "join" : null;
-  $("syBoard").value = c.boardId || "";
+  /* 入口で「開始」か「参加」かが決まっているならそこから始める。
+     接続済みならいまの設定を見せる。指定が無いときだけ2択を出す */
+  _syMode = syncEnabled() ? "join" : (mode || null);
+  $("syBoard").value = (_syMode === "new" && !syncEnabled()) ? newBoardId() : (c.boardId || "");
   $("sySOff").hidden = !loadSyncConfig();
   syncModeUI();
   const note = $("syNote"), can = cryptoAvailable();
@@ -6062,6 +6062,14 @@ function openSyncModal(){
 function syncModeUI(){
   const isNew = _syMode === "new", isJoin = _syMode === "join";
   $("syMode").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.mode === _syMode));
+  /* 入口で決まっているなら2択は出さない。見出しでどちらかを示す */
+  $("syMode").hidden = !!_syMode;
+  $("syTitle").textContent = isNew ? "共有を開始" : isJoin ? "共有プロジェクトを開く" : "共有";
+  $("syLead").innerHTML = isNew
+    ? "いまのプロジェクトを、他の人と一緒に編集できるようにします。<br>下のIDとパスワードを仲間に伝えてください。"
+    : isJoin
+      ? "他の人のプロジェクトを開きます。<b>いまこの画面にある内容は、開いたプロジェクトに置き換わります。</b>"
+      : "同じプロジェクトを、離れた場所にいる人と同じ画面で見られるようにします。<br>変更は数秒でお互いに届きます。";
   $("syForm").hidden = !_syMode;
   $("sySave").hidden = !_syMode;
   $("sySave").textContent = isNew ? "共有を開始" : "参加する";
