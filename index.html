@@ -1007,20 +1007,35 @@ body.locked .scChip{cursor:default}
 /* ガントは自分でスクロールを持つので、他ビュー向けの下余白(60px)は要らない */
 #view-gantt.view.active{padding-bottom:0;overflow-y:hidden}
 
+/* ビュー切替はブラウザのタブと同じ見立てにする。選択中のタブだけが下の面と地続きになり、
+   「いまこの面を見ている」が形で分かる(セグメント表示より切替の意味が伝わりやすい) */
+#viewTabs{
+  align-self:stretch;margin:-9px 0 -10px;padding:0;gap:2px;
+  border:0;background:none;border-radius:0;overflow:visible;align-items:flex-end;
+}
+#viewTabs .seg-thumb{display:none}
+#viewTabs button{
+  height:auto;padding:6px 14px 7px;line-height:1.5;font-size:12px;
+  border:1px solid transparent;border-bottom:0;border-radius:7px 7px 0 0;
+  background:transparent;color:var(--muted);position:relative;bottom:-1px;
+  transition:background .12s,color .12s;
+}
+#viewTabs button:hover{background:rgba(20,29,40,.05);color:var(--text)}
+body.dark #viewTabs button:hover{background:rgba(255,255,255,.06)}
+/* 選択中: 下の面と同じ色で塗り、境界線を消して繋げる */
+#viewTabs button.on{
+  background:var(--bg);border-color:var(--line);color:var(--text);font-weight:600;
+}
+body.dark #viewTabs button.on{background:var(--bg)}
 /* ビュー固有の道具は、共通の道具と見分けがつくように一段沈めた面に載せる。
    「今見ているビューの設定はここ」と分かるよう、左肩にビュー名を出す */
 .viewTools{
   display:flex;align-items:center;gap:9px;
   background:rgba(20,29,40,.07);
   border:1px solid rgba(20,29,40,.13);border-radius:7px;
-  padding:3px 9px 3px 6px;height:32px;box-sizing:border-box;
+  padding:3px 10px;height:32px;box-sizing:border-box;
 }
 body.dark .viewTools{background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.14)}
-/* 左肩のビュー名。「ここから先は今のビューだけの設定」の目印 */
-.vtLabel{
-  flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--bg);
-  background:var(--muted);border-radius:4px;padding:2px 7px;margin-right:3px;line-height:1.5;
-}
 .viewTools .tgroup{gap:7px}
 .viewTools[hidden]{display:none}
 /* ビュー固有の道具は、そのビューを見ているときだけ出す(body[data-view]で切り替える)。
@@ -1681,7 +1696,6 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
   <!-- ここから下は「今見ているビューだけの設定」。共通のものと見分けがつくよう枠で囲う -->
   <div class="viewTools" id="viewTools">
-  <span class="vtLabel" id="vtLabel">ガント</span>
   <div class="tgroup ganttOnly" id="ganttTools" title="ガントの表示設定です">
     <div class="scaleStepper" id="dayWStepper" title="1日あたりの表示幅を変更します">
       <button id="dayWDown" title="縮小">−</button>
@@ -1778,7 +1792,7 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
 </div>
 
 <footer>
-  <span>クリック=編集/セル切替/工程ピップ更新 ・ Shift+クリック=直前のセルとの間を塗りつぶす ・ ドラッグ=並び替え/伸縮/列幅調整 ・ 1〜5=ビュー切替 ・ D=台本表示 ・ Ctrl+Z(⌘Z)=元に戻す ・ Ctrl+Shift+Z=やり直し</span>
+  <span>クリック=編集/セル切替/工程ピップ更新 ・ Shift+クリック=直前のセルとの間を塗りつぶす ・ ドラッグ=並び替え/伸縮/列幅調整 ・ 1〜5=ビュー切替 ・ D=台本表示 ・ Q/W/E=行の高さ(ガント) ・ Ctrl+Z(⌘Z)=元に戻す ・ Ctrl+Shift+Z=やり直し</span>
   <span class="spacer"></span>
   <span id="saveState"></span>
   <span id="syncState" title="共有の状態"></span>
@@ -2383,7 +2397,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-58ce49d";
+const APP_VERSION = "2026.08.02-438de4b";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4964,13 +4978,11 @@ document.querySelectorAll(".overlay").forEach(o=>{
   o.addEventListener("click", e=>{ if(e.target===o) o.classList.remove("open"); });
 });
 /* ツールバーのドロップダウン(ガントのsetupToolMenuと同じ:fixedパネルをボタン真下に配置) */
-/* ビュー固有ツールの左肩に、今のビュー名を出す。設定が無いビューでは枠ごと隠す */
+/* 設定が無いビューでは、ビュー固有ツールの枠ごと隠す */
 function updateViewToolsLabel(){
   const v = document.body.dataset.view || "matrix";
-  const el = $("vtLabel"), box = $("viewTools");
-  if(!el || !box) return;
-  const tab = document.querySelector(`#viewTabs [data-view="${v}"]`);
-  el.textContent = tab ? tab.textContent : "";
+  const box = $("viewTools");
+  if(!box) return;
   /* 中身(表示中の道具)が無いなら枠は出さない */
   const hasTools = [...box.querySelectorAll(".tgroup")].some(g=>getComputedStyle(g).display !== "none");
   box.hidden = !hasTools;
@@ -5127,6 +5139,13 @@ document.addEventListener("keydown", e=>{
       return;
     }
     if(e.key.toLowerCase()==="d"){ e.preventDefault(); toggleScriptPane(); return; }
+    /* Q/W/E = ガントの行の高さ(低/中/高)。ガントを見ているときだけ効かせる */
+    const dens = {q:"s", w:"m", e:"l"}[e.key.toLowerCase()];
+    if(dens && document.body.dataset.view === "gantt"){
+      const btn = document.querySelector(`#densSeg [data-d="${dens}"]`);
+      if(btn){ e.preventDefault(); btn.click(); }
+      return;
+    }
   }
   if(!mod || typing) return;
   const k = e.key.toLowerCase();
