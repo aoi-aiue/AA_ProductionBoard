@@ -2111,8 +2111,9 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
         <div class="noDateRow">
           <button class="btn" type="button" id="aNoDate" title="日程を空にして、ガント下の「日程未定」に置きます">日程未定にする</button>
         </div>
+        <!-- 日程の説明なので、フェイズをまたがず日付欄のすぐ下に置く -->
+        <div class="hint" id="aDateHint" style="margin:6px 0 0">日程を入れるとガントに並びます。空のままなら「日程未定」として扱われます。</div>
         <div class="field phaseRow"><label>フェイズ</label><select id="aPhase"></select></div>
-        <div class="hint" id="aDateHint" style="margin:0">日程を入れるとガントに並びます。空のままなら「日程未定」として扱われます。</div>
       </section>
     </div>
     <div class="field">
@@ -2298,7 +2299,8 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
     </div>
   </div>
 </div>
-<div class="overlay" id="welcomeOverlay">
+<!-- data-nodismiss: どちらかを選ぶまで閉じない。閉じられると何も選んでいない画面に取り残される -->
+<div class="overlay" id="welcomeOverlay" data-nodismiss>
   <div class="modal" style="width:min(720px,94vw)">
     <h2 class="wcTitle"><img class="wcIcon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='10' height='8' rx='2' fill='%234A6FA5'/%3E%3Crect x='17' y='6' width='11' height='8' rx='2' fill='%237A5CA0'/%3E%3Crect x='4' y='18' width='17' height='8' rx='2' fill='%233E8A80'/%3E%3C/svg%3E" alt="">AA_ProductionBoard</h2>
     <p class="wcLead">VRChat向けのワールド制作プロジェクトをガントチャートや場面別、カードビュー等で管理するツールです。複数人での同時編集も可能です。</p>
@@ -2735,7 +2737,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.02-c319821";
+const APP_VERSION = "2026.08.03-4ceaa1f";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -6185,6 +6187,8 @@ new ResizeObserver(()=>{
   updateStickyCatRelease();
 }).observe($("view-matrix"));
 document.querySelectorAll(".overlay").forEach(o=>{
+  /* data-nodismiss のものは、外側クリックでは閉じない(選ばずに閉じられると先へ進めなくなるため) */
+  if(o.dataset.nodismiss !== undefined) return;
   o.addEventListener("click", e=>{ if(e.target===o) o.classList.remove("open"); });
 });
 /* ツールバーのドロップダウン(ガントのsetupToolMenuと同じ:fixedパネルをボタン真下に配置) */
@@ -6582,7 +6586,11 @@ document.addEventListener("keydown", e=>{
     if(!document.querySelector(".overlay.open") && document.body.classList.contains("scriptFull")){
       toggleScriptFull(); return;   /* 台本の全画面を抜ける */
     }
-    document.querySelectorAll(".overlay.open").forEach(o=>o.classList.remove("open")); return;
+    /* Escapeでも同じ。外側クリックだけ塞いでも、こちらから抜けられては意味が無い */
+    document.querySelectorAll(".overlay.open").forEach(o=>{
+      if(o.dataset.nodismiss === undefined) o.classList.remove("open");
+    });
+    return;
   }
   const mod = e.ctrlKey || e.metaKey;
   const typing = ["input","textarea","select"].includes((e.target.tagName||"").toLowerCase()) || e.target.isContentEditable;
