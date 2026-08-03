@@ -1115,6 +1115,31 @@ body[data-view="gantt"] .ganttOnly{display:flex}
 .menuPanel .btn.ganttOnly{display:none}
 body[data-view="gantt"] .menuPanel .btn.ganttOnly{display:flex}
 body[data-view="matrix"] .matrixOnly{display:flex}
+body[data-view="wb"] .wbOnly{display:flex}
+/* ================= ホワイトボード(一時的なメモ書き) ================= */
+#view-wb{flex-direction:column;padding:10px 14px 14px;gap:8px;overflow:hidden}
+/* 保存されないことは常に見えていないといけない。ただし主張しすぎない濃さにする */
+#wbNote{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);
+  background:var(--hover);border:1px solid var(--line);border-radius:6px;padding:5px 11px;flex:none}
+#wbCount{font-size:10.5px;color:var(--faint)}
+#wbStage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#wbCanvas{display:block;background:var(--panel);touch-action:none;cursor:crosshair}
+body.locked #wbCanvas{cursor:default}
+body.wbErase #wbCanvas{cursor:cell}
+#wbHint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:12px;color:var(--faint);
+  pointer-events:none;text-align:center;line-height:1.9}
+#wbHint[hidden]{display:none}
+/* ペンの色見本。選択中だけ枠を付ける(色そのものが選択状態を表すので、装飾は最小限にする) */
+.wbPens{display:flex;align-items:center;gap:5px}
+.wbPens button{width:17px;height:17px;border-radius:99px;flex:none;padding:0;
+  box-shadow:0 0 0 1px rgba(0,0,0,.14) inset}
+.wbPens button.on{box-shadow:0 0 0 1px var(--panel) inset, 0 0 0 2px var(--text)}
+#wbErase.on{background:var(--text);color:var(--bg)}
+/* ロック中は描けない。他のビューと同じで、触れないものは触れないように見せる
+   (書き出しだけは内容を変えないので残す) */
+body.locked #wbPens button, body.locked #wbWidth, body.locked #wbErase,
+body.locked #wbImg, body.locked #wbUndo, body.locked #wbClear{opacity:.4;pointer-events:none}
 .headerRight{
   position:sticky;right:0;margin-left:auto;display:flex;align-items:center;gap:10px;
   background:var(--panel);padding-left:14px;
@@ -1154,6 +1179,14 @@ body[data-view="matrix"] .matrixOnly{display:flex}
 #syncState{opacity:.85}
 #syncState.warn{color:#B3401A;font-weight:600}
 body.dark #syncState.warn{color:#F0A882}
+/* 共有が切れているときの警告。#meBar と同じピル形にして、右上で浮かないようにする */
+#syncAlert{display:flex;align-items:center;margin:0 6px 4px 0;flex:none;cursor:pointer;
+  font-size:11px;font-weight:600;color:#B3401A;background:#FDF3EE;
+  border:1px solid #F0D3C4;border-radius:99px;padding:3px 11px;white-space:nowrap}
+#syncAlert[hidden]{display:none}
+#syncAlert:hover{background:#F9E7DE}
+body.dark #syncAlert{color:#F0A882;background:#3A2A22;border-color:#5A4034}
+body.dark #syncAlert:hover{background:#47332A}
 #syncState:hover{text-decoration:underline}
 /* タブ列は上だけ4pxの余白があるため、align-items:center だとその分だけ下にずれる。
    同じ4pxを下に足して、帯の見た目の中央に来るようにする */
@@ -1779,6 +1812,7 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   </div>
 </div>
 <input type="file" id="hdrFile" accept="image/*" style="display:none">
+<input type="file" id="wbFile" accept="image/*" style="display:none">
 
 <!-- タブ列。ブラウザのタブと同じで、選択中のタブだけが下のツールバーと地続きになる -->
 <div id="tabStrip">
@@ -1789,8 +1823,11 @@ body.locked #view-gantt .phToggle{cursor:pointer}
     <button data-view="scene"><span class="vtName">シーン別ビュー</span><span class="tabAv"></span></button>
     <button data-view="kanban"><span class="vtName">カードビュー</span><span class="tabAv"></span></button>
     <button data-view="summary"><span class="vtName">サマリー</span><span class="tabAv"></span></button>
+    <button data-view="wb"><span class="vtName">ホワイトボード</span><span class="tabAv"></span></button>
   </div>
   <div class="spacer"></div>
+  <!-- 共有が切れているときの警告。フッターだけだと気づかれないので、目が行く右上にも出す -->
+  <button id="syncAlert" hidden title="押すと共有設定を開きます"></button>
   <div id="presenceBar" hidden title="いまこのプロジェクトを開いている人"></div>
   <div id="meBar" hidden title="クリックすると、あなたが誰かを選び直せます"></div>
 </div>
@@ -1882,6 +1919,20 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <button id="scaleReset" class="stepReset" title="等倍(100%)に戻す">↺</button>
     </div>
   </div>
+  <div class="tgroup wbOnly" title="一時的なメモ書きの道具です">
+    <div class="wbPens" id="wbPens"></div>
+    <div class="seg" id="wbWidth" title="線の太さ">
+      <div class="seg-thumb noAnim"></div>
+      <button data-w="2">細</button>
+      <button data-w="4" class="on">中</button>
+      <button data-w="9">太</button>
+    </div>
+    <button class="btn" id="wbErase" title="線に重ねてなぞると、その線を消します">消しゴム</button>
+    <button class="btn" id="wbImg" title="画像を置きます(Ctrl+V や ドラッグ&ドロップでも置けます)">画像</button>
+    <button class="btn" id="wbUndo" title="自分が最後に描いたものを取り消します(Ctrl+Z)">元に戻す</button>
+    <button class="btn" id="wbPng" title="いまの内容をPNGとして保存します">書き出し</button>
+    <button class="btn danger" id="wbClear" title="全員の画面から消えます">全消去</button>
+  </div>
   </div><!-- /viewTools -->
   <!-- 編集ロックとテーマは右端に貼り付けておく。横に溢れてもスクロールで見失わないように -->
   <div class="headerRight">
@@ -1928,6 +1979,18 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       </div>
     </section>
     <section class="view" id="view-summary"></section>
+    <!-- 一時的なメモ書き。通話しながら図示するためのもので、プロジェクトには保存しない -->
+    <section class="view" id="view-wb">
+      <div id="wbNote">
+        <span id="wbNoteTxt">一時的なメモです。プロジェクトには保存されません</span>
+        <span class="spacer"></span>
+        <span id="wbCount"></span>
+      </div>
+      <div id="wbStage">
+        <canvas id="wbCanvas"></canvas>
+        <div id="wbHint">ドラッグで描けます。画像は Ctrl+V で貼り付け、ドラッグ&ドロップでも置けます</div>
+      </div>
+    </section>
   </main>
   <div id="scriptPane">
     <div id="scriptResizer"></div>
@@ -2642,7 +2705,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-8d5910a";
+const APP_VERSION = "2026.08.04-853346e";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2964,6 +3027,13 @@ function setSyncStatus(txt, warn){
   el.classList.toggle("warn", !!bad);
   el.style.cursor = txt ? "pointer" : "";
   el.onclick = txt ? (()=>openSyncModal()) : null;
+  /* 異常のときだけ右上にも出す。フッターは視線が行かず、切れたまま編集し続けてしまうため */
+  const al = $("syncAlert");
+  if(al){
+    al.hidden = !bad;
+    al.textContent = bad ? txt : "";
+    al.onclick = ()=>openSyncModal();
+  }
 }
 
 /* --- 送信。persist() から呼ばれる(まとめて1回にするため遅延させる) --- */
@@ -3417,6 +3487,7 @@ async function initSync(){
     setSyncStatus("接続しました");
     await syncPull({});
     startSyncStream();   /* 以降は他の人の変更を自動で受け取る */
+    wbOnSyncChange();    /* ホワイトボードも共有側に切り替える */
     startPresence();
   }else{
     /* 設定はあるのにパスワードが無い = 繋がるはずが繋がっていない。ここだけは知らせる */
@@ -3517,6 +3588,10 @@ function applyEditMode(){
   /* ガントは別スコープ(IIFE)に自前の editMode を持っているので、必ず同じ値へ揃える。
      揃えないと、ロック中でもバーがドラッグ・矢印キーで動いてしまう(実際にそうなっていた) */
   if(typeof Gantt !== "undefined" && Gantt && Gantt.setEditMode) Gantt.setEditMode(editMode);
+  /* ホワイトボードの注意書きも「描けない理由」に合わせて言い換える。
+     applyEditMode() は起動時にも走り、そのときはまだホワイトボードの変数が初期化されていない。
+     関数は巻き上げで先に見えてしまうので、typeof では防げない(実際にこれで起動が止まった) */
+  if(_wbReady) wbRenderCount();
 }
 function toggleEditMode(){
   editMode = !editMode;
@@ -5870,7 +5945,7 @@ $("nbMode").addEventListener("click", e=>{
     /* 接続だけ切る。サーバー上のプロジェクトには一切触れない */
     localStorage.removeItem(SYNC_KEY);
     try{ sessionStorage.removeItem(SYNC_KEY); }catch(err){}
-    presenceLeave(); stopPresence(); stopSyncStream();
+    presenceLeave(); stopPresence(); stopSyncStream(); wbOnSyncChange();
     syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
     setSyncStatus("このパソコンのみ");
     blankBoard();
@@ -6079,6 +6154,8 @@ $("viewTabs").addEventListener("click", e=>{
   state.ui.view = view;   /* リロードしても同じビューで開けるように覚えておく */
   persist();
   if(view==="gantt"){ Gantt.show(); renderUnscheduled(); }
+  /* canvasは表示されてからでないと大きさを測れない */
+  if(view==="wb") wbShow();
 });
 updateSegThumb($("viewTabs"));
 window.addEventListener("resize", ()=>updateSegThumb($("viewTabs")));
@@ -6373,6 +6450,7 @@ $("sySOff").onclick = ()=>{
   try{ sessionStorage.removeItem(SYNC_KEY); }catch(e){}
   presenceLeave(); stopPresence();
   stopSyncStream();
+  wbOnSyncChange();
   syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
   setSyncStatus("このパソコンのみ");
   syncMenuState();
@@ -6416,6 +6494,7 @@ $("sySave").onclick = async ()=>{
     await doSyncPush();
   }
   startSyncStream();
+  wbOnSyncChange();
   startPresence();
   syncMenuState();
   /* ここで初めてメンバー一覧が手に入る。自分が誰かをまだ決めていなければ選んでもらう */
@@ -6499,10 +6578,10 @@ document.addEventListener("keydown", e=>{
   }
   const mod = e.ctrlKey || e.metaKey;
   const typing = ["input","textarea","select"].includes((e.target.tagName||"").toLowerCase()) || e.target.isContentEditable;
-  /* 修飾キー無し・入力中でない・モーダルを開いていないときのショートカット:1〜5=ビュー切替、D=台本表示切替 */
+  /* 修飾キー無し・入力中でない・モーダルを開いていないときのショートカット:1〜6=ビュー切替、D=台本表示切替 */
   if(!mod && !typing && !document.querySelector(".overlay.open")){
-    if(e.key>="1" && e.key<="5"){
-      const btn = document.querySelector(`#viewTabs [data-view="${["gantt","matrix","scene","kanban","summary"][+e.key-1]}"]`);
+    if(e.key>="1" && e.key<="6"){
+      const btn = document.querySelector(`#viewTabs [data-view="${["gantt","matrix","scene","kanban","summary","wb"][+e.key-1]}"]`);
       if(btn){ e.preventDefault(); btn.click(); }
       return;
     }
@@ -6517,6 +6596,8 @@ document.addEventListener("keydown", e=>{
   }
   if(!mod || typing) return;
   const k = e.key.toLowerCase();
+  /* ホワイトボードを見ている間の Ctrl+Z は、盤面ではなく落書きを取り消す */
+  if(k==="z" && !e.shiftKey && document.body.dataset.view === "wb"){ e.preventDefault(); wbUndo(); return; }
   if(k==="z" && !e.shiftKey){ e.preventDefault(); undo(); }
   else if((k==="z" && e.shiftKey) || k==="y"){ e.preventDefault(); redo(); }
 });
@@ -6851,6 +6932,362 @@ function addDaysIso(iso, n){
   const x = new Date(y, m-1, d); x.setDate(x.getDate()+n);
   return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;
 }
+
+/* ================= ホワイトボード(一時的なメモ書き) =================
+   通話しながら図示するためのもの。プロジェクト本体(state)とは完全に別で、
+   サーバー上も /scratch/{プロジェクトID} という別の場所に置く。
+   こうしないと、貼った画像が保存容量・同期の送信量・バックアップ20世代を一気に食う。
+   共有していないときはメモリとsessionStorageだけに持つ(リロードでは消えない) */
+var _wbReady = false;   /* 巻き上げが効く var にしておく。初期化前に触られても落ちないようにするため */
+const WB_W = 2000, WB_H = 1200;              /* 論理サイズ。座標はこの中の値で持つので、窓の大きさが違っても同じ位置に出る */
+const WB_TTL_MS = 12 * 60 * 60 * 1000;          /* これより古いものは開いたときに消す */
+const WB_MAX_ITEMS = 400, WB_MAX_IMG = 20;
+const WB_IMG_MAX = 1280;                        /* 貼った画像はこの長辺まで縮める */
+const WB_COLORS = ["#E5392C","#3B76C4","#4C9E7E","#E0A020","#2B2F35"];
+const WB_LS = "aa_pb_wb";
+let _wbItems = [], _wbImgs = {}, _wbBase = null, _wbScale = 1;
+let _wbColor = WB_COLORS[0], _wbWidth = 4, _wbErase = false;
+let _wbDrawing = null, _wbErasing = false, _wbSse = null;
+
+const wbLocked = ()=> document.body.classList.contains("locked");
+const wbShared = ()=> syncEnabled() && !syncCfg.url.startsWith("mock://");
+const wbUrl = sub => `${syncCfg.url}/scratch/${encodeURIComponent(syncCfg.boardId)}${sub}`;
+/* idの先頭に時刻を入れて、並べ替えなくても描いた順になるようにする */
+const wbNewId = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+/* --- 描画 --- */
+function wbFit(){
+  const st = $("wbStage"), c = $("wbCanvas");
+  if(!st || !c) return;
+  const r = st.getBoundingClientRect();
+  if(r.width < 20 || r.height < 20) return;
+  const scale = Math.min((r.width - 2) / WB_W, (r.height - 2) / WB_H);
+  const w = Math.floor(WB_W * scale), h = Math.floor(WB_H * scale);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  c.style.width = w + "px"; c.style.height = h + "px";
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+  _wbScale = scale * dpr;
+  wbRebuild();
+}
+function wbDrawItem(ctx, it){
+  if(it.k === "i"){
+    const img = _wbImgs[it.id];
+    if(img && img.complete && img.naturalWidth) ctx.drawImage(img, it.x, it.y, it.w, it.h);
+    return;
+  }
+  const p = it.p || [];
+  if(!p.length) return;
+  ctx.strokeStyle = it.c; ctx.fillStyle = it.c;
+  ctx.lineWidth = it.w; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if(p.length === 1){ ctx.beginPath(); ctx.arc(p[0][0], p[0][1], it.w/2, 0, 6.2832); ctx.fill(); return; }
+  ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+  for(let i=1;i<p.length;i++) ctx.lineTo(p[i][0], p[i][1]);
+  ctx.stroke();
+}
+/* 確定分は別のcanvasに一度だけ描いておき、描いている最中はそれを敷いた上に1本足すだけにする
+   (毎回すべて描き直すと、画像を何枚か置いた時点でペンが遅れる) */
+function wbRebuild(){
+  const c = $("wbCanvas");
+  if(!c || !c.width) return;
+  if(!_wbBase) _wbBase = document.createElement("canvas");
+  _wbBase.width = c.width; _wbBase.height = c.height;
+  const ctx = _wbBase.getContext("2d");
+  ctx.setTransform(_wbScale, 0, 0, _wbScale, 0, 0);
+  for(const it of _wbItems) wbDrawItem(ctx, it);
+  wbPaint();
+}
+function wbPaint(){
+  const c = $("wbCanvas");
+  if(!c || !c.width) return;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,c.width,c.height);
+  if(_wbBase) ctx.drawImage(_wbBase, 0, 0);
+  if(_wbDrawing){ ctx.setTransform(_wbScale,0,0,_wbScale,0,0); wbDrawItem(ctx, _wbDrawing); }
+  const hint = $("wbHint");
+  if(hint) hint.hidden = !!(_wbItems.length || _wbDrawing);
+  wbRenderCount();
+}
+function wbRenderCount(){
+  const el = $("wbCount");
+  if(!el) return;
+  const s = _wbItems.filter(x=>x.k!=="i").length, i = _wbItems.length - s;
+  el.textContent = _wbItems.length ? `線 ${s}${i?" / 画像 "+i:""}` : "";
+  const note = $("wbNoteTxt");
+  if(note) note.textContent = wbLocked()
+    ? "ロック中は描けません。右上の鍵を外してください"
+    : "一時的なメモです。プロジェクトには保存されません";
+}
+
+/* --- 出し入れ --- */
+function wbSortIn(it){
+  _wbItems.push(it);
+  _wbItems.sort((a,b)=> a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+}
+function wbLoadImage(it){
+  const img = new Image();
+  img.onload = ()=>{ wbRebuild(); };
+  img.src = it.d;
+  _wbImgs[it.id] = img;
+}
+function wbAdd(it){
+  it.id = wbNewId(); it.t = Date.now(); it.by = clientId();
+  if(_wbItems.length >= WB_MAX_ITEMS){ tellOnce("ホワイトボードがいっぱいです。「全消去」で消してから続けてください。"); return; }
+  wbSortIn(it);
+  if(it.k === "i") wbLoadImage(it);
+  wbRebuild(); wbSaveLocal(); wbPush(it);
+}
+function wbRemove(id, push){
+  const i = _wbItems.findIndex(x=>x.id===id);
+  if(i < 0) return;
+  _wbItems.splice(i,1); delete _wbImgs[id];
+  wbRebuild(); wbSaveLocal();
+  if(push) wbDel(id);
+}
+/* 共有していないときの置き場。タブを閉じるまでは残す */
+function wbSaveLocal(){
+  if(wbShared()) return;
+  try{ sessionStorage.setItem(WB_LS, JSON.stringify(_wbItems)); }catch(e){}
+}
+function wbLoadLocal(){
+  try{
+    const s = sessionStorage.getItem(WB_LS);
+    if(!s) return;
+    _wbItems = (JSON.parse(s)||[]).filter(x=>x && Date.now()-(x.t||0) < WB_TTL_MS);
+    for(const it of _wbItems) if(it.k==="i") wbLoadImage(it);
+  }catch(e){ _wbItems = []; }
+}
+
+/* --- サーバー(プロジェクト本体とは別の場所) --- */
+async function wbPush(it){
+  if(!wbShared()) return;
+  try{
+    const {id, ...rest} = it;
+    const rec = await encryptJSON(rest, _syncKey);
+    rec.t = it.t;   /* 期限切れの掃除を、復号しなくても判定できるように平文で置く */
+    await fetch(wbUrl(`/items/${id}.json`),
+      {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(rec)});
+  }catch(e){ console.warn("[wb] push failed", e); }
+}
+async function wbDel(id){
+  if(!wbShared()) return;
+  try{ await fetch(wbUrl(`/items/${id}.json`), {method:"DELETE"}); }catch(e){}
+}
+async function wbClearRemote(){
+  if(!wbShared()) return;
+  try{ await fetch(wbUrl(`/items.json`), {method:"DELETE"}); }catch(e){}
+}
+async function wbDecodeInto(id, rec){
+  if(!rec || !rec.ct || !rec.iv) return;
+  if(_wbItems.some(x=>x.id===id)) return;   /* 自分が書いたぶんのこだま */
+  try{
+    const it = await decryptJSON(rec, _syncKey);
+    it.id = id; it.t = rec.t || it.t || Date.now();
+    if(Date.now() - it.t > WB_TTL_MS) return;
+    wbSortIn(it);
+    if(it.k === "i") wbLoadImage(it);
+  }catch(e){}
+}
+async function wbLoadAll(all){
+  _wbItems = []; _wbImgs = {};
+  const entries = Object.entries(all || {}).filter(([,v])=>v && v.ct && v.iv);
+  for(const [id, rec] of entries) await wbDecodeInto(id, rec);
+  wbRebuild();
+  /* 期限切れは開いた人が片付ける */
+  for(const [id, rec] of entries) if(Date.now() - (rec.t||0) > WB_TTL_MS) wbDel(id);
+}
+function wbStartStream(){
+  wbStopStream();
+  if(!wbShared() || typeof EventSource === "undefined") return;
+  try{
+    const es = new EventSource(wbUrl("/items.json"));
+    _wbSse = es;
+    const onEv = async ev=>{
+      let msg; try{ msg = JSON.parse(ev.data); }catch(e){ return; }
+      if(!msg) return;
+      if(msg.path === "/"){ await wbLoadAll(msg.data); return; }
+      const id = msg.path.replace(/^\//,"").split("/")[0];
+      if(!id) return;
+      if(msg.data === null){ wbRemove(id, false); return; }
+      await wbDecodeInto(id, msg.data);
+      wbRebuild();
+    };
+    es.addEventListener("put", onEv);
+    es.addEventListener("patch", onEv);
+  }catch(e){ console.warn("[wb] stream failed", e); }
+}
+function wbStopStream(){
+  if(_wbSse){ try{ _wbSse.close(); }catch(e){} _wbSse = null; }
+}
+/* 共有の状態が変わったら、置き場も切り替える */
+function wbOnSyncChange(){
+  wbStopStream();
+  _wbItems = []; _wbImgs = {};
+  if(wbShared()) wbStartStream();
+  else wbLoadLocal();
+  wbRebuild();
+}
+
+/* --- 操作 --- */
+function wbPt(e){
+  const c = $("wbCanvas"), r = c.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width * WB_W, (e.clientY - r.top) / r.height * WB_H];
+}
+/* 消しゴムは点ではなく線ごと消す。1本を部分的に消すと、共有する単位が壊れるため */
+function wbEraseAt(pt){
+  const R = Math.max(10, _wbWidth * 3);
+  for(let i = _wbItems.length - 1; i >= 0; i--){
+    const it = _wbItems[i];
+    let hit = false;
+    if(it.k === "i") hit = pt[0] >= it.x && pt[0] <= it.x + it.w && pt[1] >= it.y && pt[1] <= it.y + it.h;
+    else hit = (it.p||[]).some(p => Math.hypot(p[0]-pt[0], p[1]-pt[1]) < R);
+    if(hit){ wbRemove(it.id, true); return; }
+  }
+}
+function wbDown(e){
+  if(wbLocked() || e.button !== 0) return;
+  const pt = wbPt(e);
+  try{ $("wbCanvas").setPointerCapture(e.pointerId); }catch(err){}
+  if(_wbErase){ _wbErasing = true; wbEraseAt(pt); return; }
+  _wbDrawing = {k:"s", c:_wbColor, w:_wbWidth, p:[pt]};
+  wbPaint();
+}
+function wbMove(e){
+  if(_wbErasing){ wbEraseAt(wbPt(e)); return; }
+  if(!_wbDrawing) return;
+  const pt = wbPt(e), last = _wbDrawing.p[_wbDrawing.p.length-1];
+  if(Math.hypot(pt[0]-last[0], pt[1]-last[1]) < 3) return;   /* 点を間引いて送信量を抑える */
+  _wbDrawing.p.push(pt);
+  wbPaint();
+}
+function wbUp(){
+  _wbErasing = false;
+  if(!_wbDrawing) return;
+  const s = _wbDrawing; _wbDrawing = null;
+  s.p = s.p.map(p=>[Math.round(p[0]), Math.round(p[1])]);
+  wbAdd(s);
+}
+function wbUndo(){
+  if(wbLocked()) return;
+  const me = clientId();
+  for(let i = _wbItems.length - 1; i >= 0; i--){
+    if(_wbItems[i].by === me){ wbRemove(_wbItems[i].id, true); return; }
+  }
+}
+async function wbClear(){
+  if(wbLocked()) return;
+  if(!_wbItems.length) return;
+  const msg = wbShared()
+    ? "ホワイトボードを全部消します。\n共有している人全員の画面からも消えます。よろしいですか?"
+    : "ホワイトボードを全部消します。よろしいですか?";
+  if(!confirm(msg)) return;
+  _wbItems = []; _wbImgs = {};
+  wbRebuild(); wbSaveLocal(); wbClearRemote();
+}
+/* 貼った画像は長辺1280pxまで縮める。元のまま送ると1枚で数MBになり、共有が詰まる */
+function wbShrinkImage(file){
+  return new Promise((res, rej)=>{
+    const fr = new FileReader();
+    fr.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const k = Math.min(1, WB_IMG_MAX / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * k)), h = Math.max(1, Math.round(img.height * k));
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        cv.getContext("2d").drawImage(img, 0, 0, w, h);
+        res({d: cv.toDataURL("image/jpeg", 0.78), w, h});
+      };
+      img.onerror = ()=>rej(new Error("画像を読めませんでした"));
+      img.src = fr.result;
+    };
+    fr.onerror = ()=>rej(new Error("画像を読めませんでした"));
+    fr.readAsDataURL(file);
+  });
+}
+async function wbPlaceImage(file, at){
+  if(wbLocked()) return;
+  if(_wbItems.filter(x=>x.k==="i").length >= WB_MAX_IMG){ alert(`画像は${WB_MAX_IMG}枚までです。`); return; }
+  try{
+    const {d, w, h} = await wbShrinkImage(file);
+    /* 盤面の6割に収まる大きさで、落とした位置(無ければ中央)に置く */
+    const k = Math.min(1, (WB_W*0.6)/w, (WB_H*0.6)/h);
+    const bw = w*k, bh = h*k;
+    const cx = at ? at[0] : WB_W/2, cy = at ? at[1] : WB_H/2;
+    wbAdd({k:"i", d, x:Math.round(cx-bw/2), y:Math.round(cy-bh/2), w:Math.round(bw), h:Math.round(bh)});
+  }catch(e){ alert(e.message); }
+}
+function wbExportPng(){
+  const c = document.createElement("canvas");
+  c.width = WB_W; c.height = WB_H;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,WB_W,WB_H);
+  for(const it of _wbItems) wbDrawItem(ctx, it);
+  const a = document.createElement("a");
+  a.download = `${(state.project||"ホワイトボード").replace(/[\\/:*?"<>|]/g,"_")}-メモ.png`;
+  a.href = c.toDataURL("image/png");
+  a.click();
+}
+
+/* --- 組み立て --- */
+function wbShow(){ wbFit(); wbRenderCount(); }
+(function wbInit(){
+  const pens = $("wbPens");
+  if(!pens) return;
+  pens.innerHTML = WB_COLORS.map((c,i)=>
+    `<button type="button" data-c="${c}" class="${i?"":"on"}" style="background:${c}" title="ペンの色"></button>`).join("");
+  pens.addEventListener("click", e=>{
+    const b = e.target.closest("button[data-c]");
+    if(!b) return;
+    _wbColor = b.dataset.c; _wbErase = false;
+    document.body.classList.remove("wbErase");
+    $("wbErase").classList.remove("on");
+    pens.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+  });
+  $("wbWidth").addEventListener("click", e=>{
+    const b = e.target.closest("button[data-w]");
+    if(!b) return;
+    _wbWidth = +b.dataset.w;
+    $("wbWidth").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+    updateSegThumb($("wbWidth"));
+  });
+  $("wbErase").onclick = ()=>{
+    _wbErase = !_wbErase;
+    $("wbErase").classList.toggle("on", _wbErase);
+    document.body.classList.toggle("wbErase", _wbErase);
+  };
+  $("wbUndo").onclick = wbUndo;
+  $("wbClear").onclick = wbClear;
+  $("wbPng").onclick = wbExportPng;
+  $("wbImg").onclick = ()=>$("wbFile").click();
+  $("wbFile").addEventListener("change", e=>{
+    const f = e.target.files[0]; e.target.value = "";
+    if(f) wbPlaceImage(f, null);
+  });
+  const c = $("wbCanvas");
+  c.addEventListener("pointerdown", wbDown);
+  c.addEventListener("pointermove", wbMove);
+  c.addEventListener("pointerup", wbUp);
+  c.addEventListener("pointercancel", wbUp);
+  /* 貼り付けと落とし込み。ホワイトボードを開いているときだけ受ける */
+  document.addEventListener("paste", e=>{
+    if(document.body.dataset.view !== "wb") return;
+    const items = [...(e.clipboardData?.items || [])].filter(x=>x.type.startsWith("image/"));
+    if(!items.length) return;
+    e.preventDefault();
+    wbPlaceImage(items[0].getAsFile(), null);
+  });
+  const stage = $("wbStage");
+  stage.addEventListener("dragover", e=>{ e.preventDefault(); });
+  stage.addEventListener("drop", e=>{
+    e.preventDefault();
+    const f = [...(e.dataTransfer?.files||[])].find(x=>x.type.startsWith("image/"));
+    if(f) wbPlaceImage(f, wbPt(e));
+  });
+  new ResizeObserver(()=>{ if(document.body.dataset.view === "wb") wbFit(); }).observe(stage);
+  wbLoadLocal();
+  _wbReady = true;
+})();
 
 /* 保存済みデータがあれば、サンプルデータの代わりにそちらを復元する */
 try{
