@@ -8,8 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{
+<style>:root{
   --bg:#FFFFFF;
   --panel:#FFFFFF;
   --text:#1A1D21;
@@ -69,7 +68,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 input,select,textarea{font-family:inherit;font-size:13px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 9px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-
 /* テーマ切替トグル(Gantt側と同じ造形) */
 .themeToggle{
   position:relative;flex:none;width:56px;height:22px;border-radius:99px;
@@ -100,7 +98,6 @@ body.themeSwitching,body.themeSwitching *{
     border-color .4s cubic-bezier(.4,0,.2,1),box-shadow .4s cubic-bezier(.4,0,.2,1),
     transform .25s cubic-bezier(.4,0,.2,1) !important;
 }
-
 /* ---------- title bar(Ganttの#titleBarと同じ造形: 見出しは大きく・ヘッダー画像はクリックで設定) ---------- */
 #titleBar{
   position:relative;width:100%;min-height:48px;overflow:hidden;
@@ -156,7 +153,6 @@ body.themeSwitching,body.themeSwitching *{
   opacity:.9;
 }
 #btnSample:hover{opacity:1}
-
 /* ---------- toolbar ---------- */
 /* 幅が足りないときに折り返して2行になり崩れるのを避け、横スクロールにする */
 header{
@@ -178,7 +174,6 @@ body.dark .seg button{color:#9AA2AC}
 /* ツールバーのグループ化(Ganttの.tgroup/.segLabelと同じ造形): ラベル付きの薄い背景ピルでボタンをまとめる。
    縦paddingは持たせず、高さは下の統一ルール(height:26px)に任せる */
 .tgroup{display:flex;align-items:center;gap:7px;padding:0 10px;border-radius:8px;background:var(--hover)}
-.segLabel{font-size:10.5px;color:var(--faint);white-space:nowrap;margin-right:-2px}
 /* 表示倍率ステッパー(Ganttの#scaleStepperと同じ) */
 .scaleStepper{display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--panel)}
 .scaleStepper button{padding:5px 8px;color:#4B5157;font-weight:700;line-height:1}
@@ -257,7 +252,6 @@ body.dark #btnEditMode.editing{background:var(--hover)}
 #appNameSep{height:11px;margin:0}
 #saveState{font-size:11px;color:var(--faint)}
 #appName{font-size:11px;color:#55939F;font-weight:700}
-
 /* ---------- layout: main + script pane ---------- */
 #wrap{flex:1;display:flex;overflow:hidden;position:relative}
 /* Ganttの#gantt/#rpaneと同じ構造: mainはページ全体をスクロールさせず、アクティブなviewが
@@ -281,7 +275,6 @@ main{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;paddi
   from{opacity:0;transform:translateX(10px)}
   to{opacity:1;transform:translateX(0)}
 }
-
 /* 開閉時にスライドアニメーションさせるため、display:noneではなくwidth:0⇄実幅をtransitionさせる。
    中身(#scriptPaneInner)は常に目標幅で固定しておき、外側だけを覆い隠すことで、開閉中に文章が
    再折り返し(reflow)してチラつくのを防ぐ */
@@ -336,7 +329,6 @@ body:not(.dark) #scriptBody .scDlg .q{color:#1b2733}
 #scriptBody:has(.scScene:hover) .scScene:not(:hover){opacity:.5}
 #scriptResizer{position:absolute;top:0;bottom:0;left:0;width:7px;cursor:col-resize;z-index:20}
 #scriptResizer:hover{background:var(--hover)}
-
 /* ---------- matrix ---------- */
 /* Ganttの#rpaneと同じ: このペイン1つだけが横・縦とも自己スクロールし、
    position:stickyの基準もこのペイン1つに単純化する */
@@ -526,7 +518,8 @@ body.locked .mx-ghost{visibility:hidden}
 .pips{display:inline-flex;gap:3px;vertical-align:middle}
 /* 未達成ピップは中グレー(--muted)。白〜中グレーの進捗背景(未着手/制作中/実装完了)いずれでも溶けない濃さにする */
 .pip{width:8px;height:8px;border-radius:2px;background:var(--muted)}
-.pips.ia .pip:hover{outline:2px solid var(--accent);outline-offset:1px} /* 押せることが分かるよう軽く強調 */
+.pips.ia .pip:hover{outline:2px solid var(--accent);outline-offset:1px}
+/* 押せることが分かるよう軽く強調 */
 .pip.on{background:var(--accent)}
 .pip.done{background:var(--ok)}
 /* 進捗ピップのホバーで出すステータス名(セルのoverflow:hiddenに切られないようbody直下のfixedで表示) */
@@ -536,7 +529,6 @@ body.locked .mx-ghost{visibility:hidden}
 #pipTip.show{opacity:1}
 .mx-foot{grid-column:1 / -1;font-size:10px;color:var(--muted);border-bottom:none !important;text-align:right;padding:5px 12px}
 .mx-foot b{font-weight:600;color:var(--text)}
-
 /* ---------- scene view ---------- */
 /* 本体(左)と目次(右)の横並び。縦スクロールは#view-scene自身が担う。
    スクロール枠にpadding-topを持たせると、その隙間から貼り付いた見出しの上に下の表が覗くため、
@@ -606,7 +598,6 @@ body.dark .cat-chip{color:#14181E}
 .scene-add-row{display:block;padding:5px 2px;font-size:11px;color:var(--faint);cursor:pointer;background:none;border:none;text-align:left}
 .scene-add-row:hover{color:var(--accent)}
 body.locked .scene-add-row{visibility:hidden}
-
 /* ---------- kanban ---------- */
 /* 列は縦いっぱいまで伸ばす(align-items:stretch+flex:1)。カードを列の縦どこにドロップしても
    その進捗に移せるように、列全体がドロップ領域になる */
@@ -632,7 +623,6 @@ body.dark .kb-card.scHi{background:rgba(91,155,230,.14)}
 table.assets tr[draggable="true"]{cursor:grab}
 table.assets tr.dndBefore td{box-shadow:inset 0 2px 0 0 var(--accent)}
 table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
-
 /* ---------- summary ---------- */
 .sum-wrap{display:flex;flex-direction:column;gap:20px}
 /* 上段: 進捗リング+KPIタイル */
@@ -673,7 +663,6 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 body.dark .stg1{background:#232A33}
 body.dark .stg2{background:#3A4350}
 body.dark .stg3{background:#F0F1F2}
-
 /* ---------- modal (Gantt側と同じ造形) ---------- */
 .overlay{position:fixed;inset:0;background:rgba(20,22,26,.35);display:none;align-items:center;justify-content:center;z-index:100}
 .overlay.open{display:flex}
@@ -736,7 +725,6 @@ body.dark .stg3{background:#F0F1F2}
 .aiStepBody{flex:1;min-width:0;padding-top:2px}
 .aiStepTitle{font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:7px}
 .aiStepBody .hint{margin-top:6px}
-
 /* チェックボックスはネイティブだと縦位置がズレる環境があるため自前スタイリング(Gantt側の.chkと同じ) */
 .chk{display:inline-flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;color:var(--text);line-height:1;
   border:1px solid var(--line);border-radius:99px;padding:5px 12px 5px 9px;margin:0}
@@ -754,8 +742,6 @@ body.dark .stg3{background:#F0F1F2}
   width:4px;height:6.5px;border:solid #fff;border-width:0 1.5px 1.5px 0;
   transform:rotate(45deg);
 }
-.scene-checks{display:flex;flex-wrap:wrap;gap:6px}
-
 /* メンバー選択チップ(Gantt側の.chipと同じ) */
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{
@@ -768,7 +754,6 @@ body.dark .stg3{background:#F0F1F2}
 .chip.on{border-color:var(--accent);background:rgba(47,111,191,.09);color:var(--text)}
 body.dark .chip.on{background:rgba(91,155,230,.14)}
 .chips .none{font-size:11px;color:var(--faint);align-self:center}
-
 /* メンバー管理モーダル(Gantt側の.memList/.memItem/.mAv/.palRow/.swと同じ造形) */
 .memList{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .memItem{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;flex-wrap:wrap}
@@ -791,7 +776,6 @@ body.dark .chip.on{background:rgba(91,155,230,.14)}
 .sw.on{border-color:var(--text)}
 .palRow input[type=color]{width:28px;height:23px;padding:1px;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer}
 .palRow .plbl{font-size:10.5px;color:var(--faint)}
-
 /* 担当アバター(重ね表示)。担当者がいない場合もGantt側の「担当なし」と同じ点線円を出し、
    アイコンの有無で行の高さが変わらないよう常に同じ枠を確保する */
 .avStack{display:inline-flex;align-items:center;vertical-align:middle}
@@ -803,32 +787,26 @@ body.dark .chip.on{background:rgba(91,155,230,.14)}
 .avStack img:not(:first-child),.avStack .cdot:not(:first-child){margin-left:-5px}
 .avNames{font-size:11.5px;color:var(--text);margin-left:6px;vertical-align:middle}
 .avStack .more{font-size:9.5px;color:var(--faint);margin-left:3px;flex:none}
-
 /* タスクモーダル内のインラインメンバー追加(Ganttの#fMemColorDot等と同じ) */
 #aMemColorDot{width:22px;height:22px;border-radius:99px;flex:none;cursor:pointer;border:1px solid rgba(0,0,0,.08)}
-
 /* マトリクス行の右端グループ(担当アバター+工程ピップ) */
 .mx-name .rowRight{margin-left:auto;display:inline-flex;align-items:center;gap:7px;flex:none}
 .mx-name .avStack img,.mx-name .avStack .cdot,.mx-name .avStack .avNone{width:16px;height:16px}
 /* 工程ピップはクリックで直接更新できる */
 .pips.ia .pip{cursor:pointer}
 .pips.ia .pip:hover{background:var(--muted)}
-
 #sImpText{width:100%;height:220px;font-size:12px;line-height:1.7;resize:vertical;white-space:pre-wrap}
 /* JSONは1行が長いので、台本欄と同じくらいの高さと等幅フォントで扱えるようにする */
 #aiJson{
   width:100%;height:200px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   font-size:12px;line-height:1.6;resize:vertical;white-space:pre;overflow:auto;
 }
-
 footer{padding:4px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:10.5px;display:flex;gap:12px;
   flex-wrap:nowrap;background:var(--panel);align-items:center;overflow:hidden;white-space:nowrap}
 /* 説明文だけが縮む。ボタンや状態表示は縮めない */
 footer > *{flex:none}
 footer .spacer{flex:1}
 #btnKeys{font-size:10.5px;padding:2px 9px;height:auto;line-height:1.7;border-radius:4px}
-
-
 @media print{
   body{background:#fff;overflow:visible;display:block}
   #titleBar,header,footer,#scriptPane,.scene-edit{display:none !important}
@@ -847,7 +825,6 @@ footer .spacer{flex:1}
   #scriptPane{width:100%;min-width:0;position:absolute;inset:0;z-index:30}
   .scene-toc{display:none} /* 幅が狭いときは目次を隠す */
 }
-
 /* 日程未定タスクの置き場(ガントビューの下) */
 /* 台本ペインと同じく、開閉はスライドで見せる。高さはJSで実測して入れる(CSSだけだと
    内容の高さが決まらずアニメーションできないため) */
@@ -894,7 +871,6 @@ body.locked .usChip{cursor:default}
 #view-gantt #placeGhost{outline:1.5px dashed rgba(255,255,255,.9);outline-offset:-2px;
   box-shadow:0 4px 12px rgba(20,29,40,.28)}
 #view-gantt #placeGhost:hover{transform:none}
-
 /* カード自体の背景で進捗を表す。一覧・シーン別と同じく、色相を使わずグレーの明度だけで工程を示す */
 .kb-card.st1{background:#E4E6E9}
 .kb-card.st2{background:#B4B8BE}
@@ -913,7 +889,6 @@ body.dark .kb-card.st3 .kb-name .t{color:#1A1D21}
 body.dark .kb-card.st3 .kb-sub{color:#3A3F46}
 body.dark .kb-card.st3 .size-badge{border-color:#B4BAC2;color:#3A3F46}
 body.dark .kb-card.st3 .avStack img,body.dark .kb-card.st3 .avStack .cdot{box-shadow:0 0 0 1.5px #F0F1F2}
-
 /* バーの進捗表現。バーはカテゴリ色を持っているので、色相ではなく下端の細い塗りで進み具合を示す。
    完了したものは彩度を落として沈ませる(一覧・カードの「完了=黒」と同じ考え方) */
 /* 進捗は左からの塗りで表す。下端の帯だと上下が非対称になり、中身のセンタリングが
@@ -934,7 +909,6 @@ body.dark #view-gantt .bar.barDone .lbl,body.dark #view-gantt .bar.barDone .bsz{
 body.dark #view-gantt .bar.barDone .bsz{border-color:rgba(0,0,0,.35)}
 body.dark #view-gantt .bar.barDone .bprog{display:none}
 body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
-
 /* 重要度の旗。他ビューの優先度フラグと同じ色づかい(中=橙 / 高=赤) */
 #view-gantt .bflag{flex:none;font-size:calc(var(--tagFs,9.5px) + 2px);line-height:1;margin-right:1px;
   text-shadow:0 0 2px rgba(0,0,0,.35);position:relative;top:-0.5px}
@@ -946,7 +920,6 @@ body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
 #view-gantt .bflag.imp2{color:#E0A020}
 #view-gantt .bflag.imp3{color:#E5392C}
 #view-gantt .bar.barDone .bflag{opacity:.75}
-
 /* ガントの作業量(LMS)バッジ。左の行はビュー共通の .size-badge、バー内は下地が濃いので白抜き */
 #view-gantt .gsz{flex:none;font-size:var(--tagFs,9.5px);line-height:var(--tagLh,1.6);padding:0;width:18px}
 /* バー内のLMSはタスク名より控えめに。左の行や置き場のバッジより一回り小さくする */
@@ -959,9 +932,7 @@ body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
   font-size:calc(var(--tagFs, 9.5px) - 0.5px);border-width:1px}
 /* バー外の旗も下地が背景色になるので、影は不要 */
 #view-gantt .out .bflag{text-shadow:none;margin-right:3px}
-
 .kb-card .kb-sub .size-badge{margin-right:3px}
-
 /* ================= タスク編集モーダル =================
    項目が多いので「名前 → 分類・担当 / 状態・日程 → シーン → メモ」の順に、
    関係の近いものを枠でまとめて2列に置く。新規追加の入力欄は普段は隠しておく */
@@ -1007,7 +978,6 @@ body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
   color:#2A2E33;font-size:9px;border-radius:3px;padding:1px 6px;position:relative}
 #aPreviewBar .pvCat .cdot{width:5px;height:5px;border-radius:99px}
 #aPreviewBar .pvDays{margin-left:auto;flex:none;font-size:10px;font-weight:400;opacity:.85;position:relative}
-
 .taskModal .field.stageRow{margin-bottom:10px}
 .taskModal .stageSeg{width:100%}
 .taskModal .stageSeg button{flex:1;white-space:nowrap}
@@ -1038,7 +1008,6 @@ body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
 .scChip.on .no{color:rgba(255,255,255,.85)}
 body.locked .scChip{cursor:default}
 @media (max-width:780px){ .tmGrid{grid-template-columns:1fr} .tmRow{flex-wrap:wrap} }
-
 /* 基準日カウントダウン(ヘッダー右) */
 #titleCountdown{font-size:11.5px;font-weight:700;color:var(--text);background:var(--line2);
   border:1px solid var(--line);border-radius:99px;padding:3px 11px;cursor:pointer;white-space:nowrap}
@@ -1046,10 +1015,8 @@ body.locked .scChip{cursor:default}
 #titleBar.hasImg #titleCountdown{background:rgba(0,0,0,.45);color:#fff;border:none;
   backdrop-filter:blur(2px);text-shadow:0 1px 3px rgba(0,0,0,.3)}
 #titleBar.hasImg #titleCountdown:hover{background:rgba(0,0,0,.6)}
-
 /* ガントは自分でスクロールを持つので、他ビュー向けの下余白(60px)は要らない */
 #view-gantt.view.active{padding-bottom:0;overflow-y:hidden}
-
 /* ================= ロック中のカーソル =================
    ロック中はドラッグ系の操作を止めているので、掴めそうに見えるカーソルは出さない。
    「掴めると思って引っ張ったのに動かない」を避ける。
@@ -1079,7 +1046,6 @@ body.locked #view-gantt .phaseSummaryBar:active,
 body.locked .memGrip:active{cursor:pointer}
 /* ロック中に出しても意味がないので、掴み手そのものを見せない */
 body.locked #view-gantt .grip{opacity:0 !important}
-
 /* ================= ビュー切替のタブ列 =================
    ブラウザのタブと同じ造り。タブ列は一段暗い帯、選択中のタブだけがツールバーと同じ色になり
    地続きに見える。下端の左右は擬似要素+box-shadowで外側へ膨らませ、Chromeのタブ形状にしている */
@@ -1130,7 +1096,6 @@ body.dark #viewTabs button:hover{background:rgba(255,255,255,.07)}
 }
 /* ヘッダーは上の角丸を持たない(タブと地続きにするため) */
 header{border-top:0}
-
 /* ビュー固有の道具は、共通の道具と見分けがつくように一段沈めた面に載せる。
    「今見ているビューの設定はここ」と分かるよう、左肩にビュー名を出す */
 .viewTools{
@@ -1197,7 +1162,6 @@ body.dark #syncState.warn{color:#F0A882}
 .pzLbl{font-size:10px;color:var(--muted);margin-right:4px;letter-spacing:.02em;line-height:1}
 .pzAv{width:24px;height:24px;border-radius:50%;flex:none;object-fit:cover;display:block;
   border:2px solid var(--panel);box-sizing:border-box;box-shadow:0 0 0 1px rgba(20,29,40,.14)}
-.pzOne .pzAv{margin-left:0}
 /* 自分の表示。カウントダウンやトグルと同じ「角丸の塊」にして、右端が目でも揃って見えるようにする
    (素のテキストのままだと、同じ位置でも角丸の塗りより外に出て見える) */
 #meBar{display:flex;align-items:center;gap:6px;margin:0 0 4px 0;cursor:pointer;flex:none;
@@ -1274,9 +1238,6 @@ body.dark #syncState.warn{color:#F0A882}
 .whoNm{font-size:11.5px;font-weight:600;color:var(--text);max-width:92px;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 /* 共有設定: やることを2択で示す */
-.syncHow{display:flex;flex-direction:column;gap:6px;background:var(--hover);border:1px solid var(--line);
-  border-radius:7px;padding:10px 12px;font-size:11.5px;line-height:1.75;color:var(--text)}
-.syncHow b{margin-right:4px}
 .syncAdv{margin:2px 0 10px}
 .syncAdv summary{font-size:11px;color:var(--muted);cursor:pointer;padding:2px 0}
 .syncAdv summary:hover{color:var(--text)}
@@ -1294,7 +1255,6 @@ body.dark .syncNote.warn{color:#F0B49A;background:#2A1E19;border-color:#4A3428}
   font-size:11px;color:var(--muted);text-align:center}
 #dayWStepper input.stepLabel:focus{outline:none;color:var(--text)}
 #dayWStepper input.stepLabel:disabled{color:var(--faint)}
-
 /* ================= ガントビュー =================
    もとは AA_GanttChartBoard から移植したもの。今はこのファイルが正本なので、直接編集してよい。
    #view-gantt の下にスコープしてあり、ボタン・モーダル・ヘッダーは統合版の共通CSSを使う */
@@ -1380,8 +1340,6 @@ body.dark{
   color:var(--faint);font-size:10px;letter-spacing:.1em;background:var(--panel);
   position:relative;z-index:2;
 }
-#view-gantt #lhead .hl1{flex:1}
-#view-gantt #lhead .hl2{width:var(--asgW);flex:none}
 #view-gantt #gantt.vscrolled #lhead, #view-gantt #gantt.vscrolled .rhead{box-shadow:0 8px 10px -8px rgba(20,29,40,.10)}
 #view-gantt #lclip{position:absolute;top:var(--headH);bottom:0;left:0;right:0;overflow:hidden}
 #view-gantt #lbody{position:relative}
@@ -1671,7 +1629,6 @@ body.locked #view-gantt .msband .h{display:none}
 #view-gantt .dragEdgeLbl.ms{height:16px}
 #view-gantt .dragEdgeLbl.s{transform:translateX(-100%)}
 #view-gantt .dragEdgeLbl.c{transform:translateX(-50%)}
-#view-gantt .bar.impB{z-index:3;font-weight:700}
 #view-gantt .bar.current{outline:1.5px solid var(--curCol);outline-offset:2px;animation:currentPulse 1.8s ease-in-out infinite}
 @keyframes currentPulse{
   0%,100%{outline-color:color-mix(in srgb,var(--curCol) 70%,transparent)}
@@ -1776,14 +1733,11 @@ body.locked #view-gantt .phToggle{cursor:pointer}
 #view-gantt .vline.monthEdge{background:var(--mline)}
 #view-gantt .vline.msline{border-left:1px dashed var(--stem)}
 #view-gantt footer{padding:6px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:11px;display:flex;gap:18px;flex-wrap:wrap;background:var(--panel);align-items:center}
-#view-gantt #shortcutsBtn{font-size:11px;color:var(--faint);padding:2px 6px;border-radius:4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#view-gantt #shortcutsBtn:hover{background:var(--hover);color:var(--muted)}
 #view-gantt .shortcutGrid{display:flex;flex-direction:column;max-height:60vh;overflow-y:auto;padding-right:4px}
 #view-gantt .scSection{font-size:12px;font-weight:700;color:var(--text);margin:16px 0 4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 #view-gantt .scSection:first-child{margin-top:0}
 #view-gantt .scRow{display:grid;grid-template-columns:190px 1fr;gap:12px;padding:5px 0;font-size:12px;color:var(--muted);line-height:1.5}
 #view-gantt .scKey{font-weight:600;color:var(--text);white-space:nowrap}
-#view-gantt #fMemColorDot{width:22px;height:22px;border-radius:99px;flex:none;cursor:pointer;border:1px solid rgba(0,0,0,.08)}
 @keyframes aiShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 #view-gantt .rowAdd{
   flex:none;width:20px;height:20px;border-radius:5px;border:1px solid var(--line);
@@ -1801,61 +1755,9 @@ body.locked #view-gantt .phToggle{cursor:pointer}
 #view-gantt #gantt.pngCap #lclip{overflow:visible}
 #view-gantt #gantt.pngCap .colRes, #view-gantt #gantt.pngCap #hoverCol, #view-gantt #gantt.pngCap #hoverDate, #view-gantt #gantt.pngCap .rowAdd{display:none!important}
 #view-gantt #gantt.pngCap .grip{opacity:0!important}
-#view-gantt #calView{display:none;flex:1;overflow:auto;padding:18px 22px;flex-direction:column}
-body.calMode #view-gantt #gantt{display:none}
-body.calMode #view-gantt #calView{display:flex}
-#view-gantt .calHeader{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-#view-gantt .calHeader button{padding:5px 10px;border:1px solid var(--line);border-radius:4px;color:#4B5157}
-#view-gantt .calHeader button:hover{background:var(--hover)}
-#view-gantt #calMonthLabel{font-size:15px;font-weight:700;min-width:110px;text-align:center}
-#view-gantt .calWeekdays{display:grid;grid-template-columns:repeat(7,1fr);font-size:10.5px;font-weight:700;color:var(--faint);padding:0 0 6px;border-bottom:1px solid var(--line)}
-#view-gantt .calWeekdays span{text-align:center}
-#view-gantt .calWeekdays .sat{color:var(--satTxt)}
-#view-gantt .calWeekdays .sun{color:var(--sunTxt)}
-#view-gantt .calWeek{
-  position:relative;border-bottom:1px solid var(--line2);
-  background-image:linear-gradient(to right,var(--line2) 1px,transparent 1px);
-  background-size:calc(100%/7) 100%;
-}
-#view-gantt .calDayNums{display:grid;grid-template-columns:repeat(7,1fr);position:relative;z-index:1;pointer-events:none}
-#view-gantt .calDayNum{padding:5px 7px 2px;font-size:11px;color:var(--text)}
-#view-gantt .calDayNum.otherMonth{color:var(--faint);opacity:.5}
-#view-gantt .calDayNum.today{color:#fff;font-weight:700;display:flex;align-items:center;gap:5px}
-#view-gantt .calDayNum.today .calNumBadge{background:var(--accent);border-radius:99px;padding:1px 6px}
-#view-gantt .calTodayFlag{background:var(--imp);color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.03em;padding:1px 5px;border-radius:4px;white-space:nowrap}
-#view-gantt .calDayNum.sat{color:var(--satTxt)}
-#view-gantt .calDayNum.sun{color:var(--sunTxt)}
-#view-gantt .calDayNum.pastDate{opacity:.45}
-#view-gantt .calEvents{position:relative;top:0;pointer-events:none}
-#view-gantt .calBarPastVeil{position:absolute;top:0;left:0;height:100%;background:var(--veil);pointer-events:none;border-radius:4px 0 0 4px}
-#view-gantt .calEventBar{
-  position:absolute;height:20px;border-radius:4px;font-size:10.5px;color:#fff;
-  display:flex;align-items:center;gap:4px;padding:0 6px;overflow:hidden;white-space:nowrap;
-  cursor:pointer;box-shadow:0 1px 2px rgba(20,29,40,.15);transition:filter .12s,transform .12s;
-  pointer-events:auto;
-}
-#view-gantt .calEventBar:hover{filter:brightness(1.12);transform:translateY(-1px);z-index:2}
-#view-gantt .calEventBar.isMs{border-radius:99px;font-weight:600}
-#view-gantt .calEvName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
-#view-gantt .calEvAv{flex:none;display:flex;align-items:center}
-#view-gantt .calEvAv img, #view-gantt .calEvDot{
-  width:14px;height:14px;border-radius:99px;object-fit:cover;flex:none;display:block;
-  box-shadow:0 0 0 1px rgba(255,255,255,.7);
-}
-#view-gantt .calEvDia{flex:none;width:7px;height:7px;background:currentColor;transform:rotate(45deg);border-radius:1px}
-#view-gantt .calEvCats{display:flex;align-items:center;gap:2px;flex:none}
-#view-gantt .calEvCatDot{width:6px;height:6px;border-radius:99px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.6)}
-#view-gantt .calMoreLabel{position:absolute;left:6px;height:20px;display:flex;align-items:center;font-size:10px;font-weight:600;color:var(--faint)}
-body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
-#view-gantt .calDayBg{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr);z-index:0}
-#view-gantt .calDayCell{transition:background .1s;cursor:pointer}
-#view-gantt .calDayCell:hover{background:var(--hovCol)}
-#view-gantt .calDayCell.todayCell{background:var(--todayCol)}
-#view-gantt .calDayCell.todayCell:hover{background:var(--hovCol)}
 #view-gantt #gantt, #view-gantt #calView{transition:opacity .16s ease,transform .16s ease}
 #view-gantt #gantt.viewFadeOut, #view-gantt #calView.viewFadeOut{opacity:0;transform:translateY(4px)}
-#view-gantt #gantt.viewFadeIn, #view-gantt #calView.viewFadeIn{opacity:0;transform:translateY(-4px)}
-</style>
+#view-gantt #gantt.viewFadeIn, #view-gantt #calView.viewFadeIn{opacity:0;transform:translateY(-4px)}</style>
 </head>
 <body>
 
@@ -2740,7 +2642,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.03-7cf9138";
+const APP_VERSION = "2026.08.04-8d5910a";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -7101,9 +7003,6 @@ const PALETTE=["#3B76C4","#4C9E7E","#9A6BC4","#C46B8A","#C4854C","#4C9EB8","#8AA
    表示設定(ui)は持たせず、読み込み時に現在のテーマ・行の高さ等をそのまま引き継ぐ */
 const SAMPLE_DATA=null; /* 統合版のサンプルを使う */
 /* 「藍上アオイ」または「アオイ」という名前で登録された場合は、専用のブランドカラーを自動で割り当てる */
-function resolveMemberColor(name,fallback){
-  return(name==="藍上アオイ"||name==="アオイ")?"#55939F":fallback;
-}
 
 /* data はアダプタが提供する */
 let _isFirstLoad=false; /* 保存データが何も無い状態(初回起動)かどうか。load()内で判定する */
@@ -7355,14 +7254,6 @@ let saveTimer=null;
 let _hist=[],_redo=[],_histLock=false,_hoverTid=null,_hoverMid=null,_hoverPhase=null;
 let _hoverUpperHalf=false; /* ホバー中の行の上半分にいるか。貼り付け位置(上に入れるか下に入れるか)に使う */
 let _hoverDayIdx=null; /* マウスオーバー中の日付列(range先頭からの日数)。Ctrl+Shift+Dの分割位置に使う */
-function snapshot(){
-  const s=JSON.stringify(data);
-  if(_hist[_hist.length-1]!==s){
-    _hist.push(s);
-    if(_hist.length>60)_hist.shift();
-    _redo.length=0;
-  }
-}
 function nowHM(){const d=new Date();return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`}
 function persist(){
   clearTimeout(saveTimer);
@@ -7383,11 +7274,6 @@ window.addEventListener("pagehide",flushSave);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flushSave();});
 window.addEventListener("blur",flushSave);
 function scheduleSave(){ return HOST.persist();
-}
-function _unused_scheduleSave(){
-  $("#saveState").textContent="…";
-  if(!_histLock)snapshot();
-  persist();
 }
 function undo(){
   if(_hist.length<2)return;
@@ -7783,149 +7669,6 @@ function applyAutoCols(){
 }
 
 /* ---------- カレンダー(月表示・見るだけ) ---------- */
-let calMode=false;
-let calMonth=today(); /* 表示中の月(その月の1日を指す) */
-function calWeeksOf(monthDate){
-  /* 月曜始まり・日曜が右端になるよう並べる */
-  const y=monthDate.getFullYear(),m=monthDate.getMonth();
-  const first=new Date(y,m,1);
-  const start=addD(first,-((first.getDay()+6)%7));
-  const last=new Date(y,m+1,0);
-  const end=addD(last,6-((last.getDay()+6)%7));
-  const weeks=[];
-  let cur=start;
-  while(cur<=end){
-    weeks.push([0,1,2,3,4,5,6].map(i=>addD(cur,i)));
-    cur=addD(cur,7);
-  }
-  return weeks;
-}
-function calEventsOf(){
-  const evs=[];
-  for(const t of data.tasks){
-    const mems=membersOf(t);
-    const cats=catsOf(t);
-    const noasg=!mems.length&&t.noAsg;
-    /* バーと同じ塗り。以前はここだけ重要度で色を変えていて、バーと食い違っていた */
-    const paint=barPaint(mems,{done:(t.stage||0)>=3,noAsg:noasg});
-    const bg=paint.bg,color=paint.fg;
-    evs.push({isMs:false,name:t.name,start:parse(t.start),end:parse(t.end),bg,color,mem:mems[0]||null,cats,ref:t});
-  }
-  for(const m of data.milestones){
-    const s=parse(m.date),e=m.end?parse(m.end):s;
-    let bg=m.imp===3?"var(--imp)":m.imp===2?"var(--imp2)":"var(--text)";
-    const color=m.imp===3?"#fff":m.imp===2?"#332800":"var(--bg)";
-    evs.push({isMs:true,name:m.name,start:s,end:e,bg,color,mem:null,cats:[],ref:m});
-  }
-  return evs;
-}
-function renderCalendar(){
-  $("#calMonthLabel").textContent=`${calMonth.getFullYear()}年${calMonth.getMonth()+1}月`;
-  const grid=$("#calGrid");
-  grid.innerHTML="";
-  const weeks=calWeeksOf(calMonth);
-  const events=calEventsOf();
-  const todayStr=fmt(today());
-  const dimPast=data.ui?.showToday!==false; /* ガントの「本日表示」と同じ設定に合わせて過去を薄くする */
-  const ROW_H=22;
-  const MAX_LANES=6; /* 週ごとに高さがバラつくと見にくいため、どの週も同じ高さに揃える */
-  for(const week of weeks){
-    const weekStart=week[0],weekEnd=week[6];
-    const weekEl=document.createElement("div");weekEl.className="calWeek";
-    /* 日をマウスオーバーした時にその日だけ強調するための、内容の背面に敷く当たり判定セル */
-    const bgEl=document.createElement("div");bgEl.className="calDayBg";
-    week.forEach(d=>{
-      const c=document.createElement("div");c.className="calDayCell";
-      if(fmt(d)===todayStr)c.classList.add("todayCell");
-      bgEl.appendChild(c);
-    });
-    weekEl.appendChild(bgEl);
-    const numsEl=document.createElement("div");numsEl.className="calDayNums";
-    week.forEach((d,i)=>{
-      const cell=document.createElement("div");cell.className="calDayNum";
-      if(d.getMonth()!==calMonth.getMonth())cell.classList.add("otherMonth");
-      if(i===5)cell.classList.add("sat");
-      if(i===6)cell.classList.add("sun");
-      if(dimPast&&fmt(d)<todayStr)cell.classList.add("pastDate");
-      if(fmt(d)===todayStr){cell.classList.add("today");cell.innerHTML=`<span class="calNumBadge">${d.getDate()}</span><span class="calTodayFlag">TODAY</span>`;}
-      else cell.textContent=d.getDate();
-      numsEl.appendChild(cell);
-    });
-    weekEl.appendChild(numsEl);
-    /* その週にかかるイベントだけを抽出し、簡易レーン割り当て(既存のマイルストーンレーンと同じ考え方)。
-       マイルストーン(単日・期間とも)は常に最上段に来るよう、タスクより先にソートする */
-    const weekEvs=events.filter(e=>e.end>=weekStart&&e.start<=weekEnd)
-      .sort((a,b)=>(a.isMs===b.isMs?0:(a.isMs?-1:1))||a.start-b.start||(b.end-b.start)-(a.end-a.start));
-    const lanesEnd=[];
-    weekEvs.forEach(e=>{
-      e._s=Math.max(0,Math.round((e.start-weekStart)/DAY));
-      e._e=Math.min(6,Math.round((e.end-weekStart)/DAY));
-      let lane=0;
-      for(;lane<lanesEnd.length;lane++){if(e._s>lanesEnd[lane])break;}
-      lanesEnd[lane]=e._e;
-      e._lane=lane;
-    });
-    /* レーンがMAX_LANESを超える場合は、はみ出して被って見えると気持ち悪いので、最後の1段を「+N件」の表示に譲って省略する */
-    const usedLanes=lanesEnd.length;
-    const cap=usedLanes>MAX_LANES?MAX_LANES-1:MAX_LANES;
-    const visibleEvs=weekEvs.filter(e=>e._lane<cap);
-    const hiddenCount=weekEvs.length-visibleEvs.length;
-    const evLayer=document.createElement("div");evLayer.className="calEvents";
-    evLayer.style.height=(MAX_LANES*ROW_H+4)+"px";
-    visibleEvs.forEach(e=>{
-      const bar=document.createElement("div");bar.className="calEventBar"+(e.isMs?" isMs":"");
-      bar.style.left=(e._s/7*100)+"%";
-      bar.style.width=((e._e-e._s+1)/7*100)+"%";
-      bar.style.top=(e._lane*ROW_H)+"px";
-      bar.style.background=e.bg;bar.style.color=e.color;
-      const msIcon=e.isMs?`<span class="calEvDia"></span>`:"";
-      const avIcon=e.mem?`<span class="calEvAv">${e.mem.icon?`<img src="${e.mem.icon}" alt="">`:`<span class="calEvDot" style="background:${e.mem.color}"></span>`}</span>`:"";
-      const catDots=e.cats.length?`<span class="calEvCats">${e.cats.slice(0,3).map(c=>`<span class="calEvCatDot" style="background:${c.color}"></span>`).join("")}</span>`:"";
-      bar.innerHTML=`${msIcon}${avIcon}<span class="calEvName">${esc(e.name)}</span>${catDots}`;
-      const catNames=e.cats.map(c=>c.name).join("/");
-      bar.title=`${e.name}${catNames?` [${catNames}]`:""}${e.mem?`  担当: ${e.mem.name}`:""}`;
-      bar.onclick=()=>{e.isMs?openMsModal(e.ref):openTaskModal(e.ref);};
-      if(dimPast){
-        let pastCount=0;
-        for(let i=e._s;i<=e._e;i++){if(fmt(addD(weekStart,i))<todayStr)pastCount++;}
-        if(pastCount>0){
-          const pv=document.createElement("div");pv.className="calBarPastVeil";
-          const span=e._e-e._s+1;
-          pv.style.width=(pastCount/span*100)+"%";
-          if(pastCount>=span)pv.style.borderRadius="4px";
-          bar.appendChild(pv);
-        }
-      }
-      evLayer.appendChild(bar);
-    });
-    if(hiddenCount>0){
-      const more=document.createElement("div");more.className="calMoreLabel";
-      more.style.top=(cap*ROW_H)+"px";
-      more.textContent=`+${hiddenCount}件`;
-      more.title=`他 ${hiddenCount} 件`;
-      evLayer.appendChild(more);
-    }
-    weekEl.appendChild(evLayer);
-    grid.appendChild(weekEl);
-  }
-}
-function setCalMode(on){
-  if(on===calMode)return;
-  document.querySelectorAll("#viewSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.view==="cal")===on));
-  const outEl=on?$("#gantt"):$("#calView");
-  const inEl=on?$("#calView"):$("#gantt");
-  outEl.classList.add("viewFadeOut");
-  setTimeout(()=>{
-    calMode=on;
-    document.body.classList.toggle("calMode",on);
-    outEl.classList.remove("viewFadeOut");
-    if(on)renderCalendar();
-    inEl.classList.add("viewFadeIn");
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      inEl.classList.remove("viewFadeIn");
-    }));
-  },140);
-}
 
 function render(){
   _barReg={};
@@ -9089,11 +8832,6 @@ function phaseSummaryRowsFor(movingIds){
   return rows;
 }
 const PHASE_SUM_SEL=".phaseSummaryBar:not(.dragGhostPhase),.phaseSummarySeg:not(.dragGhostPhase),.phaseSummaryStart:not(.dragGhostPhase),.phaseSummaryLabel";
-function phaseSummaryElsFor(movingIds){
-  const out=[];
-  phaseSummaryRowsFor(movingIds).forEach(rpEl=>out.push(...rpEl.querySelectorAll(PHASE_SUM_SEL)));
-  return out;
-}
 /* フェイズ集計バーの影。本物はフェイズ名の分だけ左右2本に割れているが、
    影は名前を出さないので隙間を空けず1本の連続した線にする(フェイズドラッグ時のゴーストと同じ扱い) */
 function makePhaseRowGhosts(rowEl){
@@ -9608,256 +9346,9 @@ function setupColResizers(){
 }
 
 /* ---------- text export ---------- */
-function buildText(md){
-  const h1=s=>md?`# ${s}`:`■ ${s}`;
-  const h2=s=>md?`## ${s}`:`【${s}】`;
-  const bullet=md?"-":"・";
-  const lines=[];
-  lines.push(h1(data.projectName||"(無題のプロジェクト)"));
-  const allDates=[...data.tasks.map(t=>t.start),...data.tasks.map(t=>t.end),...data.milestones.map(m=>m.date)].sort();
-  const metaLine=[];
-  if(allDates.length)metaLine.push(`期間: ${dfmtW(parse(allDates[0]))} 〜 ${dfmtW(parse(allDates[allDates.length-1]))}`);
-  if(data.eventDate)metaLine.push(`${data.dateMode==="delivery"?"納品日":"本番日"}: ${dfmtW(parse(data.eventDate))}${data.eventEndDate?`〜${dfmtW(parse(data.eventEndDate))}`:""}`);
-  if(metaLine.length)lines.push(metaLine.join("　|　"));
-  lines.push(`出力日時: ${nowStamp()}`);
-  if(data.milestones.length){
-    lines.push("",h2("マイルストーン"));
-    for(const m of [...data.milestones].sort((a,b)=>a.date<b.date?-1:1)){
-      const dateStr=`${dfmtW(parse(m.date))}${m.end?`〜${dfmtW(parse(m.end))}`:""}`;
-      lines.push(`◆ ${md?`\`${dateStr}\``:dateStr} ${m.name}`);
-    }
-  }
-  for(const g of groupsOf()){
-    if(!g.tasks.length)continue;
-    lines.push("",h2(g.phase||"未分類"));
-    for(const t of g.tasks){
-      const mems=membersOf(t),cats=catsOf(t);
-      const dateRange=`${dfmtW(parse(t.start))}〜${dfmtW(parse(t.end))}`;
-      lines.push(`${bullet} ${md?`\`${dateRange}\``:dateRange} ${t.name}${cats.length?` [${cats.map(c=>c.name).join("/")}]`:""}${mems.length?` (${mems.map(x=>x.name).join("・")})`:""}`);
-    }
-  }
-  return lines.join("\n");
-}
-function dfmtW(d){return `${d.getMonth()+1}月${d.getDate()}日(${WD[d.getDay()]})`;}
-function esc2(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
 /* ================= AIに作らせたスケジュールの取り込み =================
    台本や要件をAIに渡してスケジュール案をJSONで出させ、それをそのまま取り込む。
    カテゴリ・担当は名前で受け取り、無ければ自動で追加する(idを人手で書かせない) */
-function ensureMember(name){
-  name=String(name||"").trim();
-  if(!name)return "";
-  let m=data.members.find(x=>x.name===name);
-  if(!m){
-    m={id:uid(),name,color:resolveMemberColor(name,PALETTE[data.members.length%PALETTE.length])};
-    data.members.push(m);
-  }
-  return m.id;
-}
-function aiPromptText(){
-  const cats=data.cats.length?data.cats.map(c=>"    - "+c.name).join("\n"):"    (まだ無し。適切な名前で新設してよい)";
-  const mems=data.members.length?data.members.map(m=>"    - "+m.name).join("\n"):"    (まだ無し。適切な名前で新設してよい)";
-  const base=data.dateMode==="delivery"?"納品":"本番";
-  const ev=data.eventDate?`${base}日は ${data.eventDate}${data.eventEndDate?" 〜 "+data.eventEndDate:""}。ここから逆算して組むこと。`:`${base}日は未設定。起点は今日でよい。`;
-  return [
-    "あなたはXR/VRChatイベント制作のプロデューサーです。",
-    "これから渡す内容をもとに、ガントチャート用のスケジュールを作りJSONだけを出力してください。",
-    "",
-    "# 出力形式(この形のJSONだけを出力。説明文やコードフェンスは不要)",
-    "{",
-    '  "phases": ["フェイズ名を上から順に"],',
-    '  "tasks": [',
-    '    { "name":"タスク名", "phase":"フェイズ名", "cat":"カテゴリ名", "member":"担当名",',
-    '      "start":"2026-08-03", "end":"2026-08-14", "imp":1 }',
-    "  ],",
-    '  "milestones": [',
-    '    { "name":"マイルストーン名", "date":"2026-08-14", "imp":1 }',
-    "  ]",
-    "}",
-    "",
-    "# ルール",
-    "- 日付は YYYY-MM-DD 形式。今日は "+fmt(today())+"。"+ev,
-    "- tasks の phase は、phases に並べた名前のいずれかと必ず一致させる",
-    "- 工程の前後関係が破綻しないようにする(前の工程が終わってから次を置く)",
-    "- 並走してよい作業は期間を重ねてよい。監修や権利処理のような長期間の帯も遠慮なく作る",
-    "- cat は次から選ぶ。無ければ新しい名前でよい(自動で追加される):",
-    cats,
-    "- member は次から選ぶ。無ければ新しい名前でよい(自動で追加される):",
-    mems,
-    "- imp は重要度。1=通常 / 2=注意(黄色) / 3=重要(赤)。省略時は1として扱う",
-    "  - 1: 通常のタスク。基本はすべてこれにする",
-    "  - 2: 落とすと後工程が止まる山場・締切。全体の 1〜2割 程度まで",
-    "  - 3: "+base+"当日など、外せない決定的なものだけ。全体で 2〜3件 まで",
-    "  - 重要度は「めったに上げない」こと。迷ったら必ず 1 にする。2 と 3 を付けすぎると優先度が意味を失う",
-    "- 期間を持つマイルストーンにしたい場合は \"end\" を足す",
-    "",
-    "# 対象(この下に台本や要件を貼り付けてください)"
-  ].join("\n");
-}
-function openAiImportModal(){
-  openModal(`
-    <h2>AIのスケジュールを取り込む</h2>
-    <div class="aiWarn">AIの出力はあくまで<b>叩き台</b>です。<b>そのまま使えることはまずありません。</b>取り込んだ後、フェイズ・期間・依存関係・担当・重要度・抜け漏れを<b>必ずすべて自分の目で見直して手直し</b>してください。</div>
-    <div class="aiSteps">
-      <div class="aiStep">
-        <div class="aiStepNo">1</div>
-        <div class="aiStepBody">
-          <div class="aiStepTitle">本番日・納品日を設定する</div>
-          <div class="hint">先にタイトル設定で正しい基準日を入れてください。この日付を元にAIがスケジュールを逆算します。</div>
-          <button class="btn" id="aiOpenTitle" style="margin-top:8px">タイトル設定を開く</button>
-        </div>
-      </div>
-      <div class="aiStep">
-        <div class="aiStepNo">2</div>
-        <div class="aiStepBody">
-          <div class="aiStepTitle">指示文をコピーしてAIへ渡す</div>
-          <button class="btn solid" id="aiCopy" style="width:100%">指示文をコピー</button>
-          <div class="hint" id="aiCopyNote">現在のカテゴリ・担当の一覧と基準日を埋め込んだ指示文をコピーします。台本や要件と一緒にAIへ渡してください。</div>
-        </div>
-      </div>
-      <div class="aiStep">
-        <div class="aiStepNo">3</div>
-        <div class="aiStepBody">
-          <div class="aiStepTitle">AIが出力したJSONを貼り付ける</div>
-          <textarea id="aiJson" placeholder='{"phases":[…],"tasks":[…],"milestones":[…]}'></textarea>
-        </div>
-      </div>
-    </div>
-    <div class="field">
-      <label>取り込み方<span class="aiModeReq" id="aiModeReq">※どちらか選択してください</span></label>
-      <div class="aiModeCards" id="aiModeSeg">
-        <button type="button" data-m="merge">
-          <span class="amTitle">既存は残して追加（非推奨）</span>
-          <span class="amDesc">今あるフェイズ・タスク・マイルストーンを残したまま、AIの結果を足します</span>
-        </button>
-        <button type="button" data-m="replace">
-          <span class="amTitle">すべて置き換え</span>
-          <span class="amDesc">今あるフェイズ・タスク・マイルストーンを消して、AIの結果に入れ替えます</span>
-        </button>
-      </div>
-    </div>
-    <div class="mFoot">
-      <span id="aiMsg" style="font-size:11px;color:var(--muted);align-self:center"></span>
-      <div class="spacer"></div>
-      <button class="btn" id="aiCancel">キャンセル</button>
-      <button class="btn primary" id="aiRun">取り込む</button>
-    </div>
-  `,true);
-  $("#aiCancel").onclick=closeModal;
-  $("#aiRun").onclick=runAiImport;
-  document.querySelectorAll("#aiModeSeg button").forEach(b=>b.onclick=()=>{
-    document.querySelectorAll("#aiModeSeg button").forEach(x=>x.classList.toggle("on",x===b));
-    document.querySelector("#aiModeSeg").classList.remove("needsel");
-    const req=$("#aiModeReq"); if(req) req.style.visibility="hidden";
-  });
-  $("#aiCopy").onclick=async()=>{
-    const t=aiPromptText();
-    try{await navigator.clipboard.writeText(t);}
-    catch(e){
-      const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);
-      ta.select();document.execCommand("copy");ta.remove();
-    }
-    $("#aiMsg").textContent="指示文をコピーしました";
-  };
-  $("#aiJson").focus();
-}
-function runAiImport(){
-  const raw=$("#aiJson").value.trim();
-  if(!raw){$("#aiMsg").textContent="AIが出力したJSONを貼り付けてください";return;}
-  let d=null;
-  try{
-    /* ```json … ``` で囲われていても読めるようにする */
-    const m=raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-    d=JSON.parse(m?m[1]:raw);
-  }catch(err){$("#aiMsg").textContent="JSONとして読めませんでした: "+err.message;return;}
-  const inTasks=Array.isArray(d.tasks)?d.tasks:[];
-  const inMs=Array.isArray(d.milestones)?d.milestones:[];
-  const inPhases=Array.isArray(d.phases)?d.phases.map(x=>String(x).trim()).filter(Boolean):[];
-  if(!inTasks.length&&!inMs.length){$("#aiMsg").textContent="tasks も milestones も見つかりませんでした";return;}
-  const modeBtn=document.querySelector("#aiModeSeg button.on");
-  if(!modeBtn){
-    $("#aiMsg").textContent="取り込み方(既存は残して追加 / すべて置き換え)を選択してください";
-    const req=$("#aiModeReq"); if(req) req.style.visibility="visible";
-    const seg=document.querySelector("#aiModeSeg");
-    seg.classList.remove("needsel"); void seg.offsetWidth; seg.classList.add("needsel");
-    return;
-  }
-  const replace=modeBtn.dataset.m==="replace";
-  if(replace&&!confirm(`現在のフェイズ(${data.phases.length}件)・タスク(${data.tasks.length}件)・マイルストーン(${data.milestones.length}件)を置き換えます。よろしいですか?\n(担当とカテゴリは残ります)`))return;
-  if(replace){data.tasks=[];data.milestones=[];data.phases=[];}
-
-  const isDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||""));
-  /* フェイズは順序が意味を持つので、出てきた順に足す(既にあるものはそのまま) */
-  for(const ph of inPhases)if(!data.phases.includes(ph))data.phases.push(ph);
-
-  const newT=[],newM=[];
-  let skipped=0;
-  for(const t of inTasks){
-    const name=String(t.name||"").trim();
-    if(!name||!isDate(t.start)||!isDate(t.end)){skipped++;continue;}
-    let start=t.start,end=t.end;
-    if(end<start)[start,end]=[end,start];
-    let phase=String(t.phase||"").trim();
-    if(phase&&!data.phases.includes(phase))data.phases.push(phase);
-    if(!phase)phase=resolveTaskPhase("");
-    /* cat/member は単数・複数どちらの書き方でも受け取る */
-    const catList=[].concat(t.cats||t.cat||[]).map(x=>String(x).trim()).filter(Boolean);
-    const memList=[].concat(t.members||t.member||[]).map(x=>String(x).trim()).filter(Boolean);
-    const catIds=[...new Set(catList.map(ensureCat).filter(Boolean))];
-    const memberIds=[...new Set(memList.map(ensureMember).filter(Boolean))];
-    const imp=[1,2,3].includes(t.imp)?t.imp:1;
-    const nt={id:uid(),name,memberIds,noAsg:!memberIds.length,catIds,phase,start,end,imp};
-    data.tasks.push(nt);newT.push(nt.id);
-  }
-  for(const m of inMs){
-    const name=String(m.name||"").trim();
-    if(!name||!isDate(m.date)){skipped++;continue;}
-    const nm={id:uid(),name,date:m.date};
-    if(isDate(m.end)&&m.end>m.date)nm.end=m.end;
-    if([2,3].includes(m.imp))nm.imp=m.imp;
-    data.milestones.push(nm);newM.push(nm.id);
-  }
-  if(newM.length)data.milestones.sort((a,b)=>a.date<b.date?-1:1);
-  selectedTaskIds=new Set(newT);selectedMsIds=new Set(newM); /* 取り込んだものを選択状態にする */
-  scheduleSave();closeModal();
-  applyTitleBar();render();fitViewToContent();
-  alert(`取り込みました。\nフェイズ: ${data.phases.length}件 / 追加したタスク: ${newT.length}件 / マイルストーン: ${newM.length}件`+(skipped?`\n(名前や日付が不正で見送り: ${skipped}件)`:""));
-}
-function openTextModal(){
-  let md=true;
-  openModal(`
-    <h2>テキスト出力</h2>
-    <div class="seg" id="txtFmtSeg" style="margin-bottom:8px;display:inline-flex">
-      <button class="on" data-md="1">Markdown(Discord向け)</button><button data-md="0">プレーンテキスト</button>
-    </div>
-    <textarea id="txtOut" readonly>${esc2(buildText(md))}</textarea>
-    <div class="mFoot">
-      <span id="copied" style="color:var(--muted);font-size:11px;align-self:center"></span>
-      <div class="spacer"></div>
-      <button class="btn" id="tClose">閉じる</button>
-      <button class="btn primary" id="tCopy">コピー</button>
-    </div>
-  `,true);
-  document.querySelectorAll("#txtFmtSeg button").forEach(b=>b.onclick=()=>{
-    document.querySelectorAll("#txtFmtSeg button").forEach(x=>x.classList.remove("on"));
-    b.classList.add("on");
-    md=b.dataset.md==="1";
-    $("#txtOut").value=buildText(md);
-    $("#copied").textContent="";
-  });
-  $("#tClose").onclick=closeModal;
-  $("#tCopy").onclick=async()=>{
-    const ta=$("#txtOut");
-    try{await navigator.clipboard.writeText(ta.value);}
-    catch(e){ta.select();document.execCommand("copy");}
-    $("#copied").textContent="コピーしました";
-  };
-  $("#modalBody").onkeydown=e=>{
-    if(e.key==="Enter"&&!e.isComposing&&e.target.tagName!=="TEXTAREA"){
-      e.preventDefault();
-      $("#tCopy").click();
-    }
-  };
-}
 
 /* ---------- popover ---------- */
 let _popCleanup=null;
@@ -10090,164 +9581,9 @@ function openMsModal(m){
 }
 
 let _palOpen=null,_avIdx=null,_memRen=null;
-function openMembersModal(){
-  const list=data.members.map((m,i)=>`
-    <div class="memItem">
-      <div class="mAv" data-av="${i}" title="クリックでアイコン画像を設定">${m.icon?`<img src="${m.icon}">`:"＋"}</div>
-      <div class="dot" style="background:${m.color}" data-i="${i}" title="クリックで色を選択"></div>
-      ${_memRen===i
-        ?`<input id="memRen" value="${esc(m.name)}" style="flex:1">`
-        :`<span data-mrn="${i}" style="cursor:text;flex:1" title="クリックで名前を変更">${esc(m.name)}</span>`}
-      ${m.icon?`<button class="mini" data-rmav="${i}">画像削除</button>`:""}
-      <button data-del="${i}" title="メンバーを削除">✕</button>
-      ${_palOpen===i?`<div class="palRow">
-        ${PALETTE.map(c=>`<div class="sw${c===m.color?" on":""}" data-c="${c}" data-m="${i}" style="background:${c}" title="${c}"></div>`).join("")}
-        <input type="color" value="${m.color}" data-cc="${i}" title="カスタム色">
-        <span class="plbl">カスタム</span>
-      </div>`:""}
-    </div>`).join("");
-  openModal(`
-    <h2>メンバー</h2>
-    <div class="memList">${list||`<span style="color:var(--muted)">まだメンバーがいません</span>`}</div>
-    <div class="mRow">
-      <div class="field" style="flex:1;margin-bottom:0"><input id="memName" placeholder="名前を入力して追加"></div>
-      <button class="btn primary" id="memAdd">追加</button>
-    </div>
-    <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">
-      <button class="btn" id="memIconFolder" style="width:100%">フォルダからアイコンを一括取込</button>
-      <div class="hint" style="margin-top:6px">画像の入ったフォルダを選ぶと、<b>ファイル名がメンバー名と一致</b>する画像を自動でアイコンに設定します(例: 田中.png → 田中)。一致しないファイルは無視します。</div>
-    </div>
-    <div class="mFoot"><div class="spacer"></div><button class="btn" id="memClose">閉じる</button></div>
-  `);
-  $("#memClose").onclick=()=>{_palOpen=null;_memRen=null;closeModal();render();};
-  $("#memAdd").onclick=()=>{
-    const n=$("#memName").value.trim();if(!n)return;
-    data.members.push({id:uid(),name:n,color:resolveMemberColor(n,PALETTE[data.members.length%PALETTE.length])});
-    scheduleSave();openMembersModal();
-  };
-  $("#memName").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing)$("#memAdd").click()});
-  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
-    const m=data.members[+b.dataset.del];
-    data.tasks.forEach(t=>{t.memberIds=(t.memberIds||[]).filter(id=>id!==m.id)});
-    data.members.splice(+b.dataset.del,1);
-    _palOpen=null;
-    scheduleSave();openMembersModal();
-  });
-  document.querySelectorAll(".memItem .dot").forEach(d=>d.onclick=()=>{
-    const i=+d.dataset.i;
-    _palOpen=(_palOpen===i)?null:i;
-    openMembersModal();
-  });
-  document.querySelectorAll(".sw").forEach(s=>s.onclick=()=>{
-    data.members[+s.dataset.m].color=s.dataset.c;
-    scheduleSave();openMembersModal();
-  });
-  document.querySelectorAll("[data-cc]").forEach(c=>c.addEventListener("change",()=>{
-    data.members[+c.dataset.cc].color=c.value;
-    scheduleSave();openMembersModal();
-  }));
-  document.querySelectorAll("[data-av]").forEach(a=>a.onclick=()=>{
-    _avIdx=+a.dataset.av;
-    $("#avFile").click();
-  });
-  document.querySelectorAll("[data-rmav]").forEach(b=>b.onclick=()=>{
-    delete data.members[+b.dataset.rmav].icon;
-    scheduleSave();openMembersModal();
-  });
-  $("#memIconFolder").onclick=()=>$("#avFolder").click();
-  document.querySelectorAll("[data-mrn]").forEach(sp=>sp.onclick=()=>{
-    _memRen=+sp.dataset.mrn;_palOpen=null;
-    openMembersModal();
-    const inp=$("#memRen");
-    if(inp){
-      inp.focus();inp.select();
-      const commit=()=>{
-        const n=inp.value.trim();
-        const m=data.members[_memRen];
-        /* 名前で色が決まるメンバー(藍上アオイ等)に変えた場合はその色に寄せ、
-           それ以外は手動で選んだ色をそのまま残す */
-        if(n&&m){m.name=n;m.color=resolveMemberColor(n,m.color);}
-        _memRen=null;
-        scheduleSave();openMembersModal();
-      };
-      inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing)commit()});
-      inp.addEventListener("blur",commit);
-    }
-  });
-  if(_memRen===null)$("#memName").focus(); /* 追加後も入力欄にフォーカスが残るので、Enterで連続追加できる */
-}
 
 /* ---------- categories modal ---------- */
 let _catPal=null,_catRen=null;
-function openCatsModal(){
-  const list=data.cats.map((c,i)=>`
-    <div class="memItem">
-      <div class="dot" style="background:${c.color}" data-ci="${i}" title="クリックで色を選択"></div>
-      ${_catRen===i
-        ?`<input id="catRen" value="${esc(c.name)}" style="flex:1">`
-        :`<span data-crn="${i}" style="cursor:text" title="クリックで名前を変更">${esc(c.name)}</span>`}
-      <span style="flex:none;font-size:10px;color:var(--faint)">${data.tasks.filter(t=>(t.catIds||[]).includes(c.id)).length}件</span>
-      <button data-cdel="${i}" title="カテゴリを削除">✕</button>
-      ${_catPal===i?`<div class="palRow">
-        ${PALETTE.map(cc=>`<div class="sw${cc===c.color?" on":""}" data-c="${cc}" data-m="${i}" style="background:${cc}"></div>`).join("")}
-        <input type="color" value="${c.color}" data-cc="${i}" title="カスタム色">
-        <span class="plbl">カスタム</span>
-      </div>`:""}
-    </div>`).join("");
-  openModal(`
-    <h2>カテゴリ</h2>
-    <div class="memList">${list||`<span style="color:var(--muted)">まだカテゴリがありません(タスク編集で入力すると自動登録されます)</span>`}</div>
-    <div class="mRow">
-      <div class="field" style="flex:1;margin-bottom:0"><input id="catName" placeholder="例: 3DCG / Unity / PR"></div>
-      <button class="btn primary" id="catAdd">追加</button>
-    </div>
-    <div class="mFoot"><div class="spacer"></div><button class="btn" id="catClose">閉じる</button></div>
-  `);
-  $("#catClose").onclick=()=>{_catPal=null;_catRen=null;closeModal();render();};
-  $("#catAdd").onclick=()=>{
-    const n=$("#catName").value.trim();if(!n)return;
-    ensureCat(n);
-    scheduleSave();openCatsModal();
-  };
-  $("#catName").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing)$("#catAdd").click()});
-  document.querySelectorAll("[data-cdel]").forEach(b=>b.onclick=()=>{
-    const c=data.cats[+b.dataset.cdel];
-    data.tasks.forEach(t=>{t.catIds=(t.catIds||[]).filter(id=>id!==c.id)});
-    data.cats.splice(+b.dataset.cdel,1);
-    _catPal=null;_catRen=null;
-    scheduleSave();openCatsModal();
-  });
-  document.querySelectorAll("[data-ci]").forEach(d=>d.onclick=()=>{
-    const i=+d.dataset.ci;
-    _catPal=(_catPal===i)?null:i;_catRen=null;
-    openCatsModal();
-  });
-  document.querySelectorAll(".sw[data-m]").forEach(sw=>sw.onclick=()=>{
-    data.cats[+sw.dataset.m].color=sw.dataset.c;
-    scheduleSave();openCatsModal();
-  });
-  document.querySelectorAll("[data-cc]").forEach(c=>c.addEventListener("change",()=>{
-    data.cats[+c.dataset.cc].color=c.value;
-    scheduleSave();openCatsModal();
-  }));
-  document.querySelectorAll("[data-crn]").forEach(sp=>sp.onclick=()=>{
-    _catRen=+sp.dataset.crn;_catPal=null;
-    openCatsModal();
-    const inp=$("#catRen");
-    if(inp){
-      inp.focus();inp.select();
-      const commit=()=>{
-        const n=inp.value.trim();
-        if(n)data.cats[_catRen].name=n;
-        _catRen=null;
-        scheduleSave();openCatsModal();
-      };
-      inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing)commit()});
-      inp.addEventListener("blur",commit);
-    }
-  });
-  $("#catName").focus(); /* 追加後も入力欄にフォーカスが残るので、Enterで連続追加できる */
-}
 
 /* タイトルバー(画像+大見出し+本番日カウントダウン)の表示更新 */
 function applyTitleBar(){
@@ -10283,111 +9619,10 @@ let _avFileCallback=null; /* 新規メンバー作成時など、_avIdxを使わ
 /* アイコン画像から、その人のキーカラーになりそうな色を1つ選ぶ。
    単純な平均だと濁った灰色になるので、彩度のある画素だけを色相ごとに集計して一番強い色相を採る。
    背景・輪郭・肌のような無彩色〜極端な明暗は除外し、最後にバーの背景として使える範囲へ寄せる */
-function pickKeyColor(ctx,size){
-  let px;
-  try{px=ctx.getImageData(0,0,size,size).data;}catch(err){return null;}
-  const BUCKETS=24;                    /* 色相15度ずつ */
-  const w=new Array(BUCKETS).fill(0), sSum=new Array(BUCKETS).fill(0), lSum=new Array(BUCKETS).fill(0);
-  for(let i=0;i<px.length;i+=4){
-    if(px[i+3]<128)continue;           /* 透過部分は無視 */
-    const r=px[i]/255,g=px[i+1]/255,b=px[i+2]/255;
-    const mx=Math.max(r,g,b),mn=Math.min(r,g,b);
-    const l=(mx+mn)/2, d=mx-mn;
-    if(d<0.08)continue;                /* ほぼ無彩色(背景・線画)は除外 */
-    if(l<0.12||l>0.92)continue;        /* 潰れた黒・白飛びは除外 */
-    const sat=d/(1-Math.abs(2*l-1));
-    if(sat<0.15)continue;
-    let h;
-    if(mx===r)h=((g-b)/d+(g<b?6:0));
-    else if(mx===g)h=(b-r)/d+2;
-    else h=(r-g)/d+4;
-    h=h*60;
-    const k=Math.min(BUCKETS-1,Math.floor(h/(360/BUCKETS)));
-    const weight=sat*(1-Math.abs(l-0.5)); /* 鮮やかで中庸な明るさの画素を重く見る */
-    w[k]+=weight; sSum[k]+=sat*weight; lSum[k]+=l*weight;
-  }
-  let best=-1,bw=0;
-  for(let k=0;k<BUCKETS;k++)if(w[k]>bw){bw=w[k];best=k;}
-  if(best<0||bw<=0)return null;        /* 使える色が無ければ既存の色のまま */
-  const hue=(best+0.5)*(360/BUCKETS);
-  /* バーの背景として白文字が乗る前提なので、彩度・明度を扱いやすい範囲に収める */
-  const sat=Math.min(0.62,Math.max(0.34,sSum[best]/bw));
-  const lig=Math.min(0.56,Math.max(0.38,lSum[best]/bw));
-  const c=(1-Math.abs(2*lig-1))*sat, x=c*(1-Math.abs((hue/60)%2-1)), m=lig-c/2;
-  let rr,gg,bb;
-  if(hue<60){rr=c;gg=x;bb=0;} else if(hue<120){rr=x;gg=c;bb=0;}
-  else if(hue<180){rr=0;gg=c;bb=x;} else if(hue<240){rr=0;gg=x;bb=c;}
-  else if(hue<300){rr=x;gg=0;bb=c;} else {rr=c;gg=0;bb=x;}
-  const hex=v=>Math.round((v+m)*255).toString(16).padStart(2,"0");
-  return "#"+hex(rr)+hex(gg)+hex(bb);
-}
-$("#avFile").onchange=e=>{
-  const f=e.target.files[0];e.target.value="";
-  if(!f)return;
-  const img=new Image();
-  const url=URL.createObjectURL(f);
-  img.onload=()=>{
-    const s=Math.min(img.width,img.height);
-    const c=document.createElement("canvas");c.width=64;c.height=64;
-    const cx=c.getContext("2d",{willReadFrequently:true});
-    cx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,64,64);
-    URL.revokeObjectURL(url);
-    const dataUrl=c.toDataURL("image/png");
-    const key=pickKeyColor(cx,64); /* アイコンから拾ったキーカラー。拾えなければnull */
-    if(_avFileCallback){const cb=_avFileCallback;_avFileCallback=null;cb(dataUrl,key);}
-    else if(_avIdx!=null){
-      const m=data.members[_avIdx];
-      m.icon=dataUrl;
-      /* 名前で色が決まるメンバー(藍上アオイ等)はそちらを優先する */
-      if(key)m.color=resolveMemberColor(m.name,key);
-      _avIdx=null;
-      scheduleSave();openMembersModal();
-    }
-  };
-  img.onerror=()=>{URL.revokeObjectURL(url);alert("画像を読み込めませんでした");};
-  img.src=url;
-};
 /* 1枚の画像を64px正方PNGに変換し、キーカラーも拾って返す(avFileと同じ処理を共通化) */
-function processIconFile(f){
-  return new Promise(res=>{
-    const img=new Image();
-    const url=URL.createObjectURL(f);
-    img.onload=()=>{
-      const s=Math.min(img.width,img.height);
-      const c=document.createElement("canvas");c.width=64;c.height=64;
-      const cx=c.getContext("2d",{willReadFrequently:true});
-      cx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,64,64);
-      URL.revokeObjectURL(url);
-      res({dataUrl:c.toDataURL("image/png"),key:pickKeyColor(cx,64)});
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);res(null);};
-    img.src=url;
-  });
-}
 /* フォルダ内の画像を、ファイル名(拡張子なし)がメンバー名と一致する人のアイコンに一括設定する。
    完全一致(大文字小文字は無視)を最優先し、無ければ「ファイル名にメンバー名が含まれる」で補完(長い名前を優先)。
    どのメンバーにも一致しないファイルは無視する(新規メンバーは作らない) */
-$("#avFolder").onchange=async e=>{
-  const files=[...e.target.files];e.target.value="";
-  const imgs=files.filter(f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name));
-  if(!imgs.length){alert("画像ファイルが見つかりませんでした");return;}
-  const baseOf=f=>f.name.replace(/\.[^.]+$/,"").trim();
-  const byLen=[...data.members].sort((a,b)=>b.name.length-a.name.length);
-  let matched=0,skipped=0;
-  for(const f of imgs){
-    const base=baseOf(f);
-    let m=data.members.find(x=>x.name.toLowerCase()===base.toLowerCase());
-    if(!m)m=byLen.find(x=>x.name.length>=2&&base.toLowerCase().includes(x.name.toLowerCase()));
-    if(!m){skipped++;continue;} /* 一致しないファイルは読み込まずに飛ばす */
-    const r=await processIconFile(f);
-    if(!r){skipped++;continue;}
-    m.icon=r.dataUrl;
-    if(r.key)m.color=resolveMemberColor(m.name,r.key);
-    matched++;
-  }
-  scheduleSave();openMembersModal();render();
-  alert(`アイコンを設定しました。\n紐づけ: ${matched}件`+(skipped?`\n(一致しなかった ${skipped}件は無視しました)`:""));
-};
 
 /* ---------- export / import ---------- */
 /* ================= 共通データ(AA_TaskBoard と受け渡しする交換形式) =================
@@ -10396,258 +9631,10 @@ $("#avFolder").onchange=async e=>{
    タスクボード固有の項目(シーン・作業量・進捗・メモ)は _ext に退避し、往復しても消えないようにしてある */
 const AA_FORMAT="AAProject",AA_VERSION=1;
 const UNSCHEDULED_PHASE="未スケジュール"; /* 日付を持たないタスク(タスクボード由来)の置き場 */
-function toCommonData(){
-  const ext=data._ext||{};
-  return {
-    format:AA_FORMAT,version:AA_VERSION,
-    projectName:data.projectName||"",
-    headerImg:data.headerImg||null,
-    script:ext.script||"",            /* 台本はタスクボード側の情報。預かっているものを返す */
-    unit:ext.unit||"scene",
-    eventDate:data.eventDate||"",eventEndDate:data.eventEndDate||"",dateMode:data.dateMode||"event",
-    members:data.members.map(m=>({id:m.id,name:m.name,color:m.color,...(m.icon?{icon:m.icon}:{})})),
-    cats:data.cats.map(c=>({id:c.id,name:c.name,color:c.color})),
-    scenes:ext.scenes||[],
-    phases:data.phases||[],
-    milestones:data.milestones||[],
-    tasks:data.tasks.map(t=>{
-      const e=t._ext||{};
-      const ids=t.catIds||[];
-      return {
-        id:t.id,name:t.name,cat:ids[0]||"",
-        memberIds:t.memberIds||[],noAsg:!!t.noAsg,
-        priority:t.imp||1,memo:e.memo||"",
-        scenes:e.scenes||[],size:e.size||"M",stage:e.stage||0,
-        start:t.start||"",end:t.end||"",phase:t.phase||"",
-        ...(t.evLock?{evLock:true}:{}),
-        ...(ids.length>1?{extraCats:ids.slice(1)}:{})
-      };
-    })
-  };
-}
-function fromCommonData(d){
-  const t0=fmt(today()),t6=fmt(addD(today(),6));
-  let needUnscheduled=false;
-  const tasks=(d.tasks||[]).map(t=>{
-    /* 日付を持たないタスク(タスクボードで洗い出しただけのもの)は、今日から1週間の仮の帯にして
-       「未スケジュール」フェイズにまとめる。あとからドラッグで正しい位置に置いてもらう */
-    const hasDates=!!(t.start&&t.end);
-    if(!hasDates)needUnscheduled=true;
-    return {
-      id:t.id,name:t.name,
-      memberIds:t.memberIds||[],noAsg:!!t.noAsg,
-      catIds:[t.cat,...(t.extraCats||[])].filter(Boolean),
-      phase:hasDates?(t.phase||""):UNSCHEDULED_PHASE,
-      start:hasDates?t.start:t0,end:hasDates?t.end:t6,
-      imp:t.priority||1,
-      ...(t.evLock?{evLock:true}:{}),
-      /* タスクボード固有の項目を預かる(こちらでは表示しないが、書き出すとそのまま戻る) */
-      _ext:{memo:t.memo||"",scenes:t.scenes||[],size:t.size||"M",stage:t.stage||0}
-    };
-  });
-  const phases=[...(d.phases||[])];
-  if(needUnscheduled&&!phases.includes(UNSCHEDULED_PHASE))phases.push(UNSCHEDULED_PHASE);
-  data={
-    projectName:d.projectName||"",
-    headerImg:d.headerImg||null,
-    eventDate:d.eventDate||"",eventEndDate:d.eventEndDate||"",
-    ...(d.dateMode==="delivery"?{dateMode:"delivery"}:{}),
-    members:(d.members||[]).map(m=>({id:m.id,name:m.name,color:m.color,...(m.icon?{icon:m.icon}:{})})),
-    cats:(d.cats||[]).map(c=>({id:c.id,name:c.name,color:c.color})),
-    tasks,milestones:d.milestones||[],phases,
-    ui:data.ui, /* 表示設定(列幅・行の高さなど)は今の環境のものを引き継ぐ */
-    _ext:{script:d.script||"",unit:d.unit||"scene",scenes:d.scenes||[]}
-  };
-  if(!data.eventDate){delete data.eventDate;delete data.eventEndDate;}
-  return needUnscheduled;
-}
-function openCommonDataModal(){
-  openModal(`
-    <h2>共通データ(タスクボードと共有)</h2>
-    <div class="hint" style="margin-bottom:14px">
-      メンバー(アイコン込み)・カテゴリ・タスクを、AA_TaskBoard と受け渡すための形式です。
-      同じ内容を2回入力しなくて済むようにするためのものです。<br>
-      相手ツールでしか使わない項目(シーン・作業量・進捗など)も保持されるので、行き来しても消えません。
-    </div>
-    <div class="aiSteps">
-      <div class="aiStep">
-        <div class="aiStepNo">1</div>
-        <div class="aiStepBody">
-          <div class="aiStepTitle">このスケジュールの内容を書き出す</div>
-          <button class="btn solid" id="cdExport" style="width:100%">共通形式で書き出す</button>
-        </div>
-      </div>
-      <div class="aiStep">
-        <div class="aiStepNo">2</div>
-        <div class="aiStepBody">
-          <div class="aiStepTitle">共通データを読み込む</div>
-          <button class="btn" id="cdImport" style="width:100%">ファイルを選んで読み込む</button>
-          <div class="hint">読み込むと<b>現在の内容は置き換わります</b>。日付を持たないタスクは「${UNSCHEDULED_PHASE}」フェイズにまとめて置かれます。</div>
-        </div>
-      </div>
-    </div>
-    <div class="mFoot">
-      <span id="cdMsg" style="font-size:11px;color:var(--muted);align-self:center"></span>
-      <div class="spacer"></div>
-      <button class="btn" id="cdClose">閉じる</button>
-    </div>
-  `,true);
-  $("#cdClose").onclick=closeModal;
-  $("#cdExport").onclick=()=>{
-    const blob=new Blob([JSON.stringify(toCommonData(),null,2)],{type:"application/json"});
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(blob);
-    a.download=(data.projectName||"project")+"-共通データ.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    $("#cdMsg").textContent="書き出しました。タスクボード側の「共通データ」から読み込めます。";
-  };
-  $("#cdImport").onclick=()=>$("#commonFile").click();
-}
-$("#btnCommonData").onclick=openCommonDataModal;
-$("#commonFile").onchange=e=>{
-  const f=e.target.files[0];e.target.value="";
-  if(!f)return;
-  const rd=new FileReader();
-  rd.onload=()=>{
-    let d;
-    try{d=JSON.parse(rd.result);}
-    catch{alert("JSONとして読み込めませんでした");return;}
-    if(d.format!==AA_FORMAT||!Array.isArray(d.tasks)){
-      alert("共通データのファイルではありません(「共通形式で書き出す」で作ったファイルを指定してください)");
-      return;
-    }
-    if(!confirm(`現在の内容を、読み込んだ共通データで置き換えます。よろしいですか?\n(タスク ${d.tasks.length}件 / メンバー ${(d.members||[]).length}件)`))return;
-    const hadUnscheduled=fromCommonData(d);
-    clearSelection();
-    scheduleSave();applyTitleBar();render();fitViewToContent();
-    closeModal();
-    alert(`共通データを読み込みました。\nタスク: ${data.tasks.length}件 / メンバー: ${data.members.length}件`
-      +(hadUnscheduled?`\n\n日付が無いタスクは「${UNSCHEDULED_PHASE}」フェイズに、今日から1週間の仮の帯として置いてあります。ドラッグで正しい位置に動かしてください。`:""));
-  };
-  rd.readAsText(f);
-};
-$("#btnExport").onclick=()=>{
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=(data.projectName?data.projectName+"-":"")+"AA_GanttChartBoard.json";
-  a.click();
-};
-$("#btnSample").onclick=()=>{
-  if(!confirm("現在の内容を消去して、サンプルデータを表示しますか?\n(誤って押しても Ctrl+Z で元に戻せます)"))return;
-  data={...JSON.parse(JSON.stringify(SAMPLE_DATA)),ui:data.ui}; /* 表示設定は引き継ぐ */
-  clearSelection();
-  if(zoom==="fit"){zoom=dayWBeforeFit;updateDayWStepperState();updateScaleStepperState();}
-  scheduleSave();
-  applyTitleBar();
-  render();
-  fitViewToContent(); /* サンプル全体が一目で入る横幅に合わせる */
-};
-$("#btnAiImport").onclick=openAiImportModal;
-$("#btnImport").onclick=()=>$("#fileIn").click();
-$("#fileIn").onchange=e=>{
-  const f=e.target.files[0];if(!f)return;
-  const rd=new FileReader();
-  rd.onload=()=>{
-    try{
-      data=JSON.parse(rd.result);
-      if(!data.phases){
-        data.phases=[];
-        for(const t of data.tasks){const p=t.phase||"";if(p&&!data.phases.includes(p))data.phases.push(p);}
-      }
-      if(!data.cats)data.cats=[];
-      for(const t of data.tasks){
-        if(t.cat){const cid=ensureCat(t.cat);t.catIds=t.catIds||[];if(cid&&!t.catIds.includes(cid))t.catIds.push(cid);}
-        delete t.cat;
-        if(t.catId){t.catIds=t.catIds||[];if(!t.catIds.includes(t.catId))t.catIds.push(t.catId);delete t.catId;}
-        if(!t.catIds)t.catIds=[];
-        if(t.memberId!==undefined){
-          if(t.memberId==="__none")t.noAsg=true;
-          else if(t.memberId)t.memberIds=[t.memberId];
-          delete t.memberId;
-        }
-        if(!t.memberIds)t.memberIds=[];
-        if(t.em){t.imp=3;delete t.em;}
-      }
-      for(const m of data.milestones){
-        if(m.em){m.imp=3;delete m.em;}
-      }
-      scheduleSave();render();
-    }
-    catch(err){alert("JSONの読み込みに失敗しました");}
-  };
-  rd.readAsText(f);
-  e.target.value="";
-};
 
 let _h2cLoading=null;
-function loadHtml2Canvas(){
-  if(window.html2canvas)return Promise.resolve();
-  if(_h2cLoading)return _h2cLoading;
-  _h2cLoading=new Promise((res,rej)=>{
-    const sc=document.createElement("script");
-    sc.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-    sc.onload=()=>res();
-    sc.onerror=()=>rej(new Error("load failed"));
-    document.head.appendChild(sc);
-  });
-  return _h2cLoading;
-}
-$("#btnPng").onclick=async()=>{
-  const btn=$("#btnPng");
-  const prevLabel=btn.textContent;
-  btn.textContent="準備中…";btn.disabled=true;
-  const prevZoom=zoom;
-  try{
-    await loadHtml2Canvas();
-    zoom="fit";render();
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    const gantt=$("#gantt");
-    gantt.classList.add("pngCap");
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    const bgColor=getComputedStyle(document.body).getPropertyValue("--panel").trim()||"#ffffff";
-    const canvas=await window.html2canvas(gantt,{backgroundColor:bgColor,scale:4,useCORS:true});
-    gantt.classList.remove("pngCap");
-
-    /* 「いつ時点の・何のガントチャートか」が画像だけでも分かるよう、タイトル・本番日・出力日時のヘッダーを上に合成する */
-    const scale=4;
-    const headH=Math.round(58*scale);
-    const out=document.createElement("canvas");
-    out.width=canvas.width;
-    out.height=canvas.height+headH;
-    const ctx=out.getContext("2d");
-    ctx.fillStyle=bgColor;ctx.fillRect(0,0,out.width,out.height);
-    ctx.textBaseline="alphabetic";
-    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue("--text").trim()||"#1A1D21";
-    ctx.font=`700 ${Math.round(19*scale)}px ${FS}`;
-    ctx.fillText(data.projectName||"(無題のプロジェクト)",16*scale,32*scale);
-    const subParts=[];
-    if(data.eventDate)subParts.push(`本番日: ${dfmtW(parse(data.eventDate))}${data.eventEndDate?`〜${dfmtW(parse(data.eventEndDate))}`:""}`);
-    subParts.push(`出力日時: ${nowStamp()}`);
-    ctx.font=`${Math.round(12*scale)}px ${FS}`;
-    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue("--muted").trim()||"#666";
-    ctx.fillText(subParts.join("　|　"),16*scale,50*scale);
-    ctx.drawImage(canvas,0,headH);
-
-    const a=document.createElement("a");
-    a.href=out.toDataURL("image/png");
-    a.download=(data.projectName||"schedule")+".png";
-    a.click();
-  }catch(err){
-    alert("PNGの生成に失敗しました。ネットワーク接続をご確認ください。");
-  }finally{
-    $("#gantt").classList.remove("pngCap");
-    zoom=prevZoom;render(); /* 失敗時もズームを必ず元に戻す(ここが抜けるとドラッグ不可になる) */
-    btn.textContent=prevLabel;btn.disabled=false;
-  }
-};
 
 /* ---------- wire ---------- */
-$("#fabMain").onclick=()=>{$("#fab").classList.toggle("open");};
-$("#fabTask").onclick=()=>{$("#fab").classList.remove("open");openTaskModal(null);};
-$("#fabPhase").onclick=()=>{$("#fab").classList.remove("open");openPhaseModal(null);};
-$("#fabMs").onclick=()=>{$("#fab").classList.remove("open");openMsModal(null);};
 /* ツールバーのドロップダウン(出力・ファイルを開く)は同じ開閉処理を共有する。
    パネルはheaderのクリッピングを避けるためfixed配置なので、開くたびにボタンの真下へ座標を合わせる */
 function setupToolMenu(groupId,btnId,panelId){
@@ -10673,9 +9660,6 @@ document.addEventListener("click",e=>{
   if(_marqueeJustSelected){_marqueeJustSelected=false;return;} /* マーキー選択直後のclickでは解除しない */
   if(!e.target.closest(".bar,.grip,.dia,.msband,.lrow.phase,.rrow.phase,.lrow[data-tid]")&&(selectedTaskIds.size||selectedMsIds.size||selectedPhases.size))clearSelection();
 });
-$("#btnMembers").onclick=openMembersModal;
-$("#btnCats").onclick=openCatsModal;
-$("#btnText").onclick=openTextModal;
 /* tagH: バー内のタグ・LMSの高さ。バーの高さ(18/22/28)が偶数なので、ここも偶数にしておく。
    奇数・小数だと上下中央に置いたときに0.5px単位の位置になり、丸められて下寄りに見える */
 const DENS={s:{row:24,bar:18,av:16,phase:19,fs:11,tagFs:8,tagPadX:4,tagLh:1.45,tagH:12},m:{row:30,bar:22,av:19,phase:22,fs:12.5,tagFs:9,tagPadX:6,tagLh:1.6,tagH:14},l:{row:40,bar:28,av:23,phase:27,fs:13.5,tagFs:9.5,tagPadX:7,tagLh:1.75,tagH:14}};
@@ -10717,24 +9701,6 @@ function applyUiScale(){
   $("#scaleDown").disabled=uiScale<=0.7;
   $("#scaleUp").disabled=uiScale>=1.5;
 }
-function setUiScale(v){
-  const nv=Math.min(1.5,Math.max(0.7,Math.round(v*10)/10));
-  data.ui={...(data.ui||{}),uiScale:nv};
-  applyUiScale();scheduleSave();
-}
-$("#scaleDown").onclick=()=>setUiScale((data.ui?.uiScale||1)-0.1);
-$("#scaleUp").onclick=()=>setUiScale((data.ui?.uiScale||1)+0.1);
-$("#scaleReset").onclick=()=>setUiScale(1);
-$("#scaleLabel").addEventListener("focus",()=>$("#scaleLabel").select());
-$("#scaleLabel").addEventListener("keydown",e=>{
-  if(e.key==="Enter"&&!e.isComposing){e.preventDefault();$("#scaleLabel").blur();}
-  else if(e.key==="Escape"){e.preventDefault();applyUiScale();$("#scaleLabel").blur();}
-});
-$("#scaleLabel").addEventListener("blur",()=>{
-  const n=parseInt($("#scaleLabel").value,10);
-  if(!isNaN(n))setUiScale(n/100);
-  else applyUiScale();
-});
 
 /* 編集ロック(タスクボードと同じ仕様)。既定はロック状態で、保存はせず読み込みのたびにロックへ戻る。
    ロック中はドラッグ系の操作だけを止め、クリックでの編集モーダルは開ける */
@@ -10742,11 +9708,6 @@ let editMode=false; /* 既定はロック。実際の値は統合版から setEd
 function applyEditMode(){
   /* body.locked と右上のトグルは統合版が持っている。ここで触ると取り合いになるので触らない */
 }
-$("#btnEditMode").onclick=()=>{
-  editMode=!editMode;
-  data.ui={...(data.ui||{}),editMode};
-  applyEditMode();scheduleSave();render();
-};
 /* 保存されているロック状態を復元する(未保存なら解除状態) */
 function applyEditModeFromData(){
   editMode=data?.ui?.editMode!==false;
@@ -10762,14 +9723,6 @@ function applyTheme(){
   clearTimeout(applyTheme._t);
   applyTheme._t=setTimeout(()=>{document.body.classList.remove("themeSwitching");},450);
 }
-$("#btnTheme").onclick=()=>{
-  data.ui={...(data.ui||{}),theme:data.ui?.theme==="dark"?"light":"dark"};
-  applyTheme();scheduleSave();
-};
-$("#todayChk").addEventListener("change",()=>{
-  data.ui={...(data.ui||{}),showToday:$("#todayChk").checked};
-  scheduleSave();render();
-});
 /* いま入っているタスク・マイルストーン全体が画面に収まるよう横幅を決め、先頭に合わせる。
    全体ビュー(編集不可)とは違い、通常表示のまま倍率とスクロール位置だけを調整する。
    新規作成直後など「まず全体を見せたい」場面で使う */
@@ -10859,10 +9812,6 @@ function updateScaleStepperState(){
   $("#scaleStepper").classList.toggle("disabled",zoom==="fit");
 }
 updateScaleStepperState();
-document.querySelectorAll("#viewSeg button").forEach(b=>b.onclick=()=>setCalMode(b.dataset.view==="cal"));
-$("#calPrev").onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);renderCalendar();};
-$("#calNext").onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1);renderCalendar();};
-$("#calToday").onclick=()=>{calMonth=new Date(today().getFullYear(),today().getMonth(),1);renderCalendar();};
 window.addEventListener("resize",()=>{if(zoom==="fit")render();updateTodayJump();});
 /* position:stickyがスクロールコンテナとの相性で効かないことがあるため、バー内のアイコン/タスク名・
    月/年ラベルは、スクロールに合わせてJSで位置を計算して追従させる(read/writeを分離し、レイアウトを都度読まない) */
@@ -11225,68 +10174,6 @@ function updateNowStamp(){
 }
 updateNowStamp();
 setInterval(updateNowStamp,60000);
-$("#shortcutsBtn").onclick=()=>{
-  openModal(`
-    <h2>ショートカット一覧</h2>
-    <div class="shortcutGrid">
-      <div class="scSection">キーボード</div>
-      <div class="scRow"><span class="scKey">Ctrl+Z(⌘Z)</span><span>元に戻す</span></div>
-      <div class="scRow"><span class="scKey">Ctrl+Shift+Z ・ Ctrl+Y</span><span>やり直し</span></div>
-      <div class="scRow"><span class="scKey">Ctrl+D(⌘D)</span><span>ホバー中のタスク／マイルストーンを複製 ／ ホバー中のフェイズを配下タスクごと複製</span></div>
-      <div class="scRow"><span class="scKey">Delete ・ Backspace ・ X</span><span>ホバー中、または選択中の要素を削除</span></div>
-      <div class="scRow"><span class="scKey">Ctrl+C(⌘C)・Ctrl+X(⌘X)</span><span>ホバー中、または選択中のタスク／マイルストーンをコピー・切り取り</span></div>
-      <div class="scRow"><span class="scKey">Ctrl+V(⌘V)</span><span>貼り付け(マウスオーバー中の日付・フェイズへ。相対的な間隔は保たれる)</span></div>
-      <div class="scRow"><span class="scKey">Ctrl+Shift+D(⌘⇧D)</span><span>マウスオーバー中の日付で、タスク／期間マイルストーンを2本に分割</span></div>
-      <div class="scRow"><span class="scKey">Ctrl+A(⌘A)</span><span>タスクとマイルストーンをすべて選択</span></div>
-      <div class="scRow"><span class="scKey">← ・ →</span><span>タスク／マイルストーンの日付を1日ずつ移動(Shiftで1週間 ／ Altで終了日だけ動かして長さを変更)</span></div>
-      <div class="scRow"><span class="scKey">Ctrl+S(⌘S)</span><span>ローカルに保存(データを書き出す)</span></div>
-      <div class="scRow"><span class="scKey">[ ・ ]</span><span>マウスオーバー中の日付を、タスク／マイルストーンの開始日・終了日に設定(長さが変わる)</span></div>
-      <div class="scRow"><span class="scKey">+ ・ −</span><span>横幅(1日あたりの表示幅)を拡大・縮小</span></div>
-      <div class="scRow"><span class="scKey">1 ・ 2 ・ 3</span><span>行の高さを 低／中／高 に切り替え</span></div>
-      <div class="scRow"><span class="scKey">T</span><span>今日の位置へスクロール</span></div>
-      <div class="scRow"><span class="scKey">F</span><span>全体ビューの切り替え</span></div>
-      <div class="scRow"><span class="scKey">Escape</span><span>ポップオーバー/モーダルを閉じる。何も開いていなければ選択解除</span></div>
-
-      <div class="scSection">共通のマウス操作(バー・◆・フェイズ名・左側の一覧に共通)</div>
-      <div class="scRow"><span class="scKey">クリック</span><span>編集モーダルを開く</span></div>
-      <div class="scRow"><span class="scKey">長押し、または動かしてドラッグ</span><span>並び替え・移動を開始(フェイズ名・左側の一覧)</span></div>
-      <div class="scRow"><span class="scKey">空所をダブルクリック</span><span>その日付に新規追加(タスク行・マイルストーンレーン)</span></div>
-      <div class="scRow"><span class="scKey">⌥(Alt)+ドラッグ</span><span>複製しながら移動</span></div>
-
-      <div class="scSection">複数選択</div>
-      <div class="scRow"><span class="scKey">Shift+クリック</span><span>タスク・マイルストーン・フェイズを複数選択(トグル)</span></div>
-      <div class="scRow"><span class="scKey">空所をドラッグ</span><span>矩形(マーキー)選択</span></div>
-      <div class="scRow"><span class="scKey">選択中の要素をドラッグ</span><span>選択した要素をまとめて移動</span></div>
-      <div class="scRow"><span class="scKey">選択中にDelete</span><span>選択した要素をまとめて削除</span></div>
-
-      <div class="scSection">タスクバー固有</div>
-      <div class="scRow"><span class="scKey">横にドラッグ</span><span>日付を移動</span></div>
-      <div class="scRow"><span class="scKey">縦にドラッグ</span><span>前後関係・所属フェイズを変更</span></div>
-      <div class="scRow"><span class="scKey">端をつまんでドラッグ</span><span>開始日・終了日を変更</span></div>
-
-      <div class="scSection">マイルストーン(◆)固有</div>
-      <div class="scRow"><span class="scKey">端をつまんでドラッグ</span><span>単発 ⇄ 期間を切り替え(伸ばすと期間に、縮めて単日にすると単発に戻る)</span></div>
-
-      <div class="scSection">フェイズ固有</div>
-      <div class="scRow"><span class="scKey">▾</span><span>配下タスクの表示/非表示を切り替え</span></div>
-      <div class="scRow"><span class="scKey">Shift+▾</span><span>全フェイズをまとめて開閉</span></div>
-      <div class="scRow"><span class="scKey">集計バー(矢印)をクリック</span><span>フェイズの編集を開く</span></div>
-      <div class="scRow"><span class="scKey">集計バー(矢印)を横にドラッグ</span><span>配下タスクをまとめて日付移動</span></div>
-      <div class="scRow"><span class="scKey">集計バー(矢印)を縦にドラッグ</span><span>フェイズ自体を並び替え</span></div>
-
-      <div class="scSection">左側のタスク一覧固有</div>
-      <div class="scRow"><span class="scKey">⠿</span><span>即座に並び替え開始(長押し不要)</span></div>
-    </div>
-    <div class="mFoot"><div class="spacer"></div><button class="btn primary" id="scClose">閉じる</button></div>
-  `,true);
-  $("#scClose").onclick=closeModal;
-  $("#modalBody").onkeydown=e=>{
-    if(e.key==="Enter"&&!e.isComposing&&e.target.tagName!=="TEXTAREA"){
-      e.preventDefault();
-      $("#scClose").click();
-    }
-  };
-};
 
 /* ================= ホストとの住み分け =================
    タイトルバー・テーマ・ロック・保存・undoは統合版が持っているので、
