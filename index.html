@@ -836,13 +836,20 @@ footer .spacer{flex:1}
 /* 閉じているときは境界線も消す(1pxが余白として残って見えるため) */
 #unsched.closed{pointer-events:none;border-top-width:0}
 #unschedHead{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:11.5px;color:var(--muted);flex:none}
-#unschedHead .lbl{font-weight:700;color:var(--text)}
-#unschedHead .cnt{font-size:10px;background:var(--line2);color:var(--muted);border-radius:99px;padding:1px 7px}
 #unschedHead .hintTxt{font-size:10.5px;color:var(--faint);margin-left:auto}
-#unschedToggle{width:18px;height:18px;border-radius:4px;color:var(--muted);font-size:11px;line-height:1;flex:none}
-#unschedToggle:hover{background:var(--hover)}
-#unsched.collapsed #unschedList{display:none}
-#unsched.collapsed #unschedToggle{transform:rotate(-90deg)}
+/* 開け閉めのタブ。ビュータブと同じ考え方で、開いているときだけ下の枠と地続きに見せる */
+#unschedDock{flex:none;display:flex;flex-direction:column}
+#unschedDock[hidden]{display:none}
+#unschedTab{align-self:flex-end;margin:0 16px -1px 0;position:relative;z-index:1;
+  display:flex;align-items:center;gap:7px;padding:5px 14px 6px;
+  font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap;
+  background:var(--hover);border:1px solid var(--line);border-bottom-color:var(--line);
+  border-radius:8px 8px 0 0;transition:color .12s}
+#unschedTab:hover{color:var(--text)}
+#unschedTab .cnt{font-size:10px;font-weight:700;background:var(--line2);color:var(--muted);
+  border-radius:99px;padding:1px 7px}
+/* 開いているとき: 下の枠と同じ色にして、境界を消して繋げる */
+#unschedTab.on{background:var(--panel);color:var(--text);border-bottom-color:var(--panel)}
 #unschedList{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;overflow:auto}
 .usChip{display:inline-flex;align-items:center;gap:6px;max-width:260px;
   border:1px solid var(--line);border-radius:6px;background:var(--panel);
@@ -858,13 +865,9 @@ footer .spacer{flex:1}
   max-width:110px;overflow:hidden;white-space:nowrap}
 .usChip .catTag .cdot{width:6px;height:6px;border-radius:99px;flex:none}
 .usChip .avStack img,.usChip .avStack .cdot,.usChip .avStack .avNone{width:15px;height:15px}
-#unschedHead #unschedHide{height:22px;padding:0 10px;border-radius:4px;border:1px solid var(--line);
-  color:var(--muted);font-size:11px;line-height:1;flex:none;margin-left:10px;white-space:nowrap}
-#unschedHead #unschedHide:hover{background:var(--hover);color:var(--danger);border-color:var(--danger)}
 /* 置き場からカレンダーへ配置している間 */
 body.placing{cursor:grabbing}
 body.placing .usChip{cursor:grabbing}
-#btnUnsched.on{background:var(--text);color:var(--bg)}
 body.locked .usChip{cursor:default}
 /* ドロップ先の日付を示す縦線 */
 /* 置き場からカレンダーへ配置するときのプレビュー。実際に入る行・日付・長さをそのまま示す */
@@ -1938,9 +1941,9 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <button id="dayWReset" class="stepReset" title="標準(20px)に戻す">↺</button>
     </div>
     <button class="btn solid" id="btnFit" title="1画面に全体を収めて表示します。この間はドラッグでの編集ができません">全体ビュー</button>
-    <button class="btn" id="btnUnsched" title="日程未定タスクの置き場を表示/非表示します">日程未定タスク</button>
   </div>
   <div class="tgroup matrixOnly" title="タスクの並び順です。元(手動)=手動配置に戻します">
+    <span class="segLabel">並び順</span>
     <select id="sortSel" onchange="setSortMode(this.value)">
       <option value="manual">元(手動)</option>
       <option value="size">LMS順</option>
@@ -1948,14 +1951,6 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <option value="assignee">担当者別</option>
       <option value="progress">進捗順</option>
     </select>
-  </div>
-  <div class="tgroup matrixOnly" title="一覧(マトリクス)の表示倍率です">
-    <div class="scaleStepper" id="scaleStepper">
-      <button id="scaleDown" title="縮小">−</button>
-      <span id="scaleLabel" class="stepLabel">100%</span>
-      <button id="scaleUp" title="拡大">＋</button>
-      <button id="scaleReset" class="stepReset" title="等倍(100%)に戻す">↺</button>
-    </div>
   </div>
   <div class="tgroup wbOnly" title="一時的なメモ書きの道具です">
     <!-- 道具。ペンだけボタンが無く、色を選ぶと戻る仕様は分かりにくかったので3つ並べる -->
@@ -2027,15 +2022,18 @@ body.locked #view-gantt .phToggle{cursor:pointer}
         <button id="todayJumpL" class="todayJump l" title="TODAYへ移動">‹</button>
         <button id="todayJumpR" class="todayJump r" title="TODAYへ移動">›</button>
       </div>
-      <!-- 日程未定のタスク置き場。ここからカレンダーへドラッグすると日程が入る -->
-      <div id="unsched" class="closed" style="height:0;opacity:0">
-        <div id="unschedHead">
-          <button id="unschedToggle" title="開閉">▾</button>
-          <span class="lbl">日程未定</span><span class="cnt" id="unschedCount">0</span>
-          <span class="hintTxt">カレンダーへドラッグすると日程が入ります</span>
-          <button id="unschedHide" title="この枠を隠す(ツールバーの「日程未定」で戻せます)">✕ 非表示</button>
+      <!-- 日程未定のタスク置き場。ここからカレンダーへドラッグすると日程が入る。
+           開け閉めは右下のタブで行う(ツールバーに置くと、どのビューの設定か分かりにくかった) -->
+      <div id="unschedDock">
+        <button id="unschedTab" title="日程未定のタスクを開け閉めします">
+          <span class="lbl">日程未定タスク</span><span class="cnt" id="unschedCount">0</span>
+        </button>
+        <div id="unsched" class="closed" style="height:0;opacity:0">
+          <div id="unschedHead">
+            <span class="hintTxt">カレンダーへドラッグすると日程が入ります</span>
+          </div>
+          <div id="unschedList"></div>
         </div>
-        <div id="unschedList"></div>
       </div>
     </section>
     <section class="view" id="view-summary"></section>
@@ -2767,7 +2765,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-b079cfc";
+const APP_VERSION = "2026.08.04-80a73a1";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2892,7 +2890,7 @@ const KEYS_HELP = [
     ["右上の鍵", "編集ロック。オンの間はドラッグやセル操作を止める(起動時は必ずオン)"],
   ]],
   ["一覧・シーン別", [
-    ["クリック", "タスク名で編集 / セルで担当シーンの切替 / 工程ピップで進捗を進める"],
+    ["クリック", "タスク名で編集 / セルで担当シーンの切替 / 工程ピップで進捗を進める(シーン別も同じ)"],
     ["Shift+クリック", "直前に押したセルとの間をまとめて塗る"],
     ["ドラッグ", "行の並び替え、列幅の調整"],
   ]],
@@ -3748,12 +3746,15 @@ function applyEditModeFromState(){
 applyEditMode();
 
 /* ================= 表示倍率(Ganttの#scaleStepperと同じ。CSSのzoomで一覧(マトリクス)を拡大縮小) ================= */
+/* 倍率を変える欄はツールバーから外してある(元々ガント側の機能で、一覧には要らなかった)。
+   仕組みは残してあるので、欄を戻せばそのまま動く。要素が無くても落ちないようにしておく */
 function applyUiScale(){
   const v = state.ui.uiScale || 1;
   document.documentElement.style.setProperty("--uiZoom", v);
-  $("scaleLabel").textContent = Math.round(v*100) + "%";
-  $("scaleDown").disabled = v<=0.7;
-  $("scaleUp").disabled = v>=1.5;
+  const lab = $("scaleLabel"), dn = $("scaleDown"), up = $("scaleUp");
+  if(lab) lab.textContent = Math.round(v*100) + "%";
+  if(dn) dn.disabled = v<=0.7;
+  if(up) up.disabled = v>=1.5;
   syncCatStickyTop($("view-matrix").querySelector(".matrix-wrap"));
   updateStickyCatRelease();
 }
@@ -3761,9 +3762,6 @@ function setUiScale(v){
   state.ui.uiScale = Math.min(1.5, Math.max(0.7, Math.round(v*10)/10));
   applyUiScale();
 }
-$("scaleDown").onclick = ()=>setUiScale((state.ui.uiScale||1)-0.1);
-$("scaleUp").onclick = ()=>setUiScale((state.ui.uiScale||1)+0.1);
-$("scaleReset").onclick = ()=>setUiScale(1);
 
 /* ================= time helpers ================= */
 function durSec(d){
@@ -4515,7 +4513,7 @@ function renderSceneView(){
         <td><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span></td>
         <td><span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${esc(a.name)}</td>
         <td>${memHTML(a, true)}</td>
-        <td>${pips(a.stage, null, cat(a.cat).color)}<span class="status-label">${STAGES[a.stage]}</span></td>
+        <td>${pips(a.stage, a.id, cat(a.cat).color)}<span class="status-label">${STAGES[a.stage]}</span></td>
       </tr>`).join("");
     block.innerHTML = `
       <div class="scene-head" data-sid="${s.id}">
@@ -4552,6 +4550,8 @@ function renderSceneView(){
 function bindSceneRowDnd(main){
   if(!isManualSort()) return;
   main.querySelectorAll("tr[data-aid]").forEach(tr=>{
+    /* 工程ピップの上から掴んだときは並び替えを始めない(一覧ビューと同じ扱い) */
+    tr.addEventListener("mousedown", e=>{ tr.draggable = isManualSort() && !e.target.closest(".pips"); });
     tr.addEventListener("dragstart", e=>{ _dndAid = tr.dataset.aid; e.dataTransfer.setData("text/plain", tr.dataset.aid); });
     tr.addEventListener("dragend", ()=>setDndMark(null));
     tr.addEventListener("dragover", e=>{
@@ -6840,7 +6840,10 @@ function renderUnscheduled(){
   if(!box || !list) return;
   const items = shownTasks().filter(t=>!(t.start && t.end));
   const show = state.ui.showUnsched !== false;
-  $("btnUnsched").classList.toggle("on", show);
+  const dock = $("unschedDock"), tab = $("unschedTab");
+  /* 1件も無いときはタブごと出さない。開け閉めできる中身が無いのに扉だけあると紛らわしい */
+  if(dock) dock.hidden = !items.length;
+  if(tab) tab.classList.toggle("on", show && items.length > 0);
   $("unschedCount").textContent = items.length;
   list.innerHTML = items.map(t=>{
     const ms = membersOf(t);
@@ -6891,9 +6894,7 @@ function applyTrayOpen(open){
   }, 320);
 }
 let _trayReflow = null;
-$("unschedToggle").onclick = ()=>$("unsched").classList.toggle("collapsed");
-$("unschedHide").onclick = ()=>{ state.ui.showUnsched = false; persist(); renderUnscheduled(); };
-$("btnUnsched").onclick = ()=>{ state.ui.showUnsched = state.ui.showUnsched === false; persist(); renderUnscheduled(); };
+$("unschedTab").onclick = ()=>{ state.ui.showUnsched = state.ui.showUnsched === false; persist(); renderUnscheduled(); };
 /* ドロップ先の日付を示す縦線 */
 /* 置き場からカレンダーへ「実際に置きながら」動かす。
    HTML5のドラッグ&ドロップではなく自前のマウス処理にしてある。こうすると、動かしている間から
@@ -7235,6 +7236,10 @@ function wbRenderCount(){
   if(!el) return;
   const s = _wbItems.filter(x=>x.k!=="i").length, i = _wbItems.length - s;
   el.textContent = _wbItems.length ? `線 ${s}${i?" / 画像 "+i:""}` : "";
+  /* 消えるタイミングは、共有しているかどうかで別物になる。共有していないときの置き場は
+     sessionStorage なので、12時間を待たずタブを閉じた時点で消える */
+  const ttl = $("wbTtl");
+  if(ttl) ttl.textContent = wbShared() ? "描いてから12時間で消えます" : "このタブを閉じると消えます";
   const note = $("wbNoteTxt");
   if(note) note.textContent = wbLocked()
     ? "ロック中は描けません。右上の鍵を外してください"
