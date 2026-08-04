@@ -661,9 +661,12 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 .stuckRow .k{flex:none;font-size:10px;font-weight:700;color:var(--muted);
   border:1px solid var(--line);border-radius:3px;padding:1px 6px;white-space:nowrap}
 .stuckRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
-.stuckRow .dt{flex:none;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+.stuckRow .dt{flex:none;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;min-width:96px}
 .stuckRow .days{flex:none;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);min-width:44px;text-align:right}
-.stuckRow.hot .days{color:var(--imp)}
+/* 期日を過ぎているものは行ごと赤字。日数だけ赤くしても、名前を追うときに気づけない */
+.stuckRow.hot .days{color:var(--imp);font-weight:700}
+.stuckRow.hot .nm{color:var(--imp)}
+.stuckRow.hot .dt{color:var(--imp);opacity:.8}
 .stuckRow.hot .k{color:var(--imp);border-color:var(--imp)}
 /* 受け取り済みは残すが、目線は未受領のほうへ向けたいので落ち着かせる */
 .stuckRow.isDone{opacity:.5}
@@ -762,6 +765,8 @@ body.dark .stg3{background:#F0F1F2}
 /* チェックボックスはネイティブだと縦位置がズレる環境があるため自前スタイリング(Gantt側の.chkと同じ) */
 .chk{display:inline-flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;color:var(--text);line-height:1;
   border:1px solid var(--line);border-radius:99px;padding:5px 12px 5px 9px;margin:0}
+/* display を持つ要素に hidden 属性は効かない。明示すること(#unsched・.tmAdd に続いて3回目) */
+.chk[hidden]{display:none}
 .chk span{line-height:1;display:inline-block}
 .chk input[type=checkbox]{
   appearance:none;-webkit-appearance:none;
@@ -1649,13 +1654,15 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 /* 外部からの受け取り: 輪郭だけの菱形。自分たちの節目(塗り)と一目で区別できるようにする */
 #view-gantt .dia.msWait{background:var(--panel);box-shadow:0 0 0 1.6px var(--text) inset}
 #view-gantt .dia.msWait:hover{background:var(--panel);box-shadow:0 0 0 1.6px var(--accent) inset}
-/* 済んだものは落ち着かせる。遅れているものだけ赤くする */
+/* 済んだものは落ち着かせる */
 #view-gantt .dia.msDone{opacity:.35}
-#view-gantt .dia.msLate{background:var(--imp);box-shadow:none}
-#view-gantt .dia.msWait.msLate{background:var(--imp);box-shadow:0 0 0 1.6px var(--imp) inset}
 #view-gantt .msband.msDone{opacity:.4}
 #view-gantt .diaLbl.msDone{opacity:.45;text-decoration:line-through}
-#view-gantt .diaLbl.msLate b{color:var(--imp)}
+/* 期日を過ぎてまだ届いていないもの。赤は重要度で使っているので色は変えず、
+   枠と文字を太くして示す(TODAY線より左にあること自体が「過ぎている」を語っている) */
+#view-gantt .dia.msWait.msLate{box-shadow:0 0 0 2.6px var(--text) inset}
+#view-gantt .diaLbl.msLate b{font-weight:800}
+#view-gantt .diaLbl.msLate span{color:var(--text);font-weight:700}
 /* 期間のマイルストーンも、受け取り待ちなら塗らずに枠線だけにする(単日の菱形と揃える) */
 #view-gantt .msband.msWait{
   background:var(--panel);color:var(--text);
@@ -1663,8 +1670,7 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 }
 #view-gantt .msband.msWait:hover{filter:none;box-shadow:0 0 0 1.5px var(--accent) inset, 0 0 0 1.5px var(--panel),0 3px 8px rgba(20,29,40,.18)}
 #view-gantt .msband.msWait.msLate{
-  color:var(--imp);
-  box-shadow:0 0 0 1.5px var(--imp) inset, 0 0 0 1.5px var(--panel);
+  box-shadow:0 0 0 2.6px var(--text) inset, 0 0 0 1.5px var(--panel);
 }
 #view-gantt .dia:active{cursor:grabbing}
 #view-gantt .dia .h{
@@ -2823,7 +2829,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-1bd54bd";
+const APP_VERSION = "2026.08.04-a14cc76";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4814,8 +4820,8 @@ function renderSummary(){
     ? owns.map(m=>{
         const d = _dl(m), late = d < 0;
         return `<div class="stuckRow${late?" hot":""}">
-          <span class="nm">${esc(m.name)}</span>
           <span class="dt">${esc(_period(m))}</span>
+          <span class="nm">${esc(m.name)}</span>
           <span class="days">${late?`${-d}日超過`:(d===0?"今日":`あと${d}日`)}</span>
         </div>`;}).join("")
     : `<div class="hint" style="margin:0">まだありません。</div>`;
@@ -4825,9 +4831,9 @@ function renderSummary(){
     ? waits.map(m=>{
         const d = _dl(m), late = !m.done && d < 0;
         const st = m.done ? "受け取り済み" : (late ? `${-d}日超過` : (d===0?"今日":`あと${d}日`));
-        return `<div class="stuckRow${late&&-d>=7?" hot":""}${m.done?" isDone":""}">
-          <span class="nm">${esc(m.name)}</span>
+        return `<div class="stuckRow${late?" hot":""}${m.done?" isDone":""}">
           <span class="dt">${esc(_period(m))}</span>
+          <span class="nm">${esc(m.name)}</span>
           <span class="days">${st}</span>
         </div>`;}).join("")
     : `<div class="hint" style="margin:0">まだありません。</div>`;
@@ -8893,7 +8899,7 @@ function render(){
         rms.appendChild(stem);
         l=document.createElement("div");l.className="diaLbl"+impCls
           +(it.m.kind==="wait"?" msWait":"")+(it.m.done?" msDone":"")
-          +((!it.m.done && parse(it.m.end||it.m.date)<today())?" msLate":"");
+          +((it.m.kind==="wait" && !it.m.done && parse(it.m.end||it.m.date)<today())?" msLate":"");
         l.dataset.mid=it.m.id; /* 同上 */
         l.style.left=it.lx+"px";l.style.top=lblTop+"px";
         l.innerHTML=`<b>${esc(it.m.name)}</b><span>${it.dstr}</span>`;
@@ -8902,7 +8908,7 @@ function render(){
          受け取り済みなら落ち着かせ、期日を過ぎてまだ未受領なら目立たせる */
       const isWait=it.m.kind==="wait";
       const msDone=!!it.m.done;
-      const late=!msDone && parse(it.m.end||it.m.date) < today();
+      const late=isWait && !msDone && parse(it.m.end||it.m.date) < today();
       const kindCls=(isWait?" msWait":"")+(msDone?" msDone":"")+(late?" msLate":"");
       let d;
       if(it.isRange){
