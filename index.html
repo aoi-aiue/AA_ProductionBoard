@@ -655,9 +655,26 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 /* マイルストーン一覧。日付を左に置き、桁が揃うよう幅を固定する */
 .sum-card h3 .cnt{font-size:10.5px;font-weight:700;color:var(--muted);background:var(--line2);
   border-radius:99px;padding:1px 8px;margin-left:7px}
+.stage-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-bottom:10px}
+.stage-bar i{display:block;height:100%;transition:width .4s}
+.stage-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--muted)}
+.stage-legend span{display:inline-flex;align-items:center;gap:6px}
+.stage-legend .dot{width:9px;height:9px;border-radius:2px;flex:none}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.sum-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 20px}
+.sum-card h3{font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:600;margin-bottom:14px}
+.sum-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12px}
+.sum-row .lbl{width:180px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px}
+.sum-row .bar{flex:1;height:9px;background:var(--line2);border-radius:99px;overflow:hidden}
+.sum-row .bar i{display:block;height:100%;border-radius:99px;transition:width .4s}
+.sum-row .val{width:120px;flex:none;text-align:right;font-size:11px;color:var(--muted)}
+.sum-row .mem-av{width:18px;height:18px;border-radius:99px;flex:none;object-fit:cover}
+.sum-row .mem-dot{width:18px;height:18px;border-radius:99px;flex:none}
 .msRow{display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:12px;border-bottom:1px solid var(--line2)}
 .msRow:last-child{border-bottom:0}
-.msRow .dt{flex:none;min-width:auto;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* 日付欄は幅を固定する。単日と期間で長さが違うと、名前の頭が行ごとにずれて読みにくい */
+.msRow .dt{flex:none;width:196px;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .msRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
 .msRow .days{flex:none;min-width:60px;text-align:right;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 /* 過ぎたものは薄くする。色は付けない(重要度の赤と重複するため) */
@@ -700,13 +717,6 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .sum-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 20px}
 .sum-card h3{font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:600;margin-bottom:14px}
-.sum-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12px}
-.sum-row .lbl{width:180px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px}
-.sum-row .bar{flex:1;height:9px;background:var(--line2);border-radius:99px;overflow:hidden}
-.sum-row .bar i{display:block;height:100%;border-radius:99px;transition:width .4s}
-.sum-row .val{width:120px;flex:none;text-align:right;font-size:11px;color:var(--muted)}
-.sum-row .mem-av{width:18px;height:18px;border-radius:99px;flex:none;object-fit:cover}
-.sum-row .mem-dot{width:18px;height:18px;border-radius:99px;flex:none}
 .sum-empty{font-size:11.5px;color:var(--faint);padding:4px 0}
 /* マトリクスの進捗配色(グレースケールの濃淡)と同じ言語を再利用する専用クラス */
 .stg0{background:var(--line2)}
@@ -2846,7 +2856,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-2a5ba0e";
+const APP_VERSION = "2026.08.04-532018a";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4845,6 +4855,16 @@ function renderSummary(){
     const d = isoParse(iso);
     return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${_WD[d.getDay()]})`;
   };
+  /* 期間は、同じ年月なら後ろを短く書く(長いと日付欄が横に伸び、名前の頭が揃わない) */
+  const msRange = m => {
+    if(!m.end || m.end === m.date) return msDate(m.date);
+    const a = isoParse(m.date), b = isoParse(m.end);
+    if(a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth())
+      return `${msDate(m.date)} 〜 ${b.getDate()}日(${_WD[b.getDay()]})`;
+    if(a.getFullYear()===b.getFullYear())
+      return `${msDate(m.date)} 〜 ${b.getMonth()+1}月${b.getDate()}日(${_WD[b.getDay()]})`;
+    return `${msDate(m.date)} 〜 ${msDate(m.end)}`;
+  };
   const msList = (state.milestones||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
   /* --- 右half: 月めくりのカレンダー ---
      ガントと同じ見せ方にする。単日は◆付きのチップ、期間は端をとがらせた帯を日をまたいで引く。
@@ -4913,7 +4933,7 @@ function renderSummary(){
     ? msList.map(m=>{
         const end = m.end||m.date, d = isoDiffDays(_t0, end), late = d < 0;
         return `<div class="msRow${late?" past":""}">
-          <span class="dt">${esc(m.end?`${msDate(m.date)} 〜 ${msDate(m.end)}`:msDate(m.date))}</span>
+          <span class="dt">${esc(msRange(m))}</span>
           <span class="nm">${esc(m.name)}</span>
           <span class="days">${late?`${-d}日前`:(d===0?"今日":`あと${d}日`)}</span>
         </div>`;}).join("")
