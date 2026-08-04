@@ -414,7 +414,10 @@ body:not(.dark) #scriptBody .scDlg .q{color:#1b2733}
 .mx-ghost-in{position:sticky;left:0;width:max-content;padding:3px 12px;font-size:11px;color:var(--faint);line-height:1}
 .mx-ghost:hover .mx-ghost-in{color:var(--accent)}
 .mx-name{
-  position:sticky;left:0;z-index:3;background:var(--panel);
+  /* 行の高さを固定する。中身なりだと端数になり、上下中央が揃わない */
+  /* 25px なのは、下線1pxを含めた内側が 18px(偶数)になるため。
+     内側が奇数だと、16pxのバッジやアイコンが 0.5px 単位の位置に載ってしまう */
+  position:sticky;left:0;z-index:3;background:var(--panel);height:25px;box-sizing:border-box;
   padding:3px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;line-height:1;
   border-right:1px solid var(--line);cursor:pointer;white-space:nowrap;overflow:hidden;min-width:0;
 }
@@ -514,14 +517,16 @@ body.locked .pips.ia .pip{cursor:default}
 body.locked .mx-ghost{visibility:hidden}
 /* 作業量(LMS)のバッジ。全ビューで同じ見た目にする(ガントの日程未定チップに合わせた控えめな形) */
 .size-badge{
-  /* 幅を固定する。L/M/S で文字幅が違うため、min-width だと枠の大きさが揃わない */
-  display:inline-block;width:18px;box-sizing:border-box;text-align:center;
-  font-size:9.5px;font-weight:700;line-height:1.5;
+  /* 幅を固定する。L/M/S で文字幅が違うため、min-width だと枠の大きさが揃わない。
+     高さも固定する。line-height の倍率だと 16.3px のような端数になり、
+     それが行の高さを端数にして、行の中身がどれも0.5px単位でずれる */
+  display:inline-block;width:18px;height:16px;box-sizing:border-box;text-align:center;
+  font-size:9.5px;font-weight:700;line-height:14px;
   border:1px solid var(--line);border-radius:3px;color:var(--muted);padding:0;
 }
 /* 優先度フラグ: 旗の色で高=赤・中=橙・低=グレーの3段階を表す。
    進捗背景(白〜ほぼ黒)のどれでも見えるよう、明暗2重の輪郭(drop-shadow)を付けて縁取りする */
-.prio{display:inline-flex;align-items:center;flex:none;line-height:0;vertical-align:middle;margin-right:4px}
+.prio{display:inline-flex;align-items:center;flex:none;height:12px;line-height:0;vertical-align:middle;margin-right:4px}
 .prio svg{filter:drop-shadow(0 0 .5px rgba(0,0,0,.55)) drop-shadow(0 0 .6px rgba(255,255,255,.85))}
 .prio-1{color:#9298A0}
 .prio-2{color:#E0A020}
@@ -1248,13 +1253,14 @@ body.locked #wbLayerBtns{opacity:.4;pointer-events:none}
 }
 /* 鍵そのものも点滅させる。文字だけだと、どこを押せばいいのか分からない。
    背景ごと変えて、視界の端でも気づく強さにしてある */
+/* 0%と100%で background を指定しないこと。指定すると、鍵がいま持っている色から
+   いきなりその値へ飛んで出だしがガクつく(ロック中と解除中で地の色が違うため)。
+   中間だけ指定すれば、いまの色から色へ滑らかに往復する */
 @keyframes lockFlash{
-  0%   {box-shadow:0 0 0 0 rgba(214,76,31,.55); background:var(--line2)}
-  35%  {box-shadow:0 0 0 6px rgba(214,76,31,0); background:#D64C1F}
-  70%  {box-shadow:0 0 0 0 rgba(214,76,31,0);   background:var(--line2)}
-  100% {box-shadow:0 0 0 0 rgba(214,76,31,0);   background:var(--line2)}
+  0%,100%{box-shadow:0 0 0 0 rgba(214,76,31,0)}
+  45%    {box-shadow:0 0 0 5px rgba(214,76,31,.45); background:#D64C1F}
 }
-#btnEditMode.lockFlash{animation:lockFlash .55s ease 2}
+#btnEditMode.lockFlash{animation:lockFlash .3s ease 2}
 /* 版の表示と更新の案内。普段は目立たせず、新しい版が出たときだけボタンを出す */
 #appVer{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
 #btnUpdate{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
@@ -1675,6 +1681,14 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 /* 左ペイン(#lclip)も実際にスクロールするので、sticky がそのまま効く */
 #view-gantt .lrow.ms{position:sticky;top:0;z-index:24;background:var(--panel);transition:none}
 #view-gantt.vscrolled .rrow.ms,#view-gantt.vscrolled .lrow.ms{box-shadow:0 3px 6px -4px rgba(20,29,40,.35)}
+/* フェイズ行はマイルストーン行の下に貼り付く。一覧ビューのカテゴリ見出しと同じ挙動。
+   マイルストーン行は中身によって高さが変わるので、実測した値を --msRowH に入れている。
+   z-index はマイルストーン行(24)より下にして、あちらが常に上に来るようにする */
+#view-gantt .lrow.phase{position:sticky;top:var(--msRowH,0px);z-index:22}
+#view-gantt .rrow.phase{position:sticky;top:calc(var(--headH) + var(--msRowH,0px));z-index:22}
+/* 掴んで動かしている間は貼り付けない。止まったままだとドラッグに付いてこない */
+#view-gantt .lrow.phase.blockLift, #view-gantt .rrow.phase.blockLift,
+#view-gantt .lrow.phase.dragging, #view-gantt .rrow.phase.dragging{position:relative;z-index:26}
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
 /* 覆うのはツールバーより下だけ。上の道具は見えたままにして、
    「中身の領域だけがカレンダーに変わった」ように見せる(位置はJSで入れる) */
@@ -2962,7 +2976,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-8807e02";
+const APP_VERSION = "2026.08.04-9ed1c25";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -3052,7 +3066,7 @@ function flashLockHint(){
   void btn.offsetWidth;   /* 連続で操作されたときに、アニメーションを頭から出し直す */
   btn.classList.add("lockFlash");
   clearTimeout(_lockHintTimer);
-  _lockHintTimer = setTimeout(()=>btn.classList.remove("lockFlash"), 1200);   /* 0.55秒 x 2回ぶん */
+  _lockHintTimer = setTimeout(()=>btn.classList.remove("lockFlash"), 650);   /* 0.3秒 x 2回ぶん */
 }
 (function lockHintInit(){
   let sx = 0, sy = 0, armed = false;
@@ -9705,6 +9719,9 @@ function render(){
     v.style.left=(ti*dayW+dayW/2)+"px";ov.appendChild(v);
   }
   rinner.appendChild(ov);
+  /* フェイズ行の貼り付き位置に使うので、次のフレームを待たずここで入れておく
+     (描画が間引かれる環境だと rAF が遅れ、貼り付き位置が0のままになる) */
+  updateMsRowH();
   requestAnimationFrame(()=>{
     const h=rinner.scrollHeight+"px";
     ov.style.height=h;bg.style.height=h;hc.style.height=h;
@@ -9712,6 +9729,7 @@ function render(){
     updateMonthLabels();
     updateMonthLabelPositions();
     updateTodayJump();
+    updateMsRowH();
     rebuildStickyCache();
     updateStickyBlabels();
   });
@@ -11095,6 +11113,12 @@ window.addEventListener("resize",()=>{if(zoom==="fit")render();updateTodayJump()
 /* position:stickyがスクロールコンテナとの相性で効かないことがあるため、バー内のアイコン/タスク名・
    月/年ラベルは、スクロールに合わせてJSで位置を計算して追従させる(read/writeを分離し、レイアウトを都度読まない) */
 let _stickyItems=null; /* render()のたびに再構築するキャッシュ。scroll中はこれを見るだけで、レイアウトを一切読まない */
+/* マイルストーン行の高さ。中に並ぶ節目の段数で変わるので、描画のたびに測って入れ直す。
+   フェイズ行はこの下に貼り付く */
+function updateMsRowH(){
+  const el=document.querySelector("#lbody .lrow.ms");
+  document.documentElement.style.setProperty("--msRowH",(el?Math.round(el.getBoundingClientRect().height):0)+"px");
+}
 function rebuildStickyCache(){
   _stickyItems=[];
   document.querySelectorAll("#rinner .bar").forEach(bar=>{
