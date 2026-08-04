@@ -694,8 +694,9 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 .msRow .dt{flex:none;width:196px;font-size:11px;color:var(--text);font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 残り日数は日付のすぐ隣。日付と一続きで読めるようにする */
-/* 日付のすぐ右。頭を「あと」で揃えたいので左寄せ、幅は固定して名前の頭を揃える */
-.msRow .days{flex:none;width:64px;text-align:left;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+/* 日付のすぐ右。頭を「(あと」で揃えたいので左寄せ、幅は固定して名前の頭を揃える。
+   日付と同じ大きさ・太さにして、日付欄と同じくらいの余白を右に残す */
+.msRow .days{flex:none;width:78px;text-align:left;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .msRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
 /* 過ぎたものは薄くする。色は付けない(重要度の赤と重複するため) */
 .msRow.past{opacity:.5}
@@ -1565,7 +1566,10 @@ body.fit #view-gantt #rpane{overflow-x:hidden}
   background:var(--line);pointer-events:none;transform:translateY(-.5px);
 }
 #view-gantt .lrow[data-tid].noPhase::before, #view-gantt .lrow[data-tid].noPhase::after{display:none}
-#view-gantt #gantt.phaseFocus .lrow, #view-gantt #gantt.phaseFocus .rrow{opacity:.3}
+/* マイルストーン行はどのフェイズにも属さない見出しなので、薄くする対象から外す。
+   この行は上に貼り付いて出っぱなしなので、スクロール中にホバー先が次々入れ替わると
+   薄く→濃くを繰り返してちらついて見えた */
+#view-gantt #gantt.phaseFocus .lrow:not(.ms), #view-gantt #gantt.phaseFocus .rrow:not(.ms){opacity:.3}
 #view-gantt #gantt.phaseFocus .lrow.inFocus, #view-gantt #gantt.phaseFocus .rrow.inFocus{opacity:1}
 #view-gantt .lrow.phaseEnd, #view-gantt .rrow.phaseEnd{border-bottom-color:transparent}
 #view-gantt .tnameWrap{display:flex;align-items:center;gap:6px;flex:1;min-width:0;transition:transform .12s}
@@ -2992,7 +2996,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-c197c16";
+const APP_VERSION = "2026.08.04-e4fc894";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5070,7 +5074,7 @@ function renderSummary(){
         const end = m.end||m.date, d = isoDiffDays(_t0, end), late = d < 0;
         return `<div class="msRow${late?" past":""}">
           <span class="dt">${esc(msRange(m))}</span>
-          <span class="days">${late?`${-d}日前`:(d===0?"今日":`あと${d}日`)}</span>
+          <span class="days">${late?`(${-d}日前)`:(d===0?"(今日)":`(あと${d}日)`)}</span>
           <span class="nm">${esc(m.name)}</span>
         </div>`;}).join("")
     : `<div class="hint" style="margin:0">まだありません。</div>`;
