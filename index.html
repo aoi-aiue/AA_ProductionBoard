@@ -1061,6 +1061,9 @@ body.dark #tabStrip{background:#07090B}
   min-width:0;   /* 幅が足りないときはタブ側が縮む(はみ出して右端がずれるのを防ぐ) */
 }
 #viewTabs .seg-thumb{display:none}
+/* タブの仕切り。タスクの表示(〜サマリー)と、それ以外を分ける。
+   タブの下端に合わせて短く出し、線1本以上の主張はさせない */
+.tabSep{width:1px;height:15px;background:var(--line);flex:none;align-self:flex-end;margin:0 7px 8px}
 #viewTabs button{
   position:relative;height:auto;padding:6px 15px 7px;line-height:1.35;font-size:12px;
   min-width:0;flex:0 1 auto;display:flex;align-items:center;
@@ -1126,7 +1129,9 @@ body[data-view="wb"] .wbOnly{display:flex}
   background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 #wbCanvas{display:block;background:var(--panel);touch-action:none;cursor:crosshair}
 body.locked #wbCanvas{cursor:default}
-body.wbErase #wbCanvas{cursor:cell}
+body[data-wbtool="erase"] #wbCanvas{cursor:cell}
+body[data-wbtool="select"] #wbCanvas{cursor:grab}
+body[data-wbtool="select"].wbGrab #wbCanvas{cursor:grabbing}
 #wbHint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:12px;color:var(--faint);
   pointer-events:none;text-align:center;line-height:1.9}
 #wbHint[hidden]{display:none}
@@ -1135,10 +1140,10 @@ body.wbErase #wbCanvas{cursor:cell}
 .wbPens button{width:17px;height:17px;border-radius:99px;flex:none;padding:0;
   box-shadow:0 0 0 1px rgba(0,0,0,.14) inset}
 .wbPens button.on{box-shadow:0 0 0 1px var(--panel) inset, 0 0 0 2px var(--text)}
-#wbErase.on{background:var(--text);color:var(--bg)}
+#wbErase.on, #wbSelect.on{background:var(--text);color:var(--bg)}
 /* ロック中は描けない。他のビューと同じで、触れないものは触れないように見せる
    (書き出しだけは内容を変えないので残す) */
-body.locked #wbPens button, body.locked #wbWidth, body.locked #wbErase,
+body.locked #wbPens button, body.locked #wbWidth, body.locked #wbErase, body.locked #wbSelect,
 body.locked #wbImg, body.locked #wbUndo, body.locked #wbClear{opacity:.4;pointer-events:none}
 .headerRight{
   position:sticky;right:0;margin-left:auto;display:flex;align-items:center;gap:10px;
@@ -1823,6 +1828,8 @@ body.locked #view-gantt .phToggle{cursor:pointer}
     <button data-view="scene"><span class="vtName">シーン別ビュー</span><span class="tabAv"></span></button>
     <button data-view="kanban"><span class="vtName">カードビュー</span><span class="tabAv"></span></button>
     <button data-view="summary"><span class="vtName">サマリー</span><span class="tabAv"></span></button>
+    <!-- ここから先はタスクの表示ではないので、仕切りを入れて性質の違いを見せる -->
+    <div class="tabSep"></div>
     <button data-view="wb"><span class="vtName">ホワイトボード</span><span class="tabAv"></span></button>
   </div>
   <div class="spacer"></div>
@@ -1927,7 +1934,8 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <button data-w="4" class="on">中</button>
       <button data-w="9">太</button>
     </div>
-    <button class="btn" id="wbErase" title="線に重ねてなぞると、その線を消します">消しゴム</button>
+    <button class="btn" id="wbSelect" title="置いたものをドラッグで動かします(V)">選択</button>
+    <button class="btn" id="wbErase" title="線に重ねてなぞると、その線を消します(E)">消しゴム</button>
     <button class="btn" id="wbImg" title="画像を置きます(Ctrl+V や ドラッグ&ドロップでも置けます)">画像</button>
     <button class="btn" id="wbUndo" title="自分が最後に描いたものを取り消します(Ctrl+Z)">元に戻す</button>
     <button class="btn" id="wbPng" title="いまの内容をPNGとして保存します">書き出し</button>
@@ -2705,7 +2713,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-853346e";
+const APP_VERSION = "2026.08.04-8f91207";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2768,7 +2776,7 @@ window.addEventListener("blur", flushSave);
 /* ================= 操作とショートカットの一覧 ================= */
 const KEYS_HELP = [
   ["全体", [
-    ["1〜5", "ビューを切り替える(一覧・シーン別・カード・ガント・サマリー)"],
+    ["1〜6", "ビューを切り替える(ガント・一覧・シーン別・カード・サマリー・ホワイトボード)"],
     ["D", "台本を開く / 閉じる"],
     ["Ctrl+Z(\u2318Z)", "元に戻す"],
     ["Ctrl+Shift+Z", "やり直す"],
@@ -2793,6 +2801,13 @@ const KEYS_HELP = [
     ["Shift+クリック", "複数選択する(空所のドラッグでも可)"],
     ["フェイズの \u25be", "配下を開閉する(Shift+クリックで全フェイズ)"],
     ["置き場からドラッグ", "日程未定のタスクに日程を与える(初期は5日間)"],
+  ]],
+  ["ホワイトボード", [
+    ["B / E / V", "ペン / 消しゴム / 選択(置いたものを動かす)"],
+    ["ドラッグ", "描く。選択中は、置いたものを動かす"],
+    ["Ctrl+V", "画像を貼り付ける(ドラッグ&ドロップでも置ける)"],
+    ["Ctrl+Z", "自分が最後に描いたものを取り消す"],
+    ["注意", "プロジェクトには保存されない。12時間で消える"],
   ]],
   ["共有", [
     ["ファイル \u25be", "「共有を開始…」で仲間を招く / 「共有プロジェクトを開く…」で参加する"],
@@ -6580,6 +6595,11 @@ document.addEventListener("keydown", e=>{
   const typing = ["input","textarea","select"].includes((e.target.tagName||"").toLowerCase()) || e.target.isContentEditable;
   /* 修飾キー無し・入力中でない・モーダルを開いていないときのショートカット:1〜6=ビュー切替、D=台本表示切替 */
   if(!mod && !typing && !document.querySelector(".overlay.open")){
+    /* ホワイトボードの道具。他のビューでは使わないキーなので、ここでだけ拾う */
+    if(document.body.dataset.view === "wb"){
+      const t = {b:"pen", e:"erase", v:"select"}[e.key.toLowerCase()];
+      if(t){ e.preventDefault(); wbSetTool(t); return; }
+    }
     if(e.key>="1" && e.key<="6"){
       const btn = document.querySelector(`#viewTabs [data-view="${["gantt","matrix","scene","kanban","summary","wb"][+e.key-1]}"]`);
       if(btn){ e.preventDefault(); btn.click(); }
@@ -6946,8 +6966,9 @@ const WB_IMG_MAX = 1280;                        /* 貼った画像はこの長�
 const WB_COLORS = ["#E5392C","#3B76C4","#4C9E7E","#E0A020","#2B2F35"];
 const WB_LS = "aa_pb_wb";
 let _wbItems = [], _wbImgs = {}, _wbBase = null, _wbScale = 1;
-let _wbColor = WB_COLORS[0], _wbWidth = 4, _wbErase = false;
+let _wbColor = WB_COLORS[0], _wbWidth = 4, _wbTool = "pen";   /* pen / erase / select */
 let _wbDrawing = null, _wbErasing = false, _wbSse = null;
+let _wbGrab = null;   /* 動かしている最中の {id, dx, dy} */
 
 const wbLocked = ()=> document.body.classList.contains("locked");
 const wbShared = ()=> syncEnabled() && !syncCfg.url.startsWith("mock://");
@@ -7065,6 +7086,7 @@ async function wbPush(it){
     const {id, ...rest} = it;
     const rec = await encryptJSON(rest, _syncKey);
     rec.t = it.t;   /* 期限切れの掃除を、復号しなくても判定できるように平文で置く */
+    rec.u = it.u || it.t;   /* 更新時刻。動かしたものが古い内容で上書きされないように、これで新旧を比べる */
     await fetch(wbUrl(`/items/${id}.json`),
       {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(rec)});
   }catch(e){ console.warn("[wb] push failed", e); }
@@ -7079,11 +7101,21 @@ async function wbClearRemote(){
 }
 async function wbDecodeInto(id, rec){
   if(!rec || !rec.ct || !rec.iv) return;
-  if(_wbItems.some(x=>x.id===id)) return;   /* 自分が書いたぶんのこだま */
+  const cur = _wbItems.find(x=>x.id===id);
+  /* 既に持っているものは、届いた方が新しいときだけ入れ替える。
+     こうしないと、動かした直後に自分の書き込みのこだまで元の位置へ戻ってしまう */
+  if(cur && (rec.u || rec.t || 0) <= (cur.u || cur.t || 0)) return;
   try{
     const it = await decryptJSON(rec, _syncKey);
-    it.id = id; it.t = rec.t || it.t || Date.now();
+    it.id = id; it.t = rec.t || it.t || Date.now(); it.u = rec.u || it.t;
     if(Date.now() - it.t > WB_TTL_MS) return;
+    if(cur){
+      const sameImg = cur.k === "i" && it.k === "i" && cur.d === it.d;
+      _wbItems[_wbItems.indexOf(cur)] = it;
+      if(sameImg) _wbImgs[id] = _wbImgs[id];   /* 中身が同じなら読み込み直さない(動かしただけのとき) */
+      else if(it.k === "i") wbLoadImage(it);
+      return;
+    }
     wbSortIn(it);
     if(it.k === "i") wbLoadImage(it);
   }catch(e){}
@@ -7133,27 +7165,52 @@ function wbPt(e){
   const c = $("wbCanvas"), r = c.getBoundingClientRect();
   return [(e.clientX - r.left) / r.width * WB_W, (e.clientY - r.top) / r.height * WB_H];
 }
-/* 消しゴムは点ではなく線ごと消す。1本を部分的に消すと、共有する単位が壊れるため */
-function wbEraseAt(pt){
-  const R = Math.max(10, _wbWidth * 3);
+/* その点にあるものを、上に載っているものから順に探す */
+function wbHit(pt, slack){
+  const R = Math.max(12, slack || 0);
   for(let i = _wbItems.length - 1; i >= 0; i--){
     const it = _wbItems[i];
-    let hit = false;
-    if(it.k === "i") hit = pt[0] >= it.x && pt[0] <= it.x + it.w && pt[1] >= it.y && pt[1] <= it.y + it.h;
-    else hit = (it.p||[]).some(p => Math.hypot(p[0]-pt[0], p[1]-pt[1]) < R);
-    if(hit){ wbRemove(it.id, true); return; }
+    if(it.k === "i"){
+      if(pt[0] >= it.x && pt[0] <= it.x + it.w && pt[1] >= it.y && pt[1] <= it.y + it.h) return it;
+    }else if((it.p||[]).some(p => Math.hypot(p[0]-pt[0], p[1]-pt[1]) < R)) return it;
   }
+  return null;
+}
+/* 消しゴムは点ではなく線ごと消す。1本を部分的に消すと、共有する単位が壊れるため */
+function wbEraseAt(pt){
+  const it = wbHit(pt, _wbWidth * 3);
+  if(it) wbRemove(it.id, true);
+}
+/* 置いたものを動かす。中身は変えず位置だけずらして、同じidで上書きする */
+function wbMoveItem(it, dx, dy){
+  if(it.k === "i"){ it.x += dx; it.y += dy; }
+  else it.p = (it.p||[]).map(p=>[p[0]+dx, p[1]+dy]);
 }
 function wbDown(e){
   if(wbLocked() || e.button !== 0) return;
   const pt = wbPt(e);
   try{ $("wbCanvas").setPointerCapture(e.pointerId); }catch(err){}
-  if(_wbErase){ _wbErasing = true; wbEraseAt(pt); return; }
+  if(_wbTool === "erase"){ _wbErasing = true; wbEraseAt(pt); return; }
+  if(_wbTool === "select"){
+    const it = wbHit(pt, 10);
+    if(!it) return;
+    _wbGrab = {id: it.id, last: pt};
+    document.body.classList.add("wbGrab");
+    return;
+  }
   _wbDrawing = {k:"s", c:_wbColor, w:_wbWidth, p:[pt]};
   wbPaint();
 }
 function wbMove(e){
   if(_wbErasing){ wbEraseAt(wbPt(e)); return; }
+  if(_wbGrab){
+    const pt = wbPt(e), it = _wbItems.find(x=>x.id===_wbGrab.id);
+    if(!it){ _wbGrab = null; return; }
+    wbMoveItem(it, pt[0]-_wbGrab.last[0], pt[1]-_wbGrab.last[1]);
+    _wbGrab.last = pt;
+    wbRebuild();
+    return;
+  }
   if(!_wbDrawing) return;
   const pt = wbPt(e), last = _wbDrawing.p[_wbDrawing.p.length-1];
   if(Math.hypot(pt[0]-last[0], pt[1]-last[1]) < 3) return;   /* 点を間引いて送信量を抑える */
@@ -7162,6 +7219,18 @@ function wbMove(e){
 }
 function wbUp(){
   _wbErasing = false;
+  if(_wbGrab){
+    const it = _wbItems.find(x=>x.id===_wbGrab.id);
+    _wbGrab = null;
+    document.body.classList.remove("wbGrab");
+    if(it){
+      if(it.k !== "i") it.p = it.p.map(p=>[Math.round(p[0]), Math.round(p[1])]);
+      else { it.x = Math.round(it.x); it.y = Math.round(it.y); }
+      it.u = Date.now();
+      wbSaveLocal(); wbPush(it);   /* 送るのは離したときだけ。動かしている間は送らない */
+    }
+    return;
+  }
   if(!_wbDrawing) return;
   const s = _wbDrawing; _wbDrawing = null;
   s.p = s.p.map(p=>[Math.round(p[0]), Math.round(p[1])]);
@@ -7230,6 +7299,14 @@ function wbExportPng(){
 }
 
 /* --- 組み立て --- */
+/* 道具は1つだけ選ばれている状態にする。ボタンとカーソルの見た目もここで揃える */
+function wbSetTool(t){
+  _wbTool = t;
+  document.body.dataset.wbtool = t;
+  const e = $("wbErase"), s = $("wbSelect");
+  if(e) e.classList.toggle("on", t === "erase");
+  if(s) s.classList.toggle("on", t === "select");
+}
 function wbShow(){ wbFit(); wbRenderCount(); }
 (function wbInit(){
   const pens = $("wbPens");
@@ -7239,10 +7316,9 @@ function wbShow(){ wbFit(); wbRenderCount(); }
   pens.addEventListener("click", e=>{
     const b = e.target.closest("button[data-c]");
     if(!b) return;
-    _wbColor = b.dataset.c; _wbErase = false;
-    document.body.classList.remove("wbErase");
-    $("wbErase").classList.remove("on");
+    _wbColor = b.dataset.c;
     pens.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+    wbSetTool("pen");   /* 色を選んだらペンに戻す */
   });
   $("wbWidth").addEventListener("click", e=>{
     const b = e.target.closest("button[data-w]");
@@ -7251,11 +7327,8 @@ function wbShow(){ wbFit(); wbRenderCount(); }
     $("wbWidth").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
     updateSegThumb($("wbWidth"));
   });
-  $("wbErase").onclick = ()=>{
-    _wbErase = !_wbErase;
-    $("wbErase").classList.toggle("on", _wbErase);
-    document.body.classList.toggle("wbErase", _wbErase);
-  };
+  $("wbErase").onclick = ()=>wbSetTool(_wbTool === "erase" ? "pen" : "erase");
+  $("wbSelect").onclick = ()=>wbSetTool(_wbTool === "select" ? "pen" : "select");
   $("wbUndo").onclick = wbUndo;
   $("wbClear").onclick = wbClear;
   $("wbPng").onclick = wbExportPng;
@@ -7286,6 +7359,7 @@ function wbShow(){ wbFit(); wbRenderCount(); }
   });
   new ResizeObserver(()=>{ if(document.body.dataset.view === "wb") wbFit(); }).observe(stage);
   wbLoadLocal();
+  wbSetTool("pen");
   _wbReady = true;
 })();
 
