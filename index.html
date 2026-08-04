@@ -652,26 +652,6 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 .kpi-tile{border-left:2px solid var(--line);padding:2px 0 2px 14px}
 .kpi-tile .num{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
 .kpi-tile .lbl{font-size:10.5px;color:var(--muted);letter-spacing:.04em;margin-top:2px}
-/* 止まっているもの。経過日数の長い順に並べ、1週間を超えたものだけ色を付ける */
-.sum-card h3 .cnt{font-size:10.5px;font-weight:700;color:var(--muted);background:var(--line2);
-  border-radius:99px;padding:1px 8px;margin-left:7px}
-.stuckRow{display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:12px;
-  border-bottom:1px solid var(--line2)}
-.stuckRow:last-child{border-bottom:0}
-.stuckRow .k{flex:none;font-size:10px;font-weight:700;color:var(--muted);
-  border:1px solid var(--line);border-radius:3px;padding:1px 6px;white-space:nowrap}
-.stuckRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
-.stuckRow .dt{flex:none;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;min-width:96px}
-.stuckRow .days{flex:none;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);min-width:44px;text-align:right}
-/* 期日を過ぎているものは行ごと赤字。日数だけ赤くしても、名前を追うときに気づけない */
-.stuckRow.hot .days{color:var(--imp);font-weight:700}
-.stuckRow.hot .nm{color:var(--imp)}
-.stuckRow.hot .dt{color:var(--imp);opacity:.8}
-.stuckRow.hot .k{color:var(--imp);border-color:var(--imp)}
-/* 受け取り済みは残すが、目線は未受領のほうへ向けたいので落ち着かせる */
-.stuckRow.isDone{opacity:.5}
-.stuckRow.isDone .nm{text-decoration:line-through}
-.stuckRow .days{min-width:66px}
 /* 工程別の積み上げバー(グレースケールの濃淡=マトリクスの進捗配色と同じ言語) */
 .stage-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-bottom:10px}
 .stage-bar i{display:block;height:100%;transition:width .4s}
@@ -712,7 +692,7 @@ body.dark .stg3{background:#F0F1F2}
 .field label.withAction button{font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0}
 .field label.withAction button:hover{text-decoration:underline}
 /* [type=text] で書くと、type を書いていない input(既定でtext)に当たらない。
-   マイルストーンの名称欄と期日欄が狭かったのはこれが原因。除外する型を並べる形にする */
+   date も対象外になる。除外する型を並べる形にすること */
 .field input:not([type=checkbox]):not([type=radio]):not([type=file]),
 .field select,.field textarea{width:100%}
 .field textarea{resize:vertical;min-height:60px}
@@ -1646,32 +1626,12 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 #view-gantt.vscrolled .rrow.ms,#view-gantt.vscrolled .lrow.ms{box-shadow:0 3px 6px -4px rgba(20,29,40,.35)}
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
 #view-gantt .dia{
-  position:absolute;width:9px;height:9px;background:var(--text);
+  position:absolute;width:9px;height:9px;background:var(--panel);
+  box-shadow:0 0 0 1.7px var(--text) inset;
   transform:rotate(45deg);border-radius:1px;cursor:grab;z-index:5;
-  transition:transform .12s,background .12s;
+  transition:transform .12s,box-shadow .12s;
 }
-#view-gantt .dia:hover{background:var(--accent);transform:translateY(-2px) rotate(45deg);z-index:9}
-/* 外部からの受け取り: 輪郭だけの菱形。自分たちの節目(塗り)と一目で区別できるようにする */
-#view-gantt .dia.msWait{background:var(--panel);box-shadow:0 0 0 1.6px var(--text) inset}
-#view-gantt .dia.msWait:hover{background:var(--panel);box-shadow:0 0 0 1.6px var(--accent) inset}
-/* 済んだものは落ち着かせる */
-#view-gantt .dia.msDone{opacity:.35}
-#view-gantt .msband.msDone{opacity:.4}
-#view-gantt .diaLbl.msDone{opacity:.45;text-decoration:line-through}
-/* 期日を過ぎてまだ届いていないもの。赤は重要度で使っているので色は変えず、
-   枠と文字を太くして示す(TODAY線より左にあること自体が「過ぎている」を語っている) */
-#view-gantt .dia.msWait.msLate{box-shadow:0 0 0 2.6px var(--text) inset}
-#view-gantt .diaLbl.msLate b{font-weight:800}
-#view-gantt .diaLbl.msLate span{color:var(--text);font-weight:700}
-/* 期間のマイルストーンも、受け取り待ちなら塗らずに枠線だけにする(単日の菱形と揃える) */
-#view-gantt .msband.msWait{
-  background:var(--panel);color:var(--text);
-  box-shadow:0 0 0 1.5px var(--text) inset, 0 0 0 1.5px var(--panel);
-}
-#view-gantt .msband.msWait:hover{filter:none;box-shadow:0 0 0 1.5px var(--accent) inset, 0 0 0 1.5px var(--panel),0 3px 8px rgba(20,29,40,.18)}
-#view-gantt .msband.msWait.msLate{
-  box-shadow:0 0 0 2.6px var(--text) inset, 0 0 0 1.5px var(--panel);
-}
+#view-gantt .dia:hover{box-shadow:0 0 0 1.7px var(--accent) inset;transform:translateY(-2px) rotate(45deg);z-index:9}
 #view-gantt .dia:active{cursor:grabbing}
 #view-gantt .dia .h{
   position:absolute;top:50%;width:6px;height:14px;cursor:ew-resize;z-index:1;
@@ -1686,11 +1646,13 @@ body.locked #view-gantt .dia .h{display:none}
 }
 #view-gantt .dia.stretching .h{transform:translateY(-50%) rotate(0deg)}
 #view-gantt .diaStem{position:absolute;width:1px;background:var(--stem);z-index:1;pointer-events:none}
+/* 塗りつぶすと、完了タスクのバー(同じ濃さの黒)と見分けが付かない。
+   枠だけにして「節目であってタスクではない」ことを形で示す */
 #view-gantt .msband{
-  position:absolute;height:18px;background:var(--text);border-radius:5px;
+  position:absolute;height:18px;background:var(--panel);border-radius:5px;
   cursor:grab;z-index:5;display:flex;align-items:center;gap:6px;padding:0 8px;
-  color:var(--bg);white-space:nowrap;overflow:hidden;
-  box-shadow:0 0 0 1.5px var(--panel); /* 同列に並んだバンド同士の切れ目 */
+  color:var(--text);white-space:nowrap;overflow:hidden;
+  box-shadow:0 0 0 1.6px var(--text) inset, 0 0 0 1.5px var(--panel);
   transition:transform .12s,filter .12s,box-shadow .12s;
 }
 #view-gantt .msband .mbwrap{
@@ -1698,16 +1660,19 @@ body.locked #view-gantt .dia .h{display:none}
   max-width:calc(100% - 16px);overflow:hidden;will-change:transform;
 }
 #view-gantt .msband .mbl{font-size:10px;font-weight:700;white-space:nowrap}
-#view-gantt .msband .mbd{font-size:9px;opacity:.7;white-space:nowrap}
-#view-gantt .msband:hover{filter:brightness(1.15);transform:translateY(-2px);box-shadow:0 0 0 1.5px var(--panel),0 3px 8px rgba(20,29,40,.28);z-index:9}
+#view-gantt .msband .mbd{font-size:9px;color:var(--muted);white-space:nowrap}
+#view-gantt .msband:hover{transform:translateY(-2px);box-shadow:0 0 0 1.6px var(--accent) inset,0 0 0 1.5px var(--panel),0 3px 8px rgba(20,29,40,.18);z-index:9}
 #view-gantt .msband:active{cursor:grabbing}
 #view-gantt .msband .h{position:absolute;top:0;width:8px;height:100%;cursor:ew-resize;z-index:1}
 #view-gantt .msband .h.l{left:-2px}
 #view-gantt .msband .h.r{right:-2px}
 body.locked #view-gantt .msband{cursor:pointer}
 body.locked #view-gantt .msband .h{display:none}
-#view-gantt .dia.imp3, #view-gantt .msband.imp3{background:var(--imp);color:#fff}
-#view-gantt .dia.imp2, #view-gantt .msband.imp2{background:var(--imp2);color:#332800}
+/* 重要度は枠の色で表す。塗ると、枠だけにした意味(完了バーと見分ける)が無くなる */
+#view-gantt .dia.imp3{box-shadow:0 0 0 1.7px var(--imp) inset}
+#view-gantt .dia.imp2{box-shadow:0 0 0 1.7px var(--imp2) inset}
+#view-gantt .msband.imp3{box-shadow:0 0 0 1.6px var(--imp) inset, 0 0 0 1.5px var(--panel);color:var(--imp)}
+#view-gantt .msband.imp2{box-shadow:0 0 0 1.6px var(--imp2) inset, 0 0 0 1.5px var(--panel);color:#8A6A00}
 #view-gantt .diaLbl.imp3 b{color:var(--imp)}
 #view-gantt .diaLbl.imp2 b{color:var(--imp2d)}
 #view-gantt .diaLbl{
@@ -2829,7 +2794,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-a14cc76";
+const APP_VERSION = "2026.08.04-ebc7528";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2970,7 +2935,6 @@ const KEYS_HELP = [
     ["Delete / X", "削除する"],
     ["Shift+クリック", "複数選択する(空所のドラッグでも可)"],
     ["フェイズの \u25be", "配下を開閉する(Shift+クリックで全フェイズ)"],
-    ["マイルストーン", "「外部からの受け取り」を選ぶと輪郭だけの菱形になる。受け取ったらチェックを入れる"],
     ["置き場からドラッグ", "日程未定のタスクに日程を与える(初期は5日間)"],
   ]],
   ["ホワイトボード", [
@@ -4808,37 +4772,6 @@ function renderSummary(){
       <span class="val">${d} / ${t}pt ・ ${items.length}件</span></div>`;
   }).join("");
 
-  /* マイルストーンと受け取り待ちは、性質が違うので別の表にする。
-     受け取り待ちは受け取り済みのものも残す(何が届いたかを確認したいため) */
-  const _t0 = isoToday();
-  const _ms = (state.milestones||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
-  const _dl = m => isoDiffDays(_t0, m.end||m.date);   /* 正=これから / 負=過ぎている */
-  const _period = m => m.end ? `${m.date} 〜 ${m.end}` : m.date;
-
-  const owns = _ms.filter(m=>m.kind!=="wait");
-  const ownRows = owns.length
-    ? owns.map(m=>{
-        const d = _dl(m), late = d < 0;
-        return `<div class="stuckRow${late?" hot":""}">
-          <span class="dt">${esc(_period(m))}</span>
-          <span class="nm">${esc(m.name)}</span>
-          <span class="days">${late?`${-d}日超過`:(d===0?"今日":`あと${d}日`)}</span>
-        </div>`;}).join("")
-    : `<div class="hint" style="margin:0">まだありません。</div>`;
-
-  const waits = _ms.filter(m=>m.kind==="wait");
-  const waitRows = waits.length
-    ? waits.map(m=>{
-        const d = _dl(m), late = !m.done && d < 0;
-        const st = m.done ? "受け取り済み" : (late ? `${-d}日超過` : (d===0?"今日":`あと${d}日`));
-        return `<div class="stuckRow${late?" hot":""}${m.done?" isDone":""}">
-          <span class="dt">${esc(_period(m))}</span>
-          <span class="nm">${esc(m.name)}</span>
-          <span class="days">${st}</span>
-        </div>`;}).join("")
-    : `<div class="hint" style="margin:0">まだありません。</div>`;
-  const waitLate = waits.filter(m=>!m.done && _dl(m) < 0).length;
-
   v.innerHTML = `<div class="sum-wrap">
     <div class="sum-hero">
       <div class="sum-ring" style="--pct:${pct}">
@@ -4852,16 +4785,6 @@ function renderSummary(){
         <div class="kpi-tile"><div class="num">${done} / ${total}</div><div class="lbl">完了pt(S=1/M=3/L=5)</div></div>
         <div class="kpi-tile"><div class="num">${stageCounts[1]+stageCounts[2]}</div><div class="lbl">進行中(制作中+実装完了)</div></div>
         <div class="kpi-tile"><div class="num">${stageCounts[0]}</div><div class="lbl">未着手</div></div>
-      </div>
-    </div>
-    <div class="sum-grid">
-      <div class="sum-card">
-        <h3>マイルストーン ${owns.length?`<span class="cnt">${owns.length}件</span>`:""}</h3>
-        ${ownRows}
-      </div>
-      <div class="sum-card">
-        <h3>受け取り待ち ${waits.length?`<span class="cnt">${waits.length}件${waitLate?` / 超過 ${waitLate}`:""}</span>`:""}</h3>
-        ${waitRows}
       </div>
     </div>
     <div class="sum-card">
@@ -8897,22 +8820,14 @@ function render(){
         stem.style.top=(lblTop+13)+"px";
         stem.style.height=Math.max(yMark-1-(lblTop+13),0)+"px";
         rms.appendChild(stem);
-        l=document.createElement("div");l.className="diaLbl"+impCls
-          +(it.m.kind==="wait"?" msWait":"")+(it.m.done?" msDone":"")
-          +((it.m.kind==="wait" && !it.m.done && parse(it.m.end||it.m.date)<today())?" msLate":"");
+        l=document.createElement("div");l.className="diaLbl"+impCls;
         l.dataset.mid=it.m.id; /* 同上 */
         l.style.left=it.lx+"px";l.style.top=lblTop+"px";
         l.innerHTML=`<b>${esc(it.m.name)}</b><span>${it.dstr}</span>`;
       }
-      /* 外部からの受け取り(kind:"wait")は輪郭だけの菱形にして、自分たちの節目と区別する。
-         受け取り済みなら落ち着かせ、期日を過ぎてまだ未受領なら目立たせる */
-      const isWait=it.m.kind==="wait";
-      const msDone=!!it.m.done;
-      const late=isWait && !msDone && parse(it.m.end||it.m.date) < today();
-      const kindCls=(isWait?" msWait":"")+(msDone?" msDone":"")+(late?" msLate":"");
       let d;
       if(it.isRange){
-        d=document.createElement("div");d.className="msband"+impCls+pastCls+kindCls;
+        d=document.createElement("div");d.className="msband"+impCls+pastCls;
         d.dataset.mid=it.m.id;
         d.style.left=it.bandL+"px";
         d.style.width=it.bandW+"px";
@@ -8921,7 +8836,7 @@ function render(){
         const inner=it.internal?`<span class="mbwrap"><span class="mbl">${esc(it.m.name)}</span><span class="mbd">${it.dstr}</span></span>`:"";
         d.innerHTML=inner+`<div class="h l"></div><div class="h r"></div>`;
       }else{
-        d=document.createElement("div");d.className="dia"+impCls+pastCls+kindCls;
+        d=document.createElement("div");d.className="dia"+impCls+pastCls;
         d.dataset.mid=it.m.id;
         d.style.left=(it.x-4.5)+"px";d.style.top=yMark+"px";
         d.title=`${it.m.name} (${it.m.date}) — ドラッグで移動 / 端をつまんで期間に変更`;
@@ -10491,19 +10406,6 @@ function openMsModal(m){
         <button type="button" data-imp="3" class="impBtn3 ${d.imp===3?"on":""}" title="重要(赤になります)">3</button>
       </div>
     </div>
-    <div class="field"><label>種類</label>
-      <div class="aiModeCards" id="mKindSeg">
-        <button type="button" data-k="own"${d.kind!=="wait"?' class="on"':''}>
-          <span class="amTitle">マイルストーン</span>
-          <span class="amDesc">台本FIX・α版など、こちらで達成するもの</span>
-        </button>
-        <button type="button" data-k="wait"${d.kind==="wait"?' class="on"':''}>
-          <span class="amTitle">受け取り待ち</span>
-          <span class="amDesc">素材・情報・監修戻しなど、相手を待つもの</span>
-        </button>
-      </div>
-    </div>
-    <label class="chk" id="mDoneRow"><input type="checkbox" id="mDone"${d.done?" checked":""}><span>受け取り済み</span></label>
     <div class="mFoot">
       ${isNew?"":`<button class="btn danger" id="mDel">削除</button>`}
       <div class="spacer"></div>
@@ -10511,14 +10413,7 @@ function openMsModal(m){
       <button class="btn primary" id="mSave">${isNew?"追加":"保存"}</button>
     </div>
   `);
-  let mImpVal=d.imp||1, mKind=d.kind==="wait"?"wait":"own";
-  const syncKindUI=()=>{
-    document.querySelectorAll("#mKindSeg button").forEach(b=>b.classList.toggle("on",b.dataset.k===mKind));
-    /* 「受け取り済み」は待っているものにしか意味が無い。マイルストーン側では出さない */
-    $("#mDoneRow").hidden = mKind!=="wait";
-  };
-  syncKindUI();
-  document.querySelectorAll("#mKindSeg button").forEach(b=>b.onclick=()=>{ mKind=b.dataset.k; syncKindUI(); });
+  let mImpVal=d.imp||1;
   document.querySelectorAll("#mImpSeg button").forEach(b=>b.onclick=()=>{
     mImpVal=+b.dataset.imp;
     document.querySelectorAll("#mImpSeg button").forEach(x=>x.classList.toggle("on",x===b));
@@ -10543,15 +10438,11 @@ function openMsModal(m){
       const nm={id:uid(),name,date};
       if(end)nm.end=end;
       if(imp>1)nm.imp=imp;
-      if(mKind==="wait")nm.kind="wait";
-      if(mKind==="wait"&&$("#mDone").checked)nm.done=true;
       data.milestones.push(nm);
     }else{
       Object.assign(m,{name,date});
       if(end)m.end=end;else delete m.end;
       if(imp>1)m.imp=imp;else delete m.imp;
-      if(mKind==="wait")m.kind="wait";else delete m.kind;
-      if(mKind==="wait"&&$("#mDone").checked)m.done=true;else delete m.done;
     }
     data.milestones.sort((a,b)=>a.date<b.date?-1:1);
     scheduleSave();closeModal();render();
