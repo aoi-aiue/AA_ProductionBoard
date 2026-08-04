@@ -1739,7 +1739,9 @@ body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
   transform:rotate(45deg);border-radius:1px;cursor:grab;z-index:5;
   transition:transform .12s,background .12s;
 }
-#view-gantt .dia:hover{background:var(--accent);transform:translateY(-2px) rotate(45deg);z-index:9}
+/* 色は変えない。重要度を色で表しているので、乗せただけで別の意味に見えてしまう。
+   浮かせるだけで「触れる」ことは伝わる */
+#view-gantt .dia:hover{transform:translateY(-2px) rotate(45deg);z-index:9}
 #view-gantt .dia:active{cursor:grabbing}
 #view-gantt .dia .h{
   position:absolute;top:50%;width:6px;height:14px;cursor:ew-resize;z-index:1;
@@ -1780,7 +1782,7 @@ body.locked #view-gantt .dia .h{display:none}
 }
 #view-gantt .msband .mbl{font-size:10px;font-weight:700;white-space:nowrap}
 #view-gantt .msband .mbd{font-size:9px;opacity:.7;white-space:nowrap}
-#view-gantt .msband:hover{transform:translateY(-2px);--msFill:var(--accent);z-index:9}
+#view-gantt .msband:hover{transform:translateY(-2px);z-index:9}
 #view-gantt .msband:active{cursor:grabbing}
 /* 全体ビューでは1日が数pxまで詰まる。帯だけ18pxのままだと、単日の◆(9px)より
    ずっと太くて悪目立ちするので、高さを揃えて中の文字も出さない */
@@ -2932,7 +2934,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-18e62e8";
+const APP_VERSION = "2026.08.04-4b101ff";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
