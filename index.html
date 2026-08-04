@@ -2957,7 +2957,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-4b8daed";
+const APP_VERSION = "2026.08.04-d15dfdc";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -8783,13 +8783,13 @@ function calEventsOf(){
     /* バーと同じ塗り。以前はここだけ重要度で色を変えていて、バーと食い違っていた */
     const paint=barPaint(mems,{done:(t.stage||0)>=3,noAsg:noasg});
     const bg=paint.bg,color=paint.fg;
-    evs.push({isMs:false,name:t.name,start:parse(t.start),end:parse(t.end),bg,color,mem:mems[0]||null,cats,ref:t});
+    evs.push({isMs:false,name:t.name,start:parse(t.start),end:parse(t.end),bg,color,mem:mems[0]||null,cats,ref:t,imp:t.imp||1});
   }
   for(const m of data.milestones){
     const s=parse(m.date),e=m.end?parse(m.end):s;
     let bg=m.imp===3?"var(--imp)":m.imp===2?"var(--imp2)":"var(--text)";
     const color=m.imp===3?"#fff":m.imp===2?"#332800":"var(--bg)";
-    evs.push({isMs:true,name:m.name,start:s,end:e,bg,color,mem:null,cats:[],ref:m});
+    evs.push({isMs:true,name:m.name,start:s,end:e,bg,color,mem:null,cats:[],ref:m,imp:m.imp||1});
   }
   return evs;
 }
@@ -8834,8 +8834,13 @@ function renderCalendar(){
     weekEl.appendChild(numsEl);
     /* その週にかかるイベントだけを抽出し、簡易レーン割り当て(既存のマイルストーンレーンと同じ考え方)。
        マイルストーン(単日・期間とも)は常に最上段に来るよう、タスクより先にソートする */
+    /* 入り切らないぶんは下から溢れるので、上に置いたものが残る。
+       節目 → 重要度の高い順 → 早い順 の順に詰め、大事なものが「他N件」に隠れないようにする */
     const weekEvs=events.filter(e=>e.end>=weekStart&&e.start<=weekEnd)
-      .sort((a,b)=>(a.isMs===b.isMs?0:(a.isMs?-1:1))||a.start-b.start||(b.end-b.start)-(a.end-a.start));
+      .sort((a,b)=>(a.isMs===b.isMs?0:(a.isMs?-1:1))
+        ||(b.imp||1)-(a.imp||1)
+        ||a.start-b.start
+        ||(b.end-b.start)-(a.end-a.start));
     const lanesEnd=[];
     weekEvs.forEach(e=>{
       e._s=Math.max(0,Math.round((e.start-weekStart)/DAY));
