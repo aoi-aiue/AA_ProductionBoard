@@ -694,7 +694,8 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 .msRow .dt{flex:none;width:196px;font-size:11px;color:var(--text);font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 残り日数は日付のすぐ隣。日付と一続きで読めるようにする */
-.msRow .days{flex:none;width:64px;text-align:right;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+/* 日付のすぐ右。頭を「あと」で揃えたいので左寄せ、幅は固定して名前の頭を揃える */
+.msRow .days{flex:none;width:64px;text-align:left;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .msRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
 /* 過ぎたものは薄くする。色は付けない(重要度の赤と重複するため) */
 .msRow.past{opacity:.5}
@@ -1691,16 +1692,6 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 /* 左ペイン(#lclip)も実際にスクロールするので、sticky がそのまま効く */
 #view-gantt .lrow.ms{position:sticky;top:0;z-index:24;background:var(--panel);transition:none}
 #view-gantt.vscrolled .rrow.ms,#view-gantt.vscrolled .lrow.ms{box-shadow:0 3px 6px -4px rgba(20,29,40,.35)}
-/* フェイズ行はマイルストーン行の下に貼り付く。一覧ビューのカテゴリ見出しと同じ挙動。
-   マイルストーン行は中身によって高さが変わるので、実測した値を --msRowH に入れている。
-   z-index はマイルストーン行(24)より下にして、あちらが常に上に来るようにする */
-/* transition を残すと、貼り付いている間に背景や影が追いかけ続けてちらつく。
-   マイルストーン行(.lrow.ms)で同じことが起きて transition:none にしてある。それに倣う */
-#view-gantt .lrow.phase{position:sticky;top:var(--msRowH,0px);z-index:22;transition:none}
-#view-gantt .rrow.phase{position:sticky;top:calc(var(--headH) + var(--msRowH,0px));z-index:22;transition:none}
-/* 掴んで動かしている間は貼り付けない。止まったままだとドラッグに付いてこない */
-#view-gantt .lrow.phase.blockLift, #view-gantt .rrow.phase.blockLift,
-#view-gantt .lrow.phase.dragging, #view-gantt .rrow.phase.dragging{position:relative;z-index:26}
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
 /* 覆うのはツールバーより下だけ。上の道具は見えたままにして、
    「中身の領域だけがカレンダーに変わった」ように見せる(位置はJSで入れる) */
@@ -3001,7 +2992,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-1a54672";
+const APP_VERSION = "2026.08.04-c197c16";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -3195,13 +3186,17 @@ function diffCount(from, to){
   for(const id of A.keys()) if(!B.has(id)) del++;
   return {add, chg, del};
 }
+/* diffCount はタスクしか見ないので、シーン・メンバー・マイルストーン・台本などだけが
+   変わっているときに「変更なし」と出てしまう。文の本数も合わせて見て取りこぼさない */
 function diffText(from, to){
   const d = diffCount(from, to);
   const p = [];
   if(d.add) p.push(`追加 ${d.add}`);
   if(d.chg) p.push(`変更 ${d.chg}`);
   if(d.del) p.push(`削除 ${d.del}`);
-  return p.length ? p.join(" / ") : "変更なし";
+  if(p.length) return p.join(" / ");
+  const n = (typeof changeLines === "function") ? changeLines(from, to).length : 0;
+  return n ? `変更 ${n}箇所` : "変更なし";
 }
 /* ================= 変更履歴 =================
    世代どうしを比べて「何が変わったか」を日本語にする。
@@ -5075,8 +5070,8 @@ function renderSummary(){
         const end = m.end||m.date, d = isoDiffDays(_t0, end), late = d < 0;
         return `<div class="msRow${late?" past":""}">
           <span class="dt">${esc(msRange(m))}</span>
-          <span class="nm">${esc(m.name)}</span>
           <span class="days">${late?`${-d}日前`:(d===0?"今日":`あと${d}日`)}</span>
+          <span class="nm">${esc(m.name)}</span>
         </div>`;}).join("")
     : `<div class="hint" style="margin:0">まだありません。</div>`;
 
@@ -9860,9 +9855,6 @@ function render(){
     v.style.left=(ti*dayW+dayW/2)+"px";ov.appendChild(v);
   }
   rinner.appendChild(ov);
-  /* フェイズ行の貼り付き位置に使うので、次のフレームを待たずここで入れておく
-     (描画が間引かれる環境だと rAF が遅れ、貼り付き位置が0のままになる) */
-  updateMsRowH();
   requestAnimationFrame(()=>{
     const h=rinner.scrollHeight+"px";
     ov.style.height=h;bg.style.height=h;hc.style.height=h;
@@ -9870,7 +9862,6 @@ function render(){
     updateMonthLabels();
     updateMonthLabelPositions();
     updateTodayJump();
-    updateMsRowH();
     rebuildStickyCache();
     updateStickyBlabels();
   });
@@ -11254,12 +11245,6 @@ window.addEventListener("resize",()=>{if(zoom==="fit")render();updateTodayJump()
 /* position:stickyがスクロールコンテナとの相性で効かないことがあるため、バー内のアイコン/タスク名・
    月/年ラベルは、スクロールに合わせてJSで位置を計算して追従させる(read/writeを分離し、レイアウトを都度読まない) */
 let _stickyItems=null; /* render()のたびに再構築するキャッシュ。scroll中はこれを見るだけで、レイアウトを一切読まない */
-/* マイルストーン行の高さ。中に並ぶ節目の段数で変わるので、描画のたびに測って入れ直す。
-   フェイズ行はこの下に貼り付く */
-function updateMsRowH(){
-  const el=document.querySelector("#lbody .lrow.ms");
-  document.documentElement.style.setProperty("--msRowH",(el?Math.round(el.getBoundingClientRect().height):0)+"px");
-}
 function rebuildStickyCache(){
   _stickyItems=[];
   document.querySelectorAll("#rinner .bar").forEach(bar=>{
