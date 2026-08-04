@@ -1687,6 +1687,20 @@ body.calMode #view-gantt #calView{display:flex}
 #view-gantt .calWeekdays span{text-align:center}
 #view-gantt .calWeekdays .sat{color:var(--satTxt)}
 #view-gantt .calWeekdays .sun{color:var(--sunTxt)}
+/* カレンダー中はガント専用の道具を出さない。押しても何も起きないものが並んでいると迷う */
+/* id で display を持つものがあるので、こちらも id を足して勝てるようにする */
+body.calMode .chartOnly, body.calMode #btnFit, body.calMode #dayWStepper{display:none}
+#btnCalView.on{background:var(--text);color:var(--bg)}
+body.calMode #ganttTools .sep{display:none}
+body.calMode #unschedDock{display:none}
+/* 高さは画面いっぱいに広げ、週で等分する。あふれたぶんは「他N件」に逃がす */
+#view-gantt #calGrid{flex:1;min-height:0;display:flex;flex-direction:column}
+#view-gantt .calWeek{flex:1;min-height:0;overflow:hidden}
+/* 月をめくったとき、送った向きへ滑らせる */
+@keyframes calSlideFromR{from{opacity:0;transform:translateX(26px)} to{opacity:1;transform:none}}
+@keyframes calSlideFromL{from{opacity:0;transform:translateX(-26px)} to{opacity:1;transform:none}}
+#view-gantt #calGrid.slideNext{animation:calSlideFromR .18s ease-out}
+#view-gantt #calGrid.slidePrev{animation:calSlideFromL .18s ease-out}
 #view-gantt .calWeek{
   position:relative;border-bottom:1px solid var(--line2);
   background-image:linear-gradient(to right,var(--line2) 1px,transparent 1px);
@@ -2075,27 +2089,23 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   <!-- ここから下は「今見ているビューだけの設定」。共通のものと見分けがつくよう枠で囲う -->
   <div class="viewTools" id="viewTools">
   <div class="tgroup ganttOnly" id="ganttTools" title="ガントの表示設定です">
-    <span class="segLabel">表示</span>
-    <div class="seg" id="viewSeg" title="ガントと月表示を切り替えます">
-      <div class="seg-thumb noAnim"></div>
-      <button data-view="gantt" class="on">ガント</button>
-      <button data-view="cal">カレンダー</button>
-    </div>
-    <span class="segLabel">行の高さ</span>
-    <div class="seg" id="densSeg" title="タスク行の高さ(見やすさ)を切り替えます">
+    <span class="chartOnly segLabel">行の高さ</span>
+    <div class="seg chartOnly" id="densSeg" title="タスク行の高さ(見やすさ)を切り替えます">
       <div class="seg-thumb noAnim"></div>
       <button data-d="s">低</button>
       <button data-d="m" class="on">中</button>
       <button data-d="l">高</button>
     </div>
-    <span class="segLabel">列の幅</span>
-    <div class="scaleStepper" id="dayWStepper" title="1日あたりの表示幅を変更します">
+    <span class="chartOnly segLabel">列の幅</span>
+    <div class="scaleStepper chartOnly" id="dayWStepper" title="1日あたりの表示幅を変更します">
       <button id="dayWDown" title="縮小">−</button>
       <input id="dayWLabel" class="stepLabel" value="20px" title="数値を直接入力できます(Enterで確定)">
       <button id="dayWUp" title="拡大">＋</button>
       <button id="dayWReset" class="stepReset" title="標準(20px)に戻す">↺</button>
     </div>
-    <button class="btn solid" id="btnFit" title="1画面に全体を収めて表示します。この間はドラッグでの編集ができません">全体ビュー</button>
+    <button class="btn solid chartOnly" id="btnFit" title="1画面に全体を収めて表示します。この間はドラッグでの編集ができません">全体表示</button>
+    <div class="sep"></div>
+    <button class="btn" id="btnCalView" title="月ごとのカレンダーで見ます">カレンダー表示</button>
   </div>
   <div class="tgroup matrixOnly" title="タスクの並び順です。元(手動)=手動配置に戻します">
     <span class="segLabel">並び順</span>
@@ -2926,7 +2936,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-4d75b84";
+const APP_VERSION = "2026.08.04-dc41e93";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -8771,7 +8781,13 @@ function renderCalendar(){
   const todayStr=fmt(today());
   const dimPast=data.ui?.showToday!==false; /* ガントの「本日表示」と同じ設定に合わせて過去を薄くする */
   const ROW_H=22;
-  const MAX_LANES=6; /* 週ごとに高さがバラつくと見にくいため、どの週も同じ高さに揃える */
+  /* 何段出せるかは、実際に取れている高さから決める。窓の大きさに関わらず
+     枠いっぱいまで使い、入り切らないぶんは「他N件」に逃がす */
+  const NUM_H=24;   /* 日付の数字が占める高さ */
+  const gridH=grid.clientHeight||0;
+  const MAX_LANES=gridH
+    ? Math.max(1, Math.floor((gridH/weeks.length - NUM_H) / ROW_H))
+    : 6;
   for(const week of weeks){
     const weekStart=week[0],weekEnd=week[6];
     const weekEl=document.createElement("div");weekEl.className="calWeek";
@@ -8814,7 +8830,7 @@ function renderCalendar(){
     const visibleEvs=weekEvs.filter(e=>e._lane<cap);
     const hiddenCount=weekEvs.length-visibleEvs.length;
     const evLayer=document.createElement("div");evLayer.className="calEvents";
-    evLayer.style.height=(MAX_LANES*ROW_H+4)+"px";
+    evLayer.style.height=(MAX_LANES*ROW_H)+"px";
     visibleEvs.forEach(e=>{
       const bar=document.createElement("div");bar.className="calEventBar"+(e.isMs?" isMs":"");
       bar.style.left=(e._s/7*100)+"%";
@@ -8844,7 +8860,7 @@ function renderCalendar(){
     if(hiddenCount>0){
       const more=document.createElement("div");more.className="calMoreLabel";
       more.style.top=(cap*ROW_H)+"px";
-      more.textContent=`+${hiddenCount}件`;
+      more.textContent=`他${hiddenCount}件`;
       more.title=`他 ${hiddenCount} 件`;
       evLayer.appendChild(more);
     }
@@ -8854,7 +8870,7 @@ function renderCalendar(){
 }
 function setCalMode(on){
   if(on===calMode)return;
-  document.querySelectorAll("#viewSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.view==="cal")===on));
+  $("#btnCalView").classList.toggle("on",on);
   const outEl=on?$("#gantt"):$("#calView");
   const inEl=on?$("#calView"):$("#gantt");
   outEl.classList.add("viewFadeOut");
@@ -10888,11 +10904,24 @@ function setDensity(d){
 }
 document.querySelectorAll("#densSeg button").forEach(b=>b.onclick=()=>setDensity(b.dataset.d));
 /* ガント / カレンダーの切り替えと、月めくり */
-document.querySelectorAll("#viewSeg button").forEach(b=>b.onclick=()=>setCalMode(b.dataset.view==="cal"));
-$("#calPrev").onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);renderCalendar();};
-$("#calNext").onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1);renderCalendar();};
-$("#calToday").onclick=()=>{calMonth=new Date(today().getFullYear(),today().getMonth(),1);renderCalendar();};
-updateSegThumb($("#viewSeg"));
+$("#btnCalView").onclick=()=>setCalMode(!calMode);
+/* 月をめくったら、送った向きへ滑らせる。どちらへ動いたのかが分かるようにするため */
+function calGo(n){
+  calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+n,1);
+  renderCalendar();
+  const g=$("#calGrid");
+  if(!g||!g.classList)return;
+  g.classList.remove("slideNext","slidePrev");
+  void g.offsetWidth;   /* 連続で押したときに、アニメーションを頭から出し直す */
+  g.classList.add(n>0?"slideNext":"slidePrev");
+}
+$("#calPrev").onclick=()=>calGo(-1);
+$("#calNext").onclick=()=>calGo(1);
+$("#calToday").onclick=()=>{
+  const t=today(), cur=calMonth;
+  const n=(t.getFullYear()-cur.getFullYear())*12+(t.getMonth()-cur.getMonth());
+  if(n) calGo(n); else renderCalendar();
+};
 /* ガントチャート全体(メニューより下)の表示倍率。CSSのzoomで実際にレイアウトごと拡大縮小し、
    マウス座標から日付を逆算する各所の計算にはuiScaleで補正を掛けて整合させている(上のuiScale変数と連動) */
 function applyUiScale(){
