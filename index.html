@@ -3032,7 +3032,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-08ec49d";
+const APP_VERSION = "2026.08.04-09a75e6";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -6972,7 +6972,10 @@ $("wcMode").addEventListener("click", e=>{
   $("welcomeOverlay").classList.remove("open");
   if(b.dataset.w === "join"){
     openSyncModal("join");
-    $("syBoard").value = ""; syncModeUI();
+    /* この入口は「これから教わったプロジェクトを開く」場面。
+       前に使ったIDやパスワードが埋まっていると、そのまま押して別の所へ繋いでしまう */
+    $("syBoard").value = ""; $("syPass").value = "";
+    syncModeUI();
   }else{
     blankBoard();
   }
