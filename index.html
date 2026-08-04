@@ -1051,7 +1051,9 @@ body.locked #view-gantt .grip{opacity:0 !important}
    地続きに見える。下端の左右は擬似要素+box-shadowで外側へ膨らませ、Chromeのタブ形状にしている */
 #tabStrip{
   display:flex;align-items:center;gap:2px;
-  padding:4px 16px 0;background:var(--tabBand,#D8DDE3);   /* 右端をツールバーと揃える */
+  /* 右端はツールバーと揃える。左は、タブ自身が持つ余白(15px)のぶん手前から始めることで、
+     タブの文字の左端を「ファイル」の文字と揃える(12 + 15 = 27 = ファイルの文字位置) */
+  padding:4px 16px 0 12px;background:var(--tabBand,#D8DDE3);
   border-bottom:0;overflow:visible;
 }
 body.dark #tabStrip{background:#07090B}
@@ -1125,6 +1127,9 @@ body[data-view="wb"] .wbOnly{display:flex}
 #wbNote{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);
   background:var(--hover);border:1px solid var(--line);border-radius:6px;padding:5px 11px;flex:none}
 #wbCount{font-size:10.5px;color:var(--faint)}
+/* 期限と件数は補足なので、注意書きより一段落とす。件数があるときだけ仕切りを出す */
+#wbTtl{font-size:10.5px;color:var(--faint)}
+#wbCount:not(:empty){border-left:1px solid var(--line);margin-left:9px;padding-left:9px}
 #wbStage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
   background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 #wbCanvas{display:block;background:var(--panel);touch-action:none;cursor:crosshair}
@@ -1140,10 +1145,18 @@ body[data-wbtool="select"].wbGrab #wbCanvas{cursor:grabbing}
 .wbPens button{width:17px;height:17px;border-radius:99px;flex:none;padding:0;
   box-shadow:0 0 0 1px rgba(0,0,0,.14) inset}
 .wbPens button.on{box-shadow:0 0 0 1px var(--panel) inset, 0 0 0 2px var(--text)}
-#wbErase.on, #wbSelect.on{background:var(--text);color:var(--bg)}
+/* 道具はアイコンで並べる。選ばれているものだけ反転させる */
+.wbTools{display:flex;align-items:center;border:1px solid var(--line);border-radius:4px;
+  background:var(--panel);overflow:hidden;flex:none}
+.wbTools button{width:29px;height:26px;display:flex;align-items:center;justify-content:center;
+  color:#4B5157;transition:color .12s}
+.wbTools button + button{border-left:1px solid var(--line)}
+.wbTools button:hover{background:var(--hover);color:var(--text)}
+.wbTools button.on{background:var(--text);color:var(--bg)}
+body.dark .wbTools button{color:#A8AFBA}
 /* ロック中は描けない。他のビューと同じで、触れないものは触れないように見せる
    (書き出しだけは内容を変えないので残す) */
-body.locked #wbPens button, body.locked #wbWidth, body.locked #wbErase, body.locked #wbSelect,
+body.locked #wbPens button, body.locked #wbWidth, body.locked #wbTools,
 body.locked #wbImg, body.locked #wbUndo, body.locked #wbRedo, body.locked #wbClear,
 body.locked #wbLayerBtns{opacity:.4;pointer-events:none}
 .wbLayerBtns{display:flex;align-items:center;gap:6px}
@@ -1152,15 +1165,6 @@ body.locked #wbLayerBtns{opacity:.4;pointer-events:none}
   position:sticky;right:0;margin-left:auto;display:flex;align-items:center;gap:10px;
   background:var(--panel);padding-left:14px;
 }
-/* ロック中に操作しようとしたときだけ出す案内。鍵のすぐ下に出して、視線を鍵へ誘導する。
-   header は横スクロールのため overflow を持つ。中に置くと切られるので画面基準で出す(位置はJSで入れる) */
-#lockHint{
-  position:fixed;z-index:60;white-space:nowrap;
-  font-size:11px;font-weight:600;color:#B3401A;background:#FDF3EE;border:1px solid #F0D3C4;
-  border-radius:6px;padding:5px 11px;box-shadow:0 2px 8px rgba(20,29,40,.10);pointer-events:none;
-}
-#lockHint[hidden]{display:none}
-body.dark #lockHint{color:#F0A882;background:#3A2A22;border-color:#5A4034}
 /* 鍵そのものも点滅させる。文字だけだと、どこを押せばいいのか分からない。
    背景ごと変えて、視界の端でも気づく強さにしてある */
 @keyframes lockFlash{
@@ -1170,9 +1174,6 @@ body.dark #lockHint{color:#F0A882;background:#3A2A22;border-color:#5A4034}
   100% {box-shadow:0 0 0 0 rgba(214,76,31,0);   background:var(--line2)}
 }
 #btnEditMode.lockFlash{animation:lockFlash .55s ease 4}
-/* 案内も出た瞬間に少しだけ動かす。静かに現れると気づかれない */
-@keyframes lockHintIn{ from{opacity:0; transform:translateY(-5px)} to{opacity:1; transform:none} }
-#lockHint:not([hidden]){animation:lockHintIn .16s ease-out}
 /* 版の表示と更新の案内。普段は目立たせず、新しい版が出たときだけボタンを出す */
 #appVer{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
 #btnUpdate{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
@@ -1209,7 +1210,9 @@ body.dark #lockHint{color:#F0A882;background:#3A2A22;border-color:#5A4034}
 #syncState.warn{color:#B3401A;font-weight:600}
 body.dark #syncState.warn{color:#F0A882}
 /* 共有が切れているときの警告。#meBar と同じピル形にして、右上で浮かないようにする */
-#syncAlert{display:flex;align-items:center;margin:0 6px 4px 0;flex:none;cursor:pointer;
+/* 右端は「あとXX日」やナイトモードと揃える。ここに右余白を持たせると、その分だけ内側にずれる
+   (間隔は隣の #presenceBar / #meBar 側の左余白で作る) */
+#syncAlert{display:flex;align-items:center;margin:0 0 4px 0;flex:none;cursor:pointer;
   font-size:11px;font-weight:600;color:#B3401A;background:#FDF3EE;
   border:1px solid #F0D3C4;border-radius:99px;padding:3px 11px;white-space:nowrap}
 #syncAlert[hidden]{display:none}
@@ -1219,14 +1222,14 @@ body.dark #syncAlert:hover{background:#47332A}
 #syncState:hover{text-decoration:underline}
 /* タブ列は上だけ4pxの余白があるため、align-items:center だとその分だけ下にずれる。
    同じ4pxを下に足して、帯の見た目の中央に来るようにする */
-#presenceBar{display:flex;align-items:center;gap:3px;margin:0 0 4px 0;flex:none}
+#presenceBar{display:flex;align-items:center;gap:3px;margin:0 0 4px 6px;flex:none}
 #presenceBar[hidden]{display:none}
 .pzLbl{font-size:10px;color:var(--muted);margin-right:4px;letter-spacing:.02em;line-height:1}
 .pzAv{width:24px;height:24px;border-radius:50%;flex:none;object-fit:cover;display:block;
   border:2px solid var(--panel);box-sizing:border-box;box-shadow:0 0 0 1px rgba(20,29,40,.14)}
 /* 自分の表示。カウントダウンやトグルと同じ「角丸の塊」にして、右端が目でも揃って見えるようにする
    (素のテキストのままだと、同じ位置でも角丸の塗りより外に出て見える) */
-#meBar{display:flex;align-items:center;gap:6px;margin:0 0 4px 0;cursor:pointer;flex:none;
+#meBar{display:flex;align-items:center;gap:6px;margin:0 0 4px 6px;cursor:pointer;flex:none;
   background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:2px 10px 2px 3px}
 #meBar[hidden]{display:none}
 #meBar:hover{background:var(--hover)}
@@ -1951,6 +1954,23 @@ body.locked #view-gantt .phToggle{cursor:pointer}
     </div>
   </div>
   <div class="tgroup wbOnly" title="一時的なメモ書きの道具です">
+    <!-- 道具。ペンだけボタンが無く、色を選ぶと戻る仕様は分かりにくかったので3つ並べる -->
+    <div class="wbTools" id="wbTools">
+      <button type="button" data-t="pen" class="on" aria-label="ペン" title="ペン(B)">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M11.5 1.9l2.6 2.6-8 8-3.5.9.9-3.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          <path d="M10.1 3.3l2.6 2.6" stroke="currentColor" stroke-width="1.4"/></svg>
+      </button>
+      <button type="button" data-t="erase" aria-label="消しゴム" title="消しゴム(E)">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M6.4 13.3H13.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M9.4 2.7l3.9 3.9a1.2 1.2 0 0 1 0 1.7l-4.8 4.8a1.2 1.2 0 0 1-1.7 0L2.9 9.2a1.2 1.2 0 0 1 0-1.7l4.8-4.8a1.2 1.2 0 0 1 1.7 0z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" data-t="select" aria-label="選択" title="選択(V)">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M3.6 1.9l9 6.3-4.3.6-2.1 4z" fill="currentColor"/></svg>
+      </button>
+    </div>
     <div class="wbPens" id="wbPens"></div>
     <div class="seg" id="wbWidth" title="線の太さ">
       <div class="seg-thumb noAnim"></div>
@@ -1958,8 +1978,6 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <button data-w="4" class="on">中</button>
       <button data-w="9">太</button>
     </div>
-    <button class="btn" id="wbSelect" title="置いたものをドラッグで動かします(V)">選択</button>
-    <button class="btn" id="wbErase" title="線に重ねてなぞると、その線を消します(E)">消しゴム</button>
     <button class="btn" id="wbImg" title="画像を置きます(Ctrl+V や ドラッグ&ドロップでも置けます)">画像</button>
     <!-- 重なり順。選んでいるときだけ出す(何に効くのか分からない状態を作らないため) -->
     <span class="wbLayerBtns" id="wbLayerBtns" hidden>
@@ -2022,6 +2040,8 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <div id="wbNote">
         <span id="wbNoteTxt">一時的なメモです。共同作業者にはリアルタイムで同期されますが、プロジェクトには保存されません。</span>
         <span class="spacer"></span>
+        <!-- 期限は、消えてから聞かれても遅い。常に出しておく -->
+        <span id="wbTtl">描いてから12時間で消えます</span>
         <span id="wbCount"></span>
       </div>
       <div id="wbStage">
@@ -2306,9 +2326,6 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   </div>
 </div>
 <!-- data-nodismiss: どちらかを選ぶまで閉じない。閉じられると何も選んでいない画面に取り残される -->
-<!-- ロック中の案内。header の中に置くと、header が作る重なり文脈に閉じ込められて
-     本文の下に隠れてしまう。位置はJSで入れるので、置き場所はここでよい -->
-<div id="lockHint" hidden>ロック中です。この鍵を押すと編集できます</div>
 <div class="overlay" id="welcomeOverlay" data-nodismiss>
   <div class="modal" style="width:min(720px,94vw)">
     <h2 class="wcTitle"><img class="wcIcon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='10' height='8' rx='2' fill='%234A6FA5'/%3E%3Crect x='17' y='6' width='11' height='8' rx='2' fill='%237A5CA0'/%3E%3Crect x='4' y='18' width='17' height='8' rx='2' fill='%233E8A80'/%3E%3C/svg%3E" alt="">AA_ProductionBoard</h2>
@@ -2746,7 +2763,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-82e3ede";
+const APP_VERSION = "2026.08.04-d492d92";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2830,18 +2847,13 @@ if(!TOOLTIPS){
    「ドラッグしようとした」= 確実に止められた操作のときだけ知らせる */
 let _lockHintTimer = null;
 function flashLockHint(){
-  const btn = $("btnEditMode"), tip = $("lockHint");
-  if(!btn || !tip) return;
-  tip.hidden = false;
-  const r = btn.getBoundingClientRect();
-  tip.style.top = Math.round(r.bottom + 7) + "px";
-  /* 窓が狭くて鍵が右へ隠れているときでも、案内だけは画面内に残す */
-  tip.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + "px";
+  const btn = $("btnEditMode");
+  if(!btn) return;
   btn.classList.remove("lockFlash");
   void btn.offsetWidth;   /* 連続で操作されたときに、アニメーションを頭から出し直す */
   btn.classList.add("lockFlash");
   clearTimeout(_lockHintTimer);
-  _lockHintTimer = setTimeout(()=>{ tip.hidden = true; btn.classList.remove("lockFlash"); }, 2400);
+  _lockHintTimer = setTimeout(()=>btn.classList.remove("lockFlash"), 2400);
 }
 (function lockHintInit(){
   let sx = 0, sy = 0, armed = false;
@@ -2898,7 +2910,7 @@ const KEYS_HELP = [
     ["ドラッグ", "描く。選択中は、置いたものを動かす"],
     ["四隅のつまみ", "選んだ画像の大きさを変える(縦横比は保つ)"],
     ["上の丸いつまみ", "選んだ画像を回す(Shiftで15度ずつ)"],
-    ["前面へ / 背面へ", "選んだものの重なり順を変える(Ctrl+Shift+] / [)"],
+    ["前面へ / 背面へ", "選んだものの重なり順を変える(Ctrl+Shift+↑ / ↓)"],
     ["Delete", "選んだものを消す"],
     ["Ctrl+V", "画像を貼り付ける(ドラッグ&ドロップでも置ける)"],
     ["Ctrl+Z", "自分が最後に描いたものを取り消す"],
@@ -3137,14 +3149,23 @@ function setSyncStatus(txt, warn){
   const bad = warn || /^⚠/.test(txt);
   el.classList.toggle("warn", !!bad);
   el.style.cursor = txt ? "pointer" : "";
-  el.onclick = txt ? (()=>openSyncModal()) : null;
+  /* 異常時は「どちらから始めるか」の2択ではなく、直したい画面(ID+パスワード)をそのまま出す。
+     繋がらないと言われている人に、もう一段選ばせても意味がない */
+  el.onclick = txt ? (bad ? openSyncFix : (()=>openSyncModal())) : null;
   /* 異常のときだけ右上にも出す。フッターは視線が行かず、切れたまま編集し続けてしまうため */
   const al = $("syncAlert");
   if(al){
     al.hidden = !bad;
     al.textContent = bad ? txt : "";
-    al.onclick = ()=>openSyncModal();
+    al.onclick = openSyncFix;
   }
+}
+/* 繋がっていないときの入口。保存してあるプロジェクトIDを入れた状態で開き、
+   パスワード欄にカーソルを置く(直したいのはたいていパスワードなので) */
+function openSyncFix(){
+  openSyncModal("join");
+  const p = $("syPass");
+  if(p){ p.focus(); p.select(); }
 }
 
 /* --- 送信。persist() から呼ばれる(まとめて1回にするため遅延させる) --- */
@@ -6717,10 +6738,12 @@ document.addEventListener("keydown", e=>{
   const k = e.key.toLowerCase();
   /* ホワイトボードを見ている間の Ctrl+Z は、盤面ではなく落書きに効かせる */
   if(document.body.dataset.view === "wb"){
-    /* 重なり順。Googleスライドと同じ Cmd+Shift+] / [。
-       Shiftを押すと key は } { になるので、配列の位置で見る(キーボードの配列に左右されない) */
-    if(e.shiftKey && (e.code === "BracketRight" || e.code === "BracketLeft")){
-      e.preventDefault(); wbLayer(e.code === "BracketRight"); return;
+    /* 重なり順。Googleスライドと同じ Cmd+Shift+↑ / ↓。
+       ] [ でも効くようにしてある(Illustratorなどでそちらに慣れている人向け)。
+       Shiftを押すと括弧は } { になってしまうので、こちらはキーの配列位置で見る */
+    if(e.shiftKey){
+      if(e.key === "ArrowUp"   || e.code === "BracketRight"){ e.preventDefault(); wbLayer(true);  return; }
+      if(e.key === "ArrowDown" || e.code === "BracketLeft" ){ e.preventDefault(); wbLayer(false); return; }
     }
     if(k==="z" && !e.shiftKey){ e.preventDefault(); wbUndo(); return; }
     if((k==="z" && e.shiftKey) || k==="y"){ e.preventDefault(); wbRedoAct(); return; }
@@ -7568,9 +7591,8 @@ function wbExportPng(){
 function wbSetTool(t){
   _wbTool = t;
   document.body.dataset.wbtool = t;
-  const e = $("wbErase"), s = $("wbSelect");
-  if(e) e.classList.toggle("on", t === "erase");
-  if(s) s.classList.toggle("on", t === "select");
+  const box = $("wbTools");
+  if(box) box.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.t === t));
   if(t !== "select") _wbSel = null;   /* 選択ツールを離れたら選択も外す */
   wbUpdateLayerBtns();
   wbPaint();
@@ -7600,8 +7622,10 @@ function wbShow(){ wbFit(); wbRenderCount(); }
     $("wbWidth").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
     updateSegThumb($("wbWidth"));
   });
-  $("wbErase").onclick = ()=>wbSetTool(_wbTool === "erase" ? "pen" : "erase");
-  $("wbSelect").onclick = ()=>wbSetTool(_wbTool === "select" ? "pen" : "select");
+  $("wbTools").addEventListener("click", e=>{
+    const b = e.target.closest("button[data-t]");
+    if(b) wbSetTool(b.dataset.t);
+  });
   $("wbUndo").onclick = wbUndo;
   $("wbRedo").onclick = wbRedoAct;
   $("wbFront").onclick = ()=>wbLayer(true);
