@@ -1366,6 +1366,16 @@ body.dark #syncAlert:hover{background:#47332A}
 .bkRow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;
   text-align:left;padding:7px 10px;margin-bottom:5px;height:auto;line-height:1.5}
 .bkMeta{font-size:10px;color:var(--muted)}
+/* 変更履歴。1世代=1ブロックで、上に「いつ・誰が」、下に変わったところを並べる */
+#histBody{max-height:56vh;overflow:auto;margin-bottom:4px}
+.histRow{border-bottom:1px solid var(--line2);padding:10px 2px}
+.histRow:last-child{border-bottom:0}
+.histHead{display:flex;align-items:baseline;gap:10px;font-size:11.5px;margin-bottom:5px}
+.histHead .hAt{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.histHead .hBy{color:var(--muted)}
+.histHead .hNow{font-size:10px;color:var(--faint);border:1px solid var(--line);border-radius:99px;padding:1px 8px}
+.histList{margin:0;padding-left:18px;font-size:11.5px;color:var(--muted);line-height:1.85}
+.histList .more{color:var(--faint);list-style:none;margin-left:-14px}
 /* ようこそ画面。最初に目に入る画面なので、中央寄せで大きめに */
 /* .modal h2 の方が詳細度が高いので、h2 を含めて上書きしないと級数が効かない */
 /* 製品名なので、和文が混ざる本文とは切り離して Inter で組む。
@@ -2080,6 +2090,7 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <div class="mpSep" id="mpSepInfo"></div>
       <!-- いま開いているプロジェクトの確認・巻き戻し -->
       <button class="btn" id="miShareInfo" onclick="openSyncModal('info')" title="いま開いている共有プロジェクトのIDとパスワードを確認します" hidden>この共有プロジェクトの情報…</button>
+      <button class="btn" onclick="openHistModal()" title="誰がいつ何を変えたかを見ます">変更履歴…</button>
       <button class="btn" onclick="openBackupModal()" title="自動で取っている控えから、以前の状態に戻します">自動バックアップ…</button>
       <div class="mpSep"></div>
       <!-- 手元のパソコンとのやり取り -->
@@ -2488,6 +2499,18 @@ body.locked #view-gantt .phToggle{cursor:pointer}
 <!-- 初回だけ出る入口。作るのか、誰かのに参加するのかをまず選ぶ -->
 <!-- 接続中の新規作成。共有相手を巻き込むかどうかは、はっきり選ばせる -->
 <!-- 自動で取っている控えの一覧。ファイルメニューから開く -->
+<!-- 変更履歴。サーバーの世代どうしを比べて「誰がいつ何を変えたか」を出す -->
+<div class="overlay" id="histOverlay">
+  <div class="modal" style="width:min(760px,94vw)">
+    <h2>変更履歴</h2>
+    <p class="syncLead">サーバーに残っている世代(最大20件)を比べて、変わったところを並べます。</p>
+    <div id="histBody"><div class="hint">読み込み中…</div></div>
+    <div class="mFoot">
+      <div class="spacer"></div>
+      <button class="btn solid" type="button" onclick="document.getElementById('histOverlay').classList.remove('open')">閉じる</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="backupOverlay">
   <div class="modal" style="width:min(620px,94vw)">
     <h2>自動バックアップ</h2>
@@ -2976,7 +2999,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-9ed1c25";
+const APP_VERSION = "2026.08.04-11cf85b";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -3178,6 +3201,75 @@ function diffText(from, to){
   if(d.del) p.push(`削除 ${d.del}`);
   return p.length ? p.join(" / ") : "変更なし";
 }
+/* ================= 変更履歴 =================
+   世代どうしを比べて「何が変わったか」を日本語にする。
+   数(追加3/変更1)だけだと、何が起きたのか結局分からないため */
+const HIST_FIELDS = [
+  {k:"name",  label:"名前"},
+  {k:"start", label:"開始日"},
+  {k:"end",   label:"終了日"},
+  {k:"phase", label:"フェイズ"},
+  {k:"stage", label:"工程",   fmt:v=>STAGES[v||0] || "?"},
+  {k:"priority", label:"優先度", fmt:v=>({1:"低",2:"中",3:"高"})[v||1]},
+  {k:"size",  label:"作業量"},
+  {k:"cat",   label:"カテゴリ", fmt:(v,st)=>((st.cats||[]).find(c=>c.id===v)||{}).name || "なし"},
+  {k:"memo",  label:"メモ",   fmt:v=>v ? "あり" : "なし"},
+];
+const _histName = (list, id, key) => ((list||[]).find(x=>x.id===id)||{})[key||"name"] || "(不明)";
+function _histMembers(t, st){
+  const ns = (t.memberIds||[]).map(id=>_histName(st.members, id));
+  return t.noAsg ? "担当不要" : (ns.length ? ns.join("・") : "未割当");
+}
+/* from → to で変わったところを、読める文にして返す */
+function changeLines(from, to){
+  const out = [];
+  if(!from || !to) return out;
+  const push = t => { if(out.length < 40) out.push(t); };
+  if((from.project||"") !== (to.project||"")) push(`プロジェクト名を「${to.project||"(未設定)"}」に変更`);
+
+  const A = new Map((from.tasks||[]).map(t=>[t.id,t])), B = new Map((to.tasks||[]).map(t=>[t.id,t]));
+  for(const [id,t] of B) if(!A.has(id)) push(`タスク「${t.name||"(無題)"}」を追加`);
+  for(const [id,t] of A) if(!B.has(id)) push(`タスク「${t.name||"(無題)"}」を削除`);
+  for(const [id,b] of B){
+    const a = A.get(id); if(!a) continue;
+    const nm = b.name || a.name || "(無題)";
+    for(const f of HIST_FIELDS){
+      if(f.k === "name") continue;                    /* 名前の変更は下でまとめて出す */
+      if((a[f.k]??"") === (b[f.k]??"")) continue;
+      const fa = f.fmt ? f.fmt(a[f.k], from) : (a[f.k] || "なし");
+      const fb = f.fmt ? f.fmt(b[f.k], to)   : (b[f.k] || "なし");
+      push(`「${nm}」の${f.label} ${fa} → ${fb}`);
+    }
+    if((a.name||"") !== (b.name||"")) push(`タスク名「${a.name||"(無題)"}」→「${b.name||"(無題)"}」`);
+    const ma = _histMembers(a, from), mb = _histMembers(b, to);
+    if(ma !== mb) push(`「${nm}」の担当 ${ma} → ${mb}`);
+    const sa = (a.scenes||[]).length, sb = (b.scenes||[]).length;
+    if(sa !== sb) push(`「${nm}」の${unitName()}割当 ${sa}件 → ${sb}件`);
+  }
+  const pairs = [
+    ["milestones", "マイルストーン"],
+    ["scenes",     unitName()],
+    ["members",    "メンバー"],
+    ["cats",       "カテゴリ"],
+  ];
+  for(const [key,label] of pairs){
+    const X = new Map(((from[key])||[]).map(o=>[o.id,o])), Y = new Map(((to[key])||[]).map(o=>[o.id,o]));
+    for(const [id,o] of Y) if(!X.has(id)) push(`${label}「${o.name||"(無題)"}」を追加`);
+    for(const [id,o] of X) if(!Y.has(id)) push(`${label}「${o.name||"(無題)"}」を削除`);
+    for(const [id,o] of Y){
+      const q = X.get(id); if(!q) continue;
+      if((q.name||"") !== (o.name||"")) push(`${label}名「${q.name}」→「${o.name}」`);
+      if(key === "milestones" && ((q.date||"") !== (o.date||"") || (q.end||"") !== (o.end||"")))
+        push(`マイルストーン「${o.name}」の日付を変更`);
+    }
+  }
+  const fa = (from.phases||[]).join("\u0001"), fb = (to.phases||[]).join("\u0001");
+  if(fa !== fb) push("フェイズの構成を変更");
+  if((from.script||"") !== (to.script||"")) push("台本を編集");
+  if((from.eventDate||"") !== (to.eventDate||"")) push(`基準日 ${from.eventDate||"なし"} → ${to.eventDate||"なし"}`);
+  return out;
+}
+
 function loadBackups(){
   try{ return JSON.parse(localStorage.getItem(BACKUP_KEY) || "[]"); }catch(e){ return []; }
 }
@@ -6615,6 +6707,53 @@ function setupToolMenu(groupId, btnId, panelId){
   panel.querySelectorAll(".btn").forEach(b=>b.addEventListener("click", ()=>group.classList.remove("open")));
 }
 /* --- 巻き戻し --- */
+/* 世代を新しい順に並べ、1つ前との差を出す。
+   いまの内容 vs 最新の世代 も先頭に出す(まだ世代になっていない直近の変更が見えるように) */
+async function openHistModal(){
+  const box = $("histBody");
+  $("histOverlay").classList.add("open");
+  if(!syncEnabled()){
+    box.innerHTML = `<div class="hint">共有に接続しているときだけ使えます。</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="hint">読み込み中…</div>`;
+  const list = await historyList();
+  if(!list.length){
+    box.innerHTML = `<div class="hint">まだ世代がありません。<br>
+      (Firebaseのルールに <code>history</code> を追加していない場合も、ここは空のままになります)</div>`;
+    return;
+  }
+  /* 古い順に復号して、隣どうしを比べる */
+  const gens = [];
+  for(const h of list){
+    try{
+      const d = await decryptJSON({ct:h.ct, iv:h.iv}, _syncKey);
+      gens.push({at:h.at, by:(d && d.by) || "", st:(d && d.state) || d});
+    }catch(e){}
+  }
+  gens.sort((a,b)=> (a.at<b.at ? -1 : 1));
+  const rows = [];
+  /* いまの内容 = 最後の世代のあとの変更 */
+  const seq = gens.concat([{at:new Date().toISOString(), by:(syncCfg&&syncCfg.name)||"", st:state, now:true}]);
+  for(let i=seq.length-1; i>=1; i--){
+    const to = seq[i], from = seq[i-1];
+    const lines = changeLines(from.st, to.st);
+    if(!lines.length && !to.now) continue;
+    const who = to.by || "(名前なし)";
+    rows.push(`<div class="histRow">
+      <div class="histHead">
+        <span class="hAt">${esc(new Date(to.at).toLocaleString())}</span>
+        <span class="hBy">${esc(who)}</span>
+        ${to.now?`<span class="hNow">まだ世代になっていない分</span>`:""}
+      </div>
+      ${lines.length
+        ? `<ul class="histList">${lines.slice(0,12).map(t=>`<li>${esc(t)}</li>`).join("")}
+           ${lines.length>12?`<li class="more">ほか${lines.length-12}件</li>`:""}</ul>`
+        : `<div class="hint" style="margin:0">変更なし</div>`}
+    </div>`);
+  }
+  box.innerHTML = rows.length ? rows.join("") : `<div class="hint">差分が見つかりませんでした。</div>`;
+}
 function openBackupModal(){
   renderLocalBackups();
   $("syHist").innerHTML = syncEnabled()
