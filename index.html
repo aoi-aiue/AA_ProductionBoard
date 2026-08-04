@@ -126,15 +126,18 @@ body.themeSwitching,body.themeSwitching *{
   font-size:20px;font-weight:700;letter-spacing:.01em;color:var(--text);
   line-height:1.2;max-width:80vw;
 }
-#titleSub{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--faint);margin-top:1px}
+/* タイトル+ツール名の高さを偶数(38px)にしておく。奇数だと、この帯に置くものが
+   すべて0.5px単位の位置になり、丸められて上下どちらかへ寄って見える */
+#titleSub{font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--faint);margin-top:2px}
 #titleBar.hasImg #titleText{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.45)}
 #titleBar.hasImg #titleSub{color:rgba(255,255,255,.75);text-shadow:0 1px 3px rgba(0,0,0,.4)}
 #titleBtn:hover #titleText{opacity:.82}
 #titleBar.hasImg #titleBtn:hover #titleOverlay{background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.2) 55%,rgba(0,0,0,0) 100%)}
 /* 右上に縦並びで置く小物(進捗表示・暫定ボタン)のまとめ */
 #titleTools{
-  /* 右端はツールバーの padding(16px)に合わせる。ここだけ18pxで2pxずれていた */
-  position:absolute;top:10px;right:16px;z-index:2;
+  /* 右端はツールバーの padding(16px)に合わせる。ここだけ18pxで2pxずれていた。
+     縦は上からの固定値ではなく中央に置く(固定値だと、ヘッダー画像で高さが変わると崩れる) */
+  position:absolute;top:50%;transform:translateY(-50%);right:16px;z-index:2;
   display:flex;flex-direction:column;align-items:flex-end;gap:7px;
 }
 #titleMeta{
@@ -840,10 +843,12 @@ footer .spacer{flex:1}
 /* 開け閉めのタブ。ビュータブと同じ考え方で、開いているときだけ下の枠と地続きに見せる */
 /* タブは「突起」。左右の外側には帯を敷かず、後ろのガントがそのまま見えるようにする
    (Dock は当たり判定を持たせず、中の要素だけ押せるようにしてある) */
-#unschedDock{flex:none;display:flex;flex-direction:column;pointer-events:none}
+#unschedDock{position:relative;flex:none;display:flex;flex-direction:column;pointer-events:none}
 #unschedDock[hidden]{display:none}
 #unschedDock > *{pointer-events:auto}
-#unschedTab{align-self:flex-end;margin:0 16px -1px 0;position:relative;z-index:1;
+/* タブは高さを持たせない。行として場所を取ると、タブの左側に何も無い帯ができてしまう。
+   絶対配置で置き場のすぐ上に浮かせ、後ろのガントはそのまま見えるようにする */
+#unschedTab{position:absolute;right:16px;bottom:100%;margin-bottom:-1px;z-index:1;
   display:flex;align-items:center;gap:7px;padding:5px 14px 6px;
   font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap;
   background:var(--panel);border:1px solid var(--line);border-bottom-color:var(--panel);
@@ -2764,7 +2769,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-ceedb0b";
+const APP_VERSION = "2026.08.04-0746e16";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -7111,7 +7116,7 @@ const WB_TTL_MS = 12 * 60 * 60 * 1000;          /* これより古いものは�
 const WB_MAX_ITEMS = 400, WB_MAX_IMG = 20;
 const WB_IMG_MAX = 1280;                        /* 貼った画像はこの長辺まで縮める */
 /* 白は画像の上に書くために要る(暗い写真の上では黒が読めない) */
-const WB_COLORS = ["#E5392C","#3B76C4","#4C9E7E","#E0A020","#2B2F35","#FFFFFF"];
+const WB_COLORS = ["#2B2F35","#E5392C","#3B76C4","#4C9E7E","#E0A020","#FFFFFF"];
 const WB_LS = "aa_pb_wb";
 let _wbItems = [], _wbImgs = {}, _wbBase = null, _wbScale = 1;
 let _wbColor = WB_COLORS[0], _wbWidth = 4, _wbTool = "pen";   /* pen / erase / select */
