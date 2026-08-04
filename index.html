@@ -1674,8 +1674,10 @@ body.locked #view-gantt .dia .h{display:none}
   clip-path:polygon(var(--msEdge) 0, calc(100% - var(--msEdge)) 0, 100% 50%,
                     calc(100% - var(--msEdge)) 100%, var(--msEdge) 100%, 0 50%);
 }
-#view-gantt .msband::after{inset:0;background:var(--msLine)}
-#view-gantt .msband::before{inset:1.6px;background:var(--panel)}
+/* ::before → ::after の順に描かれる。外枠を先、内側の地を後に置くこと。
+   逆にすると外枠が内側を覆って真っ黒になる */
+#view-gantt .msband::before{inset:0;background:var(--msLine)}
+#view-gantt .msband::after{inset:1.6px;background:var(--panel)}
 #view-gantt .msband .mbwrap{
   position:relative;z-index:1;   /* 枠の擬似要素より前に出す */
   display:flex;align-items:center;gap:6px;
@@ -2816,7 +2818,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-ec4f12d";
+const APP_VERSION = "2026.08.04-7130cfd";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
