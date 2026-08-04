@@ -652,6 +652,16 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 .kpi-tile{border-left:2px solid var(--line);padding:2px 0 2px 14px}
 .kpi-tile .num{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
 .kpi-tile .lbl{font-size:10.5px;color:var(--muted);letter-spacing:.04em;margin-top:2px}
+/* マイルストーン一覧。日付を左に置き、桁が揃うよう幅を固定する */
+.sum-card h3 .cnt{font-size:10.5px;font-weight:700;color:var(--muted);background:var(--line2);
+  border-radius:99px;padding:1px 8px;margin-left:7px}
+.msRow{display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:12px;border-bottom:1px solid var(--line2)}
+.msRow:last-child{border-bottom:0}
+.msRow .dt{flex:none;min-width:150px;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+.msRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.msRow .days{flex:none;min-width:60px;text-align:right;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+/* 過ぎたものは薄くする。色は付けない(重要度の赤と重複するため) */
+.msRow.past{opacity:.5}
 /* 工程別の積み上げバー(グレースケールの濃淡=マトリクスの進捗配色と同じ言語) */
 .stage-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-bottom:10px}
 .stage-bar i{display:block;height:100%;transition:width .4s}
@@ -1646,22 +1656,34 @@ body.locked #view-gantt .dia .h{display:none}
 }
 #view-gantt .dia.stretching .h{transform:translateY(-50%) rotate(0deg)}
 #view-gantt .diaStem{position:absolute;width:1px;background:var(--stem);z-index:1;pointer-events:none}
-/* 塗りつぶすと、完了タスクのバー(同じ濃さの黒)と見分けが付かない。
-   枠だけにして「節目であってタスクではない」ことを形で示す */
+/* 角の丸い帯だとタスクのバーと同じ形になって紛らわしい。
+   左右の端をとがらせた菱形の帯にして、形だけで「節目」と分かるようにする。
+   枠線は box-shadow ではなく擬似要素2枚(外=枠の色 / 内=地の色)で作る。
+   box-shadow は clip-path で一緒に切られてしまい、とがった形に沿ってくれないため */
 #view-gantt .msband{
-  position:absolute;height:18px;background:var(--panel);border-radius:5px;
-  cursor:grab;z-index:5;display:flex;align-items:center;gap:6px;padding:0 8px;
+  position:absolute;height:18px;background:transparent;border-radius:0;
+  cursor:grab;z-index:5;display:flex;align-items:center;gap:6px;padding:0 14px;
   color:var(--text);white-space:nowrap;overflow:hidden;
-  box-shadow:0 0 0 1.6px var(--text) inset, 0 0 0 1.5px var(--panel);
-  transition:transform .12s,filter .12s,box-shadow .12s;
+  transition:transform .12s;
+  --msEdge:9px;   /* 端のとがりの長さ */
+  --msLine:var(--text);
 }
+#view-gantt .msband::after,
+#view-gantt .msband::before{
+  content:"";position:absolute;z-index:-1;
+  clip-path:polygon(var(--msEdge) 0, calc(100% - var(--msEdge)) 0, 100% 50%,
+                    calc(100% - var(--msEdge)) 100%, var(--msEdge) 100%, 0 50%);
+}
+#view-gantt .msband::after{inset:0;background:var(--msLine)}
+#view-gantt .msband::before{inset:1.6px;background:var(--panel)}
 #view-gantt .msband .mbwrap{
+  position:relative;z-index:1;   /* 枠の擬似要素より前に出す */
   display:flex;align-items:center;gap:6px;
-  max-width:calc(100% - 16px);overflow:hidden;will-change:transform;
+  max-width:calc(100% - 28px);overflow:hidden;will-change:transform;
 }
 #view-gantt .msband .mbl{font-size:10px;font-weight:700;white-space:nowrap}
 #view-gantt .msband .mbd{font-size:9px;color:var(--muted);white-space:nowrap}
-#view-gantt .msband:hover{transform:translateY(-2px);box-shadow:0 0 0 1.6px var(--accent) inset,0 0 0 1.5px var(--panel),0 3px 8px rgba(20,29,40,.18);z-index:9}
+#view-gantt .msband:hover{transform:translateY(-2px);--msLine:var(--accent);z-index:9}
 #view-gantt .msband:active{cursor:grabbing}
 #view-gantt .msband .h{position:absolute;top:0;width:8px;height:100%;cursor:ew-resize;z-index:1}
 #view-gantt .msband .h.l{left:-2px}
@@ -1671,8 +1693,8 @@ body.locked #view-gantt .msband .h{display:none}
 /* 重要度は枠の色で表す。塗ると、枠だけにした意味(完了バーと見分ける)が無くなる */
 #view-gantt .dia.imp3{box-shadow:0 0 0 1.7px var(--imp) inset}
 #view-gantt .dia.imp2{box-shadow:0 0 0 1.7px var(--imp2) inset}
-#view-gantt .msband.imp3{box-shadow:0 0 0 1.6px var(--imp) inset, 0 0 0 1.5px var(--panel);color:var(--imp)}
-#view-gantt .msband.imp2{box-shadow:0 0 0 1.6px var(--imp2) inset, 0 0 0 1.5px var(--panel);color:#8A6A00}
+#view-gantt .msband.imp3{--msLine:var(--imp);color:var(--imp)}
+#view-gantt .msband.imp2{--msLine:var(--imp2);color:#8A6A00}
 #view-gantt .diaLbl.imp3 b{color:var(--imp)}
 #view-gantt .diaLbl.imp2 b{color:var(--imp2d)}
 #view-gantt .diaLbl{
@@ -2794,7 +2816,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-ebc7528";
+const APP_VERSION = "2026.08.04-ec4f12d";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4772,6 +4794,19 @@ function renderSummary(){
       <span class="val">${d} / ${t}pt ・ ${items.length}件</span></div>`;
   }).join("");
 
+  /* マイルストーン一覧。期日順に並べ、過ぎているものは残り日数の代わりに超過日数を出す */
+  const _t0 = isoToday();
+  const msList = (state.milestones||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const msRows = msList.length
+    ? msList.map(m=>{
+        const end = m.end||m.date, d = isoDiffDays(_t0, end), late = d < 0;
+        return `<div class="msRow${late?" past":""}">
+          <span class="dt">${esc(m.end?`${m.date} 〜 ${m.end}`:m.date)}</span>
+          <span class="nm">${esc(m.name)}</span>
+          <span class="days">${late?`${-d}日前`:(d===0?"今日":`あと${d}日`)}</span>
+        </div>`;}).join("")
+    : `<div class="hint" style="margin:0">まだありません。</div>`;
+
   v.innerHTML = `<div class="sum-wrap">
     <div class="sum-hero">
       <div class="sum-ring" style="--pct:${pct}">
@@ -4786,6 +4821,10 @@ function renderSummary(){
         <div class="kpi-tile"><div class="num">${stageCounts[1]+stageCounts[2]}</div><div class="lbl">進行中(制作中+実装完了)</div></div>
         <div class="kpi-tile"><div class="num">${stageCounts[0]}</div><div class="lbl">未着手</div></div>
       </div>
+    </div>
+    <div class="sum-card">
+      <h3>マイルストーン ${msList.length?`<span class="cnt">${msList.length}件</span>`:""}</h3>
+      ${msRows}
     </div>
     <div class="sum-card">
       <h3>工程別</h3>
@@ -10729,8 +10768,8 @@ function rebuildStickyCache(){
 /* バーの左側の実際の余白(padding 8px + blabelのleft:6px = 14px)。ラベルはこの分だけ元々右に寄っているので、
    右端の余白を計算する際にもこの基準値を差し引く必要がある(これを忘れると余白が実質ゼロになってしまう) */
 const BLABEL_BASE_INSET=14;
-/* msbandの左右余白(padding 8px x 2辺 = 16px)。mbwrapはbarのblabelと違い追加のleftオフセットを持たないため14ではなく16 */
-const MSBAND_BASE_INSET=16;
+/* msbandの左右余白(padding 14px x 2辺 = 28px)。端をとがらせた分だけ内側に寄せてある */
+const MSBAND_BASE_INSET=28;
 /* フェイズ名は集計バーの左端から14pxの位置に置いてある。バーのラベルと同じ考え方 */
 const PHLABEL_BASE_INSET=14;
 function updateStickyBlabels(){
