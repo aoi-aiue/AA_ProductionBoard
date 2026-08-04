@@ -1192,13 +1192,14 @@ body.locked #wbLayerBtns{opacity:.4;pointer-events:none}
 }
 /* 鍵そのものも点滅させる。文字だけだと、どこを押せばいいのか分からない。
    背景ごと変えて、視界の端でも気づく強さにしてある */
+/* 0%と100%で background を指定しないこと。指定すると、鍵がいま持っている色から
+   いきなりその値へ飛んで、出だしがガクッとする(ロック中と解除中で地の色が違うため)。
+   中間だけ指定すれば、いまの色から色へ滑らかに往復する */
 @keyframes lockFlash{
-  0%   {box-shadow:0 0 0 0 rgba(214,76,31,.55); background:var(--line2)}
-  35%  {box-shadow:0 0 0 6px rgba(214,76,31,0); background:#D64C1F}
-  70%  {box-shadow:0 0 0 0 rgba(214,76,31,0);   background:var(--line2)}
-  100% {box-shadow:0 0 0 0 rgba(214,76,31,0);   background:var(--line2)}
+  0%,100%{box-shadow:0 0 0 0 rgba(214,76,31,0)}
+  45%    {box-shadow:0 0 0 5px rgba(214,76,31,.45); background:#D64C1F}
 }
-#btnEditMode.lockFlash{animation:lockFlash .55s ease 2}
+#btnEditMode.lockFlash{animation:lockFlash .3s ease 2}
 /* 版の表示と更新の案内。普段は目立たせず、新しい版が出たときだけボタンを出す */
 #appVer{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
 #btnUpdate{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
@@ -2780,7 +2781,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-85ae05c";
+const APP_VERSION = "2026.08.04-7dd21cf";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2870,7 +2871,7 @@ function flashLockHint(){
   void btn.offsetWidth;   /* 連続で操作されたときに、アニメーションを頭から出し直す */
   btn.classList.add("lockFlash");
   clearTimeout(_lockHintTimer);
-  _lockHintTimer = setTimeout(()=>btn.classList.remove("lockFlash"), 1200);   /* 0.55秒 x 2回ぶん */
+  _lockHintTimer = setTimeout(()=>btn.classList.remove("lockFlash"), 650);   /* 0.3秒 x 2回ぶん */
 }
 (function lockHintInit(){
   let sx = 0, sy = 0, armed = false;
