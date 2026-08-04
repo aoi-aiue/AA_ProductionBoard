@@ -1680,8 +1680,8 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
    「中身の領域だけがカレンダーに変わった」ように見せる(位置はJSで入れる) */
 #calOverlay{top:var(--calTop,120px)}
 /* ぴったり埋めると板が浮いて見えず、モーダルだと分からない。周りを空けて影を落とす */
-#calOverlay .calModal{width:min(1240px, calc(100vw - 140px));max-width:none;
-  height:calc(100vh - var(--calTop,120px) - 56px);max-height:none;
+#calOverlay .calModal{width:min(1560px, calc(100vw - 72px));max-width:none;
+  height:calc(100vh - var(--calTop,120px) - 34px);max-height:none;
   display:flex;flex-direction:column;padding:14px 18px 16px;
   box-shadow:0 18px 60px rgba(20,29,40,.28)}
 /* 開くときだけ軽く動かす。どこから出てきたのかが分かると、重なっていることが伝わる */
@@ -1689,6 +1689,10 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 @keyframes calModalIn{from{opacity:0;transform:translateY(10px) scale(.985)} to{opacity:1;transform:none}}
 #calOverlay.open{animation:calFadeIn .14s ease-out}
 #calOverlay.open .calModal{animation:calModalIn .18s cubic-bezier(.2,.8,.3,1)}
+@keyframes calFadeOut{from{opacity:1} to{opacity:0}}
+@keyframes calModalOut{from{opacity:1;transform:none} to{opacity:0;transform:translateY(8px) scale(.99)}}
+#calOverlay.closing{animation:calFadeOut .15s ease-in forwards}
+#calOverlay.closing .calModal{animation:calModalOut .15s ease-in forwards}
 #calOverlay #calView{display:flex;flex:1;min-height:0;flex-direction:column;overflow:hidden}
 #calOverlay .calHeader{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 #calOverlay .calHeader button{padding:5px 10px;border:1px solid var(--line);border-radius:4px;color:#4B5157}
@@ -2505,7 +2509,7 @@ body.locked #view-gantt .phToggle{cursor:pointer}
 </div>
 <!-- data-nodismiss: どちらかを選ぶまで閉じない。閉じられると何も選んでいない画面に取り残される -->
 <!-- カレンダー。CSSが #view-gantt 配下にスコープしてあるので、器ごとここに置いてある -->
-<div class="overlay" id="calOverlay"><div class="modal calModal" id="view-gantt-cal">
+<div class="overlay" id="calOverlay" data-nodismiss><div class="modal calModal" id="view-gantt-cal">
   <div class="calHeader">
     <button id="calPrev" aria-label="前の月">‹</button>
     <div id="calMonthLabel"></div>
@@ -2951,7 +2955,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-7b9d908";
+const APP_VERSION = "2026.08.04-f39b2ea";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -8885,17 +8889,27 @@ function renderCalendar(){
 }
 /* カレンダーはビューではなく、ガントの上に重ねて開く。
    ビュータブと同列に見せると「6つ目のビュー」に見えてしまうため */
+let _calCloseT=null;
 function setCalMode(on){
   const ov=document.getElementById("calOverlay");
   if(!ov)return;
   calMode=!!on;
-  /* ツールバーの下端を測って、そこから下だけを覆う */
-  const mp=document.getElementById("mainPane");
-  if(mp) ov.style.setProperty("--calTop", Math.round(mp.getBoundingClientRect().top)+"px");
-  ov.classList.toggle("open",calMode);
   const b=$("#btnCalView");
   if(b&&b.classList)b.classList.toggle("on",calMode);
-  if(calMode)renderCalendar();
+  if(calMode){
+    /* ツールバーの下端を測って、そこから下だけを覆う */
+    const mp=document.getElementById("mainPane");
+    if(mp) ov.style.setProperty("--calTop", Math.round(mp.getBoundingClientRect().top)+"px");
+    clearTimeout(_calCloseT);
+    ov.classList.remove("closing");
+    ov.classList.add("open");
+    renderCalendar();
+  }else{
+    /* 消えるところも見せる。いきなり消えると、戻ってきたのか閉じたのか分かりにくい */
+    ov.classList.add("closing");
+    clearTimeout(_calCloseT);
+    _calCloseT=setTimeout(()=>ov.classList.remove("open","closing"),150);
+  }
 }
 function render(){
   _barReg={};
@@ -10919,11 +10933,13 @@ document.querySelectorAll("#densSeg button").forEach(b=>b.onclick=()=>setDensity
 $("#btnCalView").onclick=()=>setCalMode(!document.getElementById("calOverlay").classList.contains("open"));
 $("#calClose").onclick=()=>setCalMode(false);
 /* Escapeや外側クリックで閉じられたときも、ボタンの押された見た目を戻す */
-new MutationObserver(()=>{
-  const open=document.getElementById("calOverlay").classList.contains("open");
-  calMode=open;
-  const b=$("#btnCalView"); if(b&&b.classList)b.classList.toggle("on",open);
-}).observe(document.getElementById("calOverlay"),{attributes:true,attributeFilter:["class"]});
+/* 外側クリックとEscapeも同じ道を通す。共通の閉じる処理だと消えるアニメーションが出せない */
+document.getElementById("calOverlay").addEventListener("click",e=>{
+  if(e.target.id==="calOverlay") setCalMode(false);
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && calMode){ e.stopPropagation(); setCalMode(false); }
+},true);
 /* 月をめくったら、送った向きへ滑らせる。どちらへ動いたのかが分かるようにするため */
 function calGo(n){
   calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+n,1);
