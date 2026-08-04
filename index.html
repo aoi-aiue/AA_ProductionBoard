@@ -147,6 +147,13 @@ body.themeSwitching,body.themeSwitching *{
 #titleBar.hasImg #titleMeta{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4)}
 #titleProg{padding:5px 13px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.02em;background:var(--hover);color:var(--text);border:1px solid var(--line)}
 #titleBar.hasImg #titleProg{background:rgba(0,0,0,.45);color:#fff;border:none;backdrop-filter:blur(2px)}
+/* 暗い画像の上では、黒い半透明を重ねても沈んで読めない。白地に黒字へ反転させる
+   (明るさは画像を読み込んだときに実測して darkImg を付けている) */
+#titleBar.hasImg.darkImg #titleProg,
+#titleBar.hasImg.darkImg #titleCountdown{
+  background:rgba(255,255,255,.92);color:#1A1D21;border:none;text-shadow:none;
+  box-shadow:0 1px 4px rgba(0,0,0,.35)}
+#titleBar.hasImg.darkImg #titleCountdown:hover{background:#fff}
 /* サンプル読み込みは暫定機能なので、通常のメニューには出さず右上に控えめな黄色で置いておく */
 /* タブ列の右端に置く。タイトルバーに重ねていた頃は他の表示に隠れてしまっていた */
 #btnSample{
@@ -843,7 +850,9 @@ footer .spacer{flex:1}
 /* 開け閉めのタブ。ビュータブと同じ考え方で、開いているときだけ下の枠と地続きに見せる */
 /* タブは「突起」。左右の外側には帯を敷かず、後ろのガントがそのまま見えるようにする
    (Dock は当たり判定を持たせず、中の要素だけ押せるようにしてある) */
-#unschedDock{position:relative;flex:none;display:flex;flex-direction:column;pointer-events:none}
+/* ガント内部には z-index を持つもの(バー=2 / TODAY線の層=26 など)がある。
+   置き場はそれより手前に置かないと、開いたときに中身がバーの後ろに潜ってしまう */
+#unschedDock{position:relative;z-index:40;flex:none;display:flex;flex-direction:column;pointer-events:none}
 #unschedDock[hidden]{display:none}
 #unschedDock > *{pointer-events:auto}
 /* タブは高さを持たせない。行として場所を取ると、タブの左側に何も無い帯ができてしまう。
@@ -2769,7 +2778,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-0746e16";
+const APP_VERSION = "2026.08.04-8a7ee72";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5823,8 +5832,30 @@ function applyTitleBar(){
   const has = !!state.headerImg;
   $("titleBar").classList.toggle("hasImg", has);
   $("hdrImg").src = has ? state.headerImg : "";
+  if(has) markDarkHeader(state.headerImg); else $("titleBar").classList.remove("darkImg");
   $("titleText").textContent = state.project || "プロジェクト名を設定";
   document.title = (state.project || "プロジェクト名を設定") + " - AA_ProductionBoard";
+}
+/* 右上の進捗・残り日数が乗る辺り(右側1/3)の明るさを測る。
+   暗ければ darkImg を付け、黒い半透明ではなく白地の表示に切り替える */
+function markDarkHeader(src){
+  const img = new Image();
+  img.onload = ()=>{
+    try{
+      const w = 24, h = 8, c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const ctx = c.getContext("2d");
+      /* 元画像の右1/3・上半分だけを縮めて描く(バッジが乗るのはこの範囲) */
+      ctx.drawImage(img, Math.round(img.width*0.66), 0, Math.round(img.width*0.34), Math.round(img.height*0.6), 0, 0, w, h);
+      const d = ctx.getImageData(0, 0, w, h).data;
+      let sum = 0;
+      for(let i = 0; i < d.length; i += 4) sum += 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
+      const lum = sum / (d.length/4);
+      $("titleBar").classList.toggle("darkImg", lum < 128);
+    }catch(e){ $("titleBar").classList.remove("darkImg"); }
+  };
+  img.onerror = ()=>$("titleBar").classList.remove("darkImg");
+  img.src = src;
 }
 /* ヘッダー画像は横長(21:6)にトリミング・縮小して保存する(Gantt側のreadHeaderImageFileと同じ) */
 function readHeaderImageFile(f){
