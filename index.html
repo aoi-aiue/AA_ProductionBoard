@@ -174,6 +174,8 @@ body.dark .seg button{color:#9AA2AC}
 /* ツールバーのグループ化(Ganttの.tgroup/.segLabelと同じ造形): ラベル付きの薄い背景ピルでボタンをまとめる。
    縦paddingは持たせず、高さは下の統一ルール(height:26px)に任せる */
 .tgroup{display:flex;align-items:center;gap:7px;padding:0 10px;border-radius:8px;background:var(--hover)}
+/* 道具の手前に置く小さな見出し。何を変える操作なのかを、触らなくても分かるようにする */
+.segLabel{font-size:10.5px;color:var(--faint);white-space:nowrap;flex:none;margin-right:-2px}
 /* 表示倍率ステッパー(Ganttの#scaleStepperと同じ) */
 .scaleStepper{display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--panel)}
 .scaleStepper button{padding:5px 8px;color:#4B5157;font-weight:700;line-height:1}
@@ -1921,6 +1923,14 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   <!-- ここから下は「今見ているビューだけの設定」。共通のものと見分けがつくよう枠で囲う -->
   <div class="viewTools" id="viewTools">
   <div class="tgroup ganttOnly" id="ganttTools" title="ガントの表示設定です">
+    <span class="segLabel">行の高さ</span>
+    <div class="seg" id="densSeg" title="タスク行の高さ(見やすさ)を切り替えます">
+      <div class="seg-thumb noAnim"></div>
+      <button data-d="s">低</button>
+      <button data-d="m" class="on">中</button>
+      <button data-d="l">高</button>
+    </div>
+    <span class="segLabel">列の幅</span>
     <div class="scaleStepper" id="dayWStepper" title="1日あたりの表示幅を変更します">
       <button id="dayWDown" title="縮小">−</button>
       <input id="dayWLabel" class="stepLabel" value="20px" title="数値を直接入力できます(Enterで確定)">
@@ -1928,12 +1938,6 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <button id="dayWReset" class="stepReset" title="標準(20px)に戻す">↺</button>
     </div>
     <button class="btn solid" id="btnFit" title="1画面に全体を収めて表示します。この間はドラッグでの編集ができません">全体ビュー</button>
-    <div class="seg" id="densSeg" title="タスク行の高さ(見やすさ)を切り替えます">
-      <div class="seg-thumb noAnim"></div>
-      <button data-d="s">低</button>
-      <button data-d="m" class="on">中</button>
-      <button data-d="l">高</button>
-    </div>
     <button class="btn" id="btnUnsched" title="日程未定タスクの置き場を表示/非表示します">日程未定タスク</button>
   </div>
   <div class="tgroup matrixOnly" title="タスクの並び順です。元(手動)=手動配置に戻します">
@@ -1956,12 +1960,12 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   <div class="tgroup wbOnly" title="一時的なメモ書きの道具です">
     <!-- 道具。ペンだけボタンが無く、色を選ぶと戻る仕様は分かりにくかったので3つ並べる -->
     <div class="wbTools" id="wbTools">
-      <button type="button" data-t="pen" class="on" aria-label="ペン" title="ペン(Q)">
+      <button type="button" data-t="pen" class="on" aria-label="ペン" title="ペン(Q / B)">
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           <path d="M11.5 1.9l2.6 2.6-8 8-3.5.9.9-3.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
           <path d="M10.1 3.3l2.6 2.6" stroke="currentColor" stroke-width="1.4"/></svg>
       </button>
-      <button type="button" data-t="select" aria-label="選択" title="選択(W)">
+      <button type="button" data-t="select" aria-label="選択" title="選択(W / V)">
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
           <path d="M3.6 1.9l9 6.3-4.3.6-2.1 4z" fill="currentColor"/></svg>
       </button>
@@ -2763,7 +2767,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-2847803";
+const APP_VERSION = "2026.08.04-4290e55";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2906,7 +2910,7 @@ const KEYS_HELP = [
     ["置き場からドラッグ", "日程未定のタスクに日程を与える(初期は5日間)"],
   ]],
   ["ホワイトボード", [
-    ["Q / W / E", "ペン / 選択(置いたものを動かす) / 消しゴム"],
+    ["Q / W / E", "ペン / 選択(置いたものを動かす) / 消しゴム(ペンは B、選択は V でも可)"],
     ["ドラッグ", "描く。選択中は、置いたものを動かす"],
     ["四隅のつまみ", "選んだ画像の大きさを変える(縦横比は保つ)"],
     ["上の丸いつまみ", "選んだ画像を回す(Shiftで15度ずつ)"],
@@ -6714,7 +6718,8 @@ document.addEventListener("keydown", e=>{
   if(!mod && !typing && !document.querySelector(".overlay.open")){
     /* ホワイトボードの道具。他のビューでは使わないキーなので、ここでだけ拾う */
     if(document.body.dataset.view === "wb"){
-      const t = {q:"pen", w:"select", e:"erase"}[e.key.toLowerCase()];
+      /* Q/W/E を正とするが、他のお絵かきツールに合わせた B(ペン)・V(選択)も受ける */
+      const t = {q:"pen", w:"select", e:"erase", b:"pen", v:"select"}[e.key.toLowerCase()];
       if(t){ e.preventDefault(); wbSetTool(t); return; }
       if((e.key === "Delete" || e.key === "Backspace") && _wbSel && !wbLocked()){
         e.preventDefault(); wbRemove(_wbSel, true); return;
