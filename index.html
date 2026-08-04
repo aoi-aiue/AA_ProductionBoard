@@ -1163,6 +1163,9 @@ body.dark #tabStrip{background:#07090B}
   /* 背景に transition を掛けないこと。切替の途中で半透明になり、帯の色が透けてちらつく */
   transition:color .12s;
 }
+/* キーボード操作の後などに青い枠(フォーカスリング)が出ていた。
+   選択中のタブは形と色で分かるので、ここでは出さない */
+#viewTabs button:focus-visible{outline:none}
 #viewTabs button:hover{background:rgba(255,255,255,.55);color:var(--text)}
 body.dark #viewTabs button:hover{background:rgba(255,255,255,.07)}
 /* 選択中: 下のツールバーと同じ色。両端を外へ膨らませて「繋がっている」形にする */
@@ -2996,7 +2999,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-e4fc894";
+const APP_VERSION = "2026.08.04-9b15c2c";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
