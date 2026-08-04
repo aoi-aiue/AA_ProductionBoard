@@ -884,6 +884,10 @@ footer{padding:4px 16px;border-top:1px solid var(--line);color:var(--faint);font
 footer > *{flex:none}
 footer .spacer{flex:1}
 #btnKeys{font-size:10.5px;padding:2px 9px;height:auto;line-height:1.7;border-radius:4px}
+/* 最終更新。押すと変更履歴が開く。状態表示の一種なので、ボタンらしい枠は出さない */
+#lastUpd{font-size:10.5px;color:var(--faint);background:none;border:0;padding:0;cursor:pointer}
+#lastUpd:hover{color:var(--text);text-decoration:underline}
+#lastUpd[hidden]{display:none}
 @media print{
   body{background:#fff;overflow:visible;display:block}
   #titleBar,header,footer,#scriptPane,.scene-edit{display:none !important}
@@ -2308,6 +2312,7 @@ body.locked #view-gantt .phToggle{cursor:pointer}
 <footer>
   <button class="btn" id="btnKeys" onclick="openKeysModal()" title="操作方法とショートカットの一覧">操作とショートカット</button>
   <span class="spacer"></span>
+  <button id="lastUpd" hidden title="最後にこのボードが更新された時刻と人です。押すと変更履歴を開きます"></button>
   <span id="saveState"></span>
   <span id="syncState" title="共有の状態"></span>
   <span id="appVer" title="いま開いている版"></span>
@@ -3027,7 +3032,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-85cef69";
+const APP_VERSION = "2026.08.04-08ec49d";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -3481,6 +3486,20 @@ async function remotePut(cfg, body){
 }
 
 /* 共有の状態表示。異常時は色を変え、押すと共有設定が開く(放置されないように) */
+/* 最終更新(いつ・誰が)。共有していないときは出しようがないので隠す。
+   押すと変更履歴が開く */
+function setLastUpdate(at, by){
+  const el = $("lastUpd");
+  if(!el) return;
+  const d = at ? new Date(at) : null;
+  if(!d || isNaN(d)){ el.hidden = true; return; }
+  const now = new Date();
+  const hm = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  const sameDay = d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+  el.textContent = `最終更新 ${sameDay ? hm : `${d.getMonth()+1}/${d.getDate()} ${hm}`}${by ? " " + by + "さん" : ""}`;
+  el.hidden = false;
+}
+$("lastUpd").onclick = ()=>{ if(typeof openHistModal === "function") openHistModal(); };
 function setSyncStatus(txt, warn){
   const el = $("syncState");
   if(!el) return;
@@ -3569,6 +3588,7 @@ async function doSyncPush(){
     await remotePut(syncCfg, prev ? {...meta, ...payload, prev} : {...meta, ...payload});
     pushBackup();
     setSyncStatus(`送信済み ${nowHM()}`);
+    setLastUpdate(meta.at, syncCfg.name || "");
   }catch(e){
     setSyncStatus("⚠ 送れませんでした(" + (e && e.message ? e.message.slice(0,40) : "原因不明") + ")");
     console.warn("[sync] push failed", e);
@@ -3607,6 +3627,7 @@ async function syncPull(opts){
     _skipNextPush = true;       /* 開いただけで送り返さない */
     renderAll();
     setSyncStatus(`読み込みました ${nowHM()}`);
+    setLastUpdate(cur.at, byName);
     return true;
   }catch(e){
     setSyncStatus("⚠ 読み込めませんでした");
@@ -3700,6 +3721,7 @@ async function applyRemote(d){
     _histLock = true; renderAll(); _histLock = false;
     pushBackup();
     setSyncStatus(byName ? `${byName}さんの変更を反映 ${nowHM()}` : `変更を反映 ${nowHM()}`);
+    setLastUpdate(d.at, byName);
   }catch(e){
     setSyncStatus("⚠ 受信した変更を読めませんでした");
     console.warn("[sync] apply failed", e);
@@ -3956,7 +3978,9 @@ async function initSync(){
     _syncPassword = pw;
     _syncKey = await deriveSyncKey(pw, c.boardId);
     setSyncStatus("接続しました");
-    await syncPull({});
+    /* 再読み込みで毎回「読み込みますか?」と聞かれるのが煩わしいので、
+       起動時の復帰では黙って共有側を採る。手で「共有から読み込む」を押したときは今まで通り確認する */
+    await syncPull({quiet:true});
     startSyncStream();   /* 以降は他の人の変更を自動で受け取る */
     wbOnSyncChange();    /* ホワイトボードも共有側に切り替える */
     startPresence();
@@ -7042,6 +7066,7 @@ $("sySOff").onclick = ()=>{
   wbOnSyncChange();
   syncCfg = null; _syncKey = null; _syncPassword = null; syncRev = 0;
   setSyncStatus("このパソコンのみ");
+  setLastUpdate(null);
   syncMenuState();
   $("syncOverlay").classList.remove("open");
   /* 繋がっていないのに前のプロジェクトが残っていると、まだ共有中だと思ってしまう。
