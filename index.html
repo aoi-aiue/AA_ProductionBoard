@@ -1678,10 +1678,12 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
 /* 覆うのはツールバーより下だけ。上の道具は見えたままにして、
    「中身の領域だけがカレンダーに変わった」ように見せる(位置はJSで入れる) */
-#calOverlay{top:var(--calTop,120px)}
+#calOverlay{top:var(--calTop,120px);--calGap:32px}
 /* ぴったり埋めると板が浮いて見えず、モーダルだと分からない。周りを空けて影を落とす */
-#calOverlay .calModal{width:min(1560px, calc(100vw - 72px));max-width:none;
-  height:calc(100vh - var(--calTop,120px) - 34px);max-height:none;
+/* 上下左右の隙間を同じ値にする。左右だけ広い・上下だけ狭い、が一番落ち着かない。
+   縦は短くなってよい(1週に出せる本数は高さから自動で決まる) */
+#calOverlay .calModal{width:calc(100vw - var(--calGap)*2);max-width:none;
+  height:calc(100vh - var(--calTop,120px) - var(--calGap)*2);max-height:none;
   display:flex;flex-direction:column;padding:14px 18px 16px;
   box-shadow:0 18px 60px rgba(20,29,40,.28)}
 /* 開くときだけ軽く動かす。どこから出てきたのかが分かると、重なっていることが伝わる */
@@ -2955,7 +2957,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-f39b2ea";
+const APP_VERSION = "2026.08.04-4b8daed";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
