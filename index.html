@@ -145,7 +145,9 @@ body.themeSwitching,body.themeSwitching *{
   font-size:11px;color:var(--muted);white-space:nowrap;
 }
 #titleBar.hasImg #titleMeta{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4)}
-#titleProg{padding:5px 13px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.02em;background:var(--hover);color:var(--text);border:1px solid var(--line)}
+/* 残り日数のバッジと同じ寸法にする(font-size・padding・角丸を揃える)。
+   別々の値を持っていたため、並べたときに大きさが違って見えていた */
+#titleProg{padding:3px 11px;border-radius:99px;font-size:11.5px;font-weight:700;letter-spacing:.02em;background:var(--line2);color:var(--text);border:1px solid var(--line)}
 #titleBar.hasImg #titleProg{background:rgba(0,0,0,.45);color:#fff;border:none;backdrop-filter:blur(2px)}
 /* 暗い画像の上では、黒い半透明を重ねても沈んで読めない。白地に黒字へ反転させる
    (明るさは画像を読み込んだときに実測して darkImg を付けている) */
@@ -840,7 +842,9 @@ footer .spacer{flex:1}
 /* 日程未定タスクの置き場(ガントビューの下) */
 /* 台本ペインと同じく、開閉はスライドで見せる。高さはJSで実測して入れる(CSSだけだと
    内容の高さが決まらずアニメーションできないため) */
-#unsched{flex:none;border-top:1px solid var(--line);background:var(--panel);
+/* 背景は板と同じ色にすると、後ろのガントと地続きに見えて境目が分からない。
+   一段違う色にして「下から出てくる引き出し」として読めるようにする */
+#unsched{flex:none;border-top:1px solid var(--line);background:var(--hover);
   display:flex;flex-direction:column;overflow:hidden;
   transition:height .28s ease, opacity .22s ease, border-top-color .28s ease}
 /* 閉じているときは境界線も消す(1pxが余白として残って見えるため) */
@@ -866,8 +870,8 @@ footer .spacer{flex:1}
 #unschedTab .cnt{font-size:10px;font-weight:700;background:var(--line2);color:var(--muted);
   border-radius:99px;padding:1px 7px}
 /* 開いているとき: 下の枠と地続きに見せる。閉じているときと違い、影は要らない */
-#unschedTab.on{color:var(--text);box-shadow:none}
-#unschedTab.on:hover{background:var(--panel);border-bottom-color:var(--panel)}
+#unschedTab.on{color:var(--text);box-shadow:none;background:var(--hover);border-bottom-color:var(--hover)}
+#unschedTab.on:hover{background:var(--hover);border-bottom-color:var(--hover)}
 #unschedList{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;overflow:auto}
 .usChip{display:inline-flex;align-items:center;gap:6px;max-width:260px;
   border:1px solid var(--line);border-radius:6px;background:var(--panel);
@@ -2778,7 +2782,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-8a7ee72";
+const APP_VERSION = "2026.08.04-36b6ae2";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10696,12 +10700,21 @@ function rebuildStickyCache(){
     const bl=band.querySelector(".mbwrap");
     if(bl)_stickyItems.push({el:band,bl,blW:bl.offsetWidth,cur:null,inset:MSBAND_BASE_INSET});
   });
+  /* フェイズ名も同じように追従させる。期間の長いフェイズだと、横に送った先で
+     いまどの区切りを見ているのか分からなくなるため。
+     ラベルは集計バーの兄弟だが、位置の基準に使うのは集計バーの left/width なのでこれで足りる */
+  document.querySelectorAll("#rinner .rrow.phase").forEach(row=>{
+    const bar=row.querySelector(".phaseSummaryBar"), bl=row.querySelector(".phaseSummaryLabel");
+    if(bar&&bl)_stickyItems.push({el:bar,bl,blW:bl.offsetWidth,cur:null,inset:PHLABEL_BASE_INSET*2});
+  });
 }
 /* バーの左側の実際の余白(padding 8px + blabelのleft:6px = 14px)。ラベルはこの分だけ元々右に寄っているので、
    右端の余白を計算する際にもこの基準値を差し引く必要がある(これを忘れると余白が実質ゼロになってしまう) */
 const BLABEL_BASE_INSET=14;
 /* msbandの左右余白(padding 8px x 2辺 = 16px)。mbwrapはbarのblabelと違い追加のleftオフセットを持たないため14ではなく16 */
 const MSBAND_BASE_INSET=16;
+/* フェイズ名は集計バーの左端から14pxの位置に置いてある。バーのラベルと同じ考え方 */
+const PHLABEL_BASE_INSET=14;
 function updateStickyBlabels(){
   if(!_stickyItems)return false;
   const scrollLeft=$("#rpane").scrollLeft;
