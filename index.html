@@ -1112,7 +1112,7 @@ body.dark .viewTools{background:rgba(255,255,255,.075);border-color:rgba(255,255
 .viewTools[hidden]{display:none}
 /* ビュー固有の道具は、そのビューを見ているときだけ出す(body[data-view]で切り替える)。
    ツールバーは1段のまま。溢れたら横スクロールするが、編集ロックとテーマは右端に貼り付くので見失わない */
-.ganttOnly,.matrixOnly{display:none}
+.ganttOnly,.matrixOnly,.wbOnly{display:none}
 body[data-view="gantt"] .ganttOnly{display:flex}
 /* ドロップダウンの中のガント専用項目は、他の項目と同じ「行」として並べる */
 .menuPanel .btn.ganttOnly{display:none}
@@ -1144,11 +1144,30 @@ body[data-wbtool="select"].wbGrab #wbCanvas{cursor:grabbing}
 /* ロック中は描けない。他のビューと同じで、触れないものは触れないように見せる
    (書き出しだけは内容を変えないので残す) */
 body.locked #wbPens button, body.locked #wbWidth, body.locked #wbErase, body.locked #wbSelect,
-body.locked #wbImg, body.locked #wbUndo, body.locked #wbClear{opacity:.4;pointer-events:none}
+body.locked #wbImg, body.locked #wbUndo, body.locked #wbRedo, body.locked #wbClear,
+body.locked #wbLayerBtns{opacity:.4;pointer-events:none}
+.wbLayerBtns{display:flex;align-items:center;gap:6px}
+.wbLayerBtns[hidden]{display:none}
 .headerRight{
   position:sticky;right:0;margin-left:auto;display:flex;align-items:center;gap:10px;
   background:var(--panel);padding-left:14px;
 }
+/* ロック中に操作しようとしたときだけ出す案内。鍵のすぐ下に出して、視線を鍵へ誘導する。
+   header は横スクロールのため overflow を持つ。中に置くと切られるので画面基準で出す(位置はJSで入れる) */
+#lockHint{
+  position:fixed;z-index:60;white-space:nowrap;
+  font-size:11px;font-weight:600;color:#B3401A;background:#FDF3EE;border:1px solid #F0D3C4;
+  border-radius:6px;padding:5px 11px;box-shadow:0 2px 8px rgba(20,29,40,.10);pointer-events:none;
+}
+#lockHint[hidden]{display:none}
+body.dark #lockHint{color:#F0A882;background:#3A2A22;border-color:#5A4034}
+/* 鍵そのものも短く光らせる。文字だけだと、どこを押せばいいのか分からない */
+@keyframes lockFlash{
+  0%,100%{box-shadow:0 0 0 0 rgba(179,64,26,0)}
+  30%    {box-shadow:0 0 0 3px rgba(179,64,26,.30)}
+  65%    {box-shadow:0 0 0 0 rgba(179,64,26,0)}
+}
+#btnEditMode.lockFlash{animation:lockFlash .85s ease 2}
 /* 版の表示と更新の案内。普段は目立たせず、新しい版が出たときだけボタンを出す */
 #appVer{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
 #btnUpdate{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
@@ -1937,13 +1956,20 @@ body.locked #view-gantt .phToggle{cursor:pointer}
     <button class="btn" id="wbSelect" title="置いたものをドラッグで動かします(V)">選択</button>
     <button class="btn" id="wbErase" title="線に重ねてなぞると、その線を消します(E)">消しゴム</button>
     <button class="btn" id="wbImg" title="画像を置きます(Ctrl+V や ドラッグ&ドロップでも置けます)">画像</button>
+    <!-- 重なり順。選んでいるときだけ出す(何に効くのか分からない状態を作らないため) -->
+    <span class="wbLayerBtns" id="wbLayerBtns" hidden>
+      <button class="btn" id="wbFront" title="選んでいるものを一番上へ">前面へ</button>
+      <button class="btn" id="wbBack" title="選んでいるものを一番下へ">背面へ</button>
+    </span>
     <button class="btn" id="wbUndo" title="自分が最後に描いたものを取り消します(Ctrl+Z)">元に戻す</button>
+    <button class="btn" id="wbRedo" title="取り消したものを戻します(Ctrl+Shift+Z)">やり直す</button>
     <button class="btn" id="wbPng" title="いまの内容をPNGとして保存します">書き出し</button>
     <button class="btn danger" id="wbClear" title="全員の画面から消えます">全消去</button>
   </div>
   </div><!-- /viewTools -->
   <!-- 編集ロックとテーマは右端に貼り付けておく。横に溢れてもスクロールで見失わないように -->
   <div class="headerRight">
+    <div id="lockHint" hidden>ロック中です。この鍵を押すと編集できます</div>
     <button class="themeToggle" id="btnEditMode" onclick="toggleEditMode()" title="オフの間は、マトリクスのセル操作・ドラッグ操作(誤って触れやすい部分)を無効にします。タスク名やシーン名のクリックでの編集は常に可能です" aria-label="編集ロック切替">
       <span class="ttIcon lock"><svg viewBox="0 0 14 14" width="11" height="11"><rect x="3" y="6.3" width="8" height="6" rx="1.2" fill="currentColor"/><path d="M4.3 6.3V4.5a2.7 2.7 0 0 1 5.4 0v1.8" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
       <span class="ttIcon unlock"><svg viewBox="0 0 14 14" width="11" height="11"><rect x="3" y="6.3" width="8" height="6" rx="1.2" fill="currentColor"/><path d="M4.3 6.3V4.5a2.7 2.7 0 0 1 5.2-1" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
@@ -1990,7 +2016,7 @@ body.locked #view-gantt .phToggle{cursor:pointer}
     <!-- 一時的なメモ書き。通話しながら図示するためのもので、プロジェクトには保存しない -->
     <section class="view" id="view-wb">
       <div id="wbNote">
-        <span id="wbNoteTxt">一時的なメモです。プロジェクトには保存されません</span>
+        <span id="wbNoteTxt">一時的なメモです。共同作業者にはリアルタイムで同期されますが、プロジェクトには保存されません。</span>
         <span class="spacer"></span>
         <span id="wbCount"></span>
       </div>
@@ -2713,7 +2739,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-8f91207";
+const APP_VERSION = "2026.08.04-8d69a00";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2773,6 +2799,64 @@ window.addEventListener("beforeunload", flushSave);
 window.addEventListener("pagehide", flushSave);
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden") flushSave(); });
 window.addEventListener("blur", flushSave);
+/* ================= マウスオーバーの説明(いったん止めている) =================
+   title は要素にもJSのテンプレートにも散らばっていて数が多い。属性を消して回るのではなく、
+   ポインタが乗った瞬間に data-tip へ退避させる。ネイティブの吹き出しは乗ってから
+   少し遅れて出るので、これで出なくなる。戻すときは TOOLTIPS を true にするだけ */
+const TOOLTIPS = false;
+if(!TOOLTIPS){
+  document.addEventListener("mouseover", e=>{
+    let el = e.target;
+    while(el && el !== document.body){
+      if(el.hasAttribute && el.hasAttribute("title")){
+        el.dataset.tip = el.getAttribute("title");
+        el.removeAttribute("title");
+      }
+      el = el.parentElement;
+    }
+  }, true);
+}
+
+/* ================= ロック中に操作しようとしたときの案内 =================
+   ロック中は黙って効かないだけなので、「壊れている」と思われないよう理由を出す。
+   ただし押しただけでは出さない。タスク名のクリックなどロック中でもできる操作があるため、
+   「ドラッグしようとした」= 確実に止められた操作のときだけ知らせる */
+let _lockHintTimer = null;
+function flashLockHint(){
+  const btn = $("btnEditMode"), tip = $("lockHint");
+  if(!btn || !tip) return;
+  tip.hidden = false;
+  const r = btn.getBoundingClientRect();
+  tip.style.top = Math.round(r.bottom + 7) + "px";
+  /* 窓が狭くて鍵が右へ隠れているときでも、案内だけは画面内に残す */
+  tip.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + "px";
+  btn.classList.remove("lockFlash");
+  void btn.offsetWidth;   /* 連続で操作されたときに、アニメーションを頭から出し直す */
+  btn.classList.add("lockFlash");
+  clearTimeout(_lockHintTimer);
+  _lockHintTimer = setTimeout(()=>{ tip.hidden = true; btn.classList.remove("lockFlash"); }, 2400);
+}
+(function lockHintInit(){
+  let sx = 0, sy = 0, armed = false;
+  document.addEventListener("pointerdown", e=>{
+    armed = document.body.classList.contains("locked")
+         && !!(e.target.closest && e.target.closest(".view, #unsched"));
+    sx = e.clientX; sy = e.clientY;
+  }, true);
+  document.addEventListener("pointermove", e=>{
+    if(!armed) return;
+    if(Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+    armed = false;
+    flashLockHint();
+  }, true);
+  document.addEventListener("pointerup", ()=>{ armed = false; }, true);
+  /* 一覧のセルは押した時点で何も起きないので、押されたらすぐ伝える */
+  document.addEventListener("click", e=>{
+    if(!document.body.classList.contains("locked")) return;
+    if(e.target.closest && e.target.closest(".mx-cell")) flashLockHint();
+  }, true);
+})();
+
 /* ================= 操作とショートカットの一覧 ================= */
 const KEYS_HELP = [
   ["全体", [
@@ -2805,8 +2889,13 @@ const KEYS_HELP = [
   ["ホワイトボード", [
     ["B / E / V", "ペン / 消しゴム / 選択(置いたものを動かす)"],
     ["ドラッグ", "描く。選択中は、置いたものを動かす"],
+    ["四隅のつまみ", "選んだ画像の大きさを変える(縦横比は保つ)"],
+    ["上の丸いつまみ", "選んだ画像を回す(Shiftで15度ずつ)"],
+    ["前面へ / 背面へ", "選んだものの重なり順を変える"],
+    ["Delete", "選んだものを消す"],
     ["Ctrl+V", "画像を貼り付ける(ドラッグ&ドロップでも置ける)"],
     ["Ctrl+Z", "自分が最後に描いたものを取り消す"],
+    ["Ctrl+Shift+Z", "取り消したものを戻す"],
     ["注意", "プロジェクトには保存されない。12時間で消える"],
   ]],
   ["共有", [
@@ -6599,6 +6688,9 @@ document.addEventListener("keydown", e=>{
     if(document.body.dataset.view === "wb"){
       const t = {b:"pen", e:"erase", v:"select"}[e.key.toLowerCase()];
       if(t){ e.preventDefault(); wbSetTool(t); return; }
+      if((e.key === "Delete" || e.key === "Backspace") && _wbSel && !wbLocked()){
+        e.preventDefault(); wbRemove(_wbSel, true); return;
+      }
     }
     if(e.key>="1" && e.key<="6"){
       const btn = document.querySelector(`#viewTabs [data-view="${["gantt","matrix","scene","kanban","summary","wb"][+e.key-1]}"]`);
@@ -6616,8 +6708,11 @@ document.addEventListener("keydown", e=>{
   }
   if(!mod || typing) return;
   const k = e.key.toLowerCase();
-  /* ホワイトボードを見ている間の Ctrl+Z は、盤面ではなく落書きを取り消す */
-  if(k==="z" && !e.shiftKey && document.body.dataset.view === "wb"){ e.preventDefault(); wbUndo(); return; }
+  /* ホワイトボードを見ている間の Ctrl+Z は、盤面ではなく落書きに効かせる */
+  if(document.body.dataset.view === "wb"){
+    if(k==="z" && !e.shiftKey){ e.preventDefault(); wbUndo(); return; }
+    if((k==="z" && e.shiftKey) || k==="y"){ e.preventDefault(); wbRedoAct(); return; }
+  }
   if(k==="z" && !e.shiftKey){ e.preventDefault(); undo(); }
   else if((k==="z" && e.shiftKey) || k==="y"){ e.preventDefault(); redo(); }
 });
@@ -6968,7 +7063,9 @@ const WB_LS = "aa_pb_wb";
 let _wbItems = [], _wbImgs = {}, _wbBase = null, _wbScale = 1;
 let _wbColor = WB_COLORS[0], _wbWidth = 4, _wbTool = "pen";   /* pen / erase / select */
 let _wbDrawing = null, _wbErasing = false, _wbSse = null;
-let _wbGrab = null;   /* 動かしている最中の {id, dx, dy} */
+let _wbGrab = null;   /* 動かす/大きさを変える/回す、いずれかの最中の情報 */
+let _wbSel = null;    /* 選択中のid(選択ツールのときだけ意味を持つ) */
+let _wbRedo = [];     /* 元に戻したもの。やり直すで戻す */
 
 const wbLocked = ()=> document.body.classList.contains("locked");
 const wbShared = ()=> syncEnabled() && !syncCfg.url.startsWith("mock://");
@@ -6990,10 +7087,30 @@ function wbFit(){
   _wbScale = scale * dpr;
   wbRebuild();
 }
+/* 画像の四隅(回転を反映した実際の位置)。左上→右上→右下→左下 */
+function wbCorners(it){
+  const cx = it.x + it.w/2, cy = it.y + it.h/2, a = it.r || 0;
+  const co = Math.cos(a), si = Math.sin(a);
+  return [[-it.w/2,-it.h/2],[it.w/2,-it.h/2],[it.w/2,it.h/2],[-it.w/2,it.h/2]]
+    .map(([dx,dy])=>[cx + dx*co - dy*si, cy + dx*si + dy*co]);
+}
+/* 回転している画像の当たり判定用に、点を「回っていない状態」へ戻す */
+function wbUnrotate(it, pt){
+  const cx = it.x + it.w/2, cy = it.y + it.h/2, a = -(it.r || 0);
+  const dx = pt[0]-cx, dy = pt[1]-cy;
+  return [cx + dx*Math.cos(a) - dy*Math.sin(a), cy + dx*Math.sin(a) + dy*Math.cos(a)];
+}
 function wbDrawItem(ctx, it){
   if(it.k === "i"){
     const img = _wbImgs[it.id];
-    if(img && img.complete && img.naturalWidth) ctx.drawImage(img, it.x, it.y, it.w, it.h);
+    if(!(img && img.complete && img.naturalWidth)) return;
+    if(it.r){
+      ctx.save();
+      ctx.translate(it.x + it.w/2, it.y + it.h/2);
+      ctx.rotate(it.r);
+      ctx.drawImage(img, -it.w/2, -it.h/2, it.w, it.h);
+      ctx.restore();
+    }else ctx.drawImage(img, it.x, it.y, it.w, it.h);
     return;
   }
   const p = it.p || [];
@@ -7024,10 +7141,50 @@ function wbPaint(){
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,c.width,c.height);
   if(_wbBase) ctx.drawImage(_wbBase, 0, 0);
-  if(_wbDrawing){ ctx.setTransform(_wbScale,0,0,_wbScale,0,0); wbDrawItem(ctx, _wbDrawing); }
+  ctx.setTransform(_wbScale,0,0,_wbScale,0,0);
+  if(_wbDrawing) wbDrawItem(ctx, _wbDrawing);
+  wbDrawSelection(ctx);   /* 選択の枠は確定分に焼き込まない(書き出しにも入れない) */
   const hint = $("wbHint");
   if(hint) hint.hidden = !!(_wbItems.length || _wbDrawing);
   wbRenderCount();
+}
+/* 選択中の画像に枠とつまみを出す。四隅=大きさ、上の丸=回転 */
+const WB_HANDLE = 9;     /* つまみの半径(論理座標) */
+const WB_ROT_ARM = 34;   /* 回転つまみを枠からどれだけ離すか */
+function wbSelItem(){ return _wbSel ? _wbItems.find(x=>x.id===_wbSel) : null; }
+function wbRotHandlePos(it){
+  const c = wbCorners(it), a = it.r || 0;
+  const midX = (c[0][0]+c[1][0])/2, midY = (c[0][1]+c[1][1])/2;
+  return [midX + Math.sin(a)*WB_ROT_ARM, midY - Math.cos(a)*WB_ROT_ARM];
+}
+function wbDrawSelection(ctx){
+  const it = wbSelItem();
+  if(!it || _wbTool !== "select") return;
+  const px = 1/_wbScale;   /* 拡大率に関わらず線の太さを一定に見せる */
+  ctx.save();
+  ctx.strokeStyle = "#3B76C4"; ctx.lineWidth = 1.6*px; ctx.setLineDash([5*px, 4*px]);
+  if(it.k === "i"){
+    const c = wbCorners(it);
+    ctx.beginPath(); ctx.moveTo(c[0][0], c[0][1]);
+    for(let i=1;i<4;i++) ctx.lineTo(c[i][0], c[i][1]);
+    ctx.closePath(); ctx.stroke();
+    ctx.setLineDash([]);
+    const rh = wbRotHandlePos(it);
+    const midX = (c[0][0]+c[1][0])/2, midY = (c[0][1]+c[1][1])/2;
+    ctx.beginPath(); ctx.moveTo(midX, midY); ctx.lineTo(rh[0], rh[1]); ctx.stroke();
+    ctx.fillStyle = "#fff";
+    for(const p of c){
+      ctx.beginPath(); ctx.rect(p[0]-WB_HANDLE/2, p[1]-WB_HANDLE/2, WB_HANDLE, WB_HANDLE);
+      ctx.fill(); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(rh[0], rh[1], WB_HANDLE/2+1, 0, 6.2832); ctx.fill(); ctx.stroke();
+  }else{
+    /* 線は大きさも角度も変えない(動かす・重なり順だけ)。範囲だけ点線で示す */
+    const xs = it.p.map(p=>p[0]), ys = it.p.map(p=>p[1]), m = (it.w||4)/2 + 4;
+    ctx.strokeRect(Math.min(...xs)-m, Math.min(...ys)-m,
+                   Math.max(...xs)-Math.min(...xs)+m*2, Math.max(...ys)-Math.min(...ys)+m*2);
+  }
+  ctx.restore();
 }
 function wbRenderCount(){
   const el = $("wbCount");
@@ -7037,13 +7194,23 @@ function wbRenderCount(){
   const note = $("wbNoteTxt");
   if(note) note.textContent = wbLocked()
     ? "ロック中は描けません。右上の鍵を外してください"
-    : "一時的なメモです。プロジェクトには保存されません";
+    : "一時的なメモです。共同作業者にはリアルタイムで同期されますが、プロジェクトには保存されません。";
 }
 
 /* --- 出し入れ --- */
-function wbSortIn(it){
-  _wbItems.push(it);
-  _wbItems.sort((a,b)=> a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+/* 描く順(=重なり順)。まず z、同じなら置いた順(idの先頭が時刻) */
+function wbResort(){
+  _wbItems.sort((a,b)=> ((a.z||0)-(b.z||0)) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+function wbSortIn(it){ _wbItems.push(it); wbResort(); }
+/* 選択中のものを最前面/最背面へ。zは連番でなくてよく、端を1つ超える値を入れるだけ */
+function wbLayer(front){
+  const it = wbSelItem();
+  if(!it || wbLocked()) return;
+  const zs = _wbItems.map(x=>x.z||0);
+  it.z = front ? Math.max(...zs) + 1 : Math.min(...zs) - 1;
+  it.u = Date.now();
+  wbResort(); wbRebuild(); wbSaveLocal(); wbPush(it);
 }
 function wbLoadImage(it){
   const img = new Image();
@@ -7053,6 +7220,7 @@ function wbLoadImage(it){
 }
 function wbAdd(it){
   it.id = wbNewId(); it.t = Date.now(); it.by = clientId();
+  _wbRedo.length = 0;   /* 新しく置いたら、やり直せる分は捨てる */
   if(_wbItems.length >= WB_MAX_ITEMS){ tellOnce("ホワイトボードがいっぱいです。「全消去」で消してから続けてください。"); return; }
   wbSortIn(it);
   if(it.k === "i") wbLoadImage(it);
@@ -7062,6 +7230,7 @@ function wbRemove(id, push){
   const i = _wbItems.findIndex(x=>x.id===id);
   if(i < 0) return;
   _wbItems.splice(i,1); delete _wbImgs[id];
+  if(_wbSel === id){ _wbSel = null; wbUpdateLayerBtns(); }
   wbRebuild(); wbSaveLocal();
   if(push) wbDel(id);
 }
@@ -7171,9 +7340,21 @@ function wbHit(pt, slack){
   for(let i = _wbItems.length - 1; i >= 0; i--){
     const it = _wbItems[i];
     if(it.k === "i"){
-      if(pt[0] >= it.x && pt[0] <= it.x + it.w && pt[1] >= it.y && pt[1] <= it.y + it.h) return it;
+      const q = wbUnrotate(it, pt);   /* 回っている画像は、回っていない状態に戻してから矩形で判定する */
+      if(q[0] >= it.x && q[0] <= it.x + it.w && q[1] >= it.y && q[1] <= it.y + it.h) return it;
     }else if((it.p||[]).some(p => Math.hypot(p[0]-pt[0], p[1]-pt[1]) < R)) return it;
   }
+  return null;
+}
+/* 選択中の画像のつまみに当たっているか。0〜3=四隅 / "r"=回転 */
+function wbHitHandle(pt){
+  const it = wbSelItem();
+  if(!it || it.k !== "i") return null;
+  const R = WB_HANDLE;
+  const rh = wbRotHandlePos(it);
+  if(Math.hypot(rh[0]-pt[0], rh[1]-pt[1]) < R) return "r";
+  const c = wbCorners(it);
+  for(let i=0;i<4;i++) if(Math.hypot(c[i][0]-pt[0], c[i][1]-pt[1]) < R) return i;
   return null;
 }
 /* 消しゴムは点ではなく線ごと消す。1本を部分的に消すと、共有する単位が壊れるため */
@@ -7192,10 +7373,22 @@ function wbDown(e){
   try{ $("wbCanvas").setPointerCapture(e.pointerId); }catch(err){}
   if(_wbTool === "erase"){ _wbErasing = true; wbEraseAt(pt); return; }
   if(_wbTool === "select"){
+    /* まずつまみ。枠の上でも中身を掴んだことにならないよう、こちらを先に見る */
+    const h = wbHitHandle(pt);
+    if(h !== null){
+      const it = wbSelItem();
+      _wbGrab = {id: it.id, mode: h === "r" ? "rot" : "size", corner: h, last: pt,
+                 w0: it.w, h0: it.h, r0: it.r || 0};
+      document.body.classList.add("wbGrab");
+      return;
+    }
     const it = wbHit(pt, 10);
-    if(!it) return;
-    _wbGrab = {id: it.id, last: pt};
+    _wbSel = it ? it.id : null;
+    wbUpdateLayerBtns();
+    if(!it){ wbPaint(); return; }
+    _wbGrab = {id: it.id, mode: "move", last: pt};
     document.body.classList.add("wbGrab");
+    wbPaint();
     return;
   }
   _wbDrawing = {k:"s", c:_wbColor, w:_wbWidth, p:[pt]};
@@ -7206,8 +7399,29 @@ function wbMove(e){
   if(_wbGrab){
     const pt = wbPt(e), it = _wbItems.find(x=>x.id===_wbGrab.id);
     if(!it){ _wbGrab = null; return; }
-    wbMoveItem(it, pt[0]-_wbGrab.last[0], pt[1]-_wbGrab.last[1]);
-    _wbGrab.last = pt;
+    if(_wbGrab.mode === "move"){
+      wbMoveItem(it, pt[0]-_wbGrab.last[0], pt[1]-_wbGrab.last[1]);
+      _wbGrab.last = pt;
+    }else if(_wbGrab.mode === "rot"){
+      const cx = it.x + it.w/2, cy = it.y + it.h/2;
+      let a = Math.atan2(pt[1]-cy, pt[0]-cx) + Math.PI/2;   /* つまみは上に付いているので90度ずらす */
+      if(e.shiftKey) a = Math.round(a / (Math.PI/12)) * (Math.PI/12);   /* Shiftで15度ずつ */
+      it.r = a;
+    }else{
+      /* 掴んだ隅の対角を固定したまま拡大縮小する。縦横比は保つ(参考画像が歪むと困るため) */
+      const g = _wbGrab, c = wbCorners(it), fixed = c[(g.corner + 2) % 4];
+      const a = it.r || 0, co = Math.cos(-a), si = Math.sin(-a);
+      const dx = pt[0]-fixed[0], dy = pt[1]-fixed[1];
+      const lx = dx*co - dy*si, ly = dx*si + dy*co;   /* 固定した隅から見た、回っていない状態での差 */
+      const k = Math.max(Math.abs(lx)/g.w0, Math.abs(ly)/g.h0, 20/Math.max(g.w0,g.h0));
+      const w = g.w0*k, h = g.h0*k;
+      const sx = (g.corner === 0 || g.corner === 3) ? -1 : 1;   /* 固定した隅から見て、どちらへ伸びるか */
+      const sy = (g.corner === 0 || g.corner === 1) ? -1 : 1;
+      const ox = sx*w/2, oy = sy*h/2;
+      const cxw = fixed[0] + ox*Math.cos(a) - oy*Math.sin(a);
+      const cyw = fixed[1] + ox*Math.sin(a) + oy*Math.cos(a);
+      it.w = w; it.h = h; it.x = cxw - w/2; it.y = cyw - h/2;
+    }
     wbRebuild();
     return;
   }
@@ -7225,7 +7439,11 @@ function wbUp(){
     document.body.classList.remove("wbGrab");
     if(it){
       if(it.k !== "i") it.p = it.p.map(p=>[Math.round(p[0]), Math.round(p[1])]);
-      else { it.x = Math.round(it.x); it.y = Math.round(it.y); }
+      else {
+        it.x = Math.round(it.x); it.y = Math.round(it.y);
+        it.w = Math.round(it.w); it.h = Math.round(it.h);
+        if(it.r) it.r = Math.round(it.r*1000)/1000; else delete it.r;
+      }
       it.u = Date.now();
       wbSaveLocal(); wbPush(it);   /* 送るのは離したときだけ。動かしている間は送らない */
     }
@@ -7236,12 +7454,27 @@ function wbUp(){
   s.p = s.p.map(p=>[Math.round(p[0]), Math.round(p[1])]);
   wbAdd(s);
 }
+/* 取り消せるのは自分が置いたものだけ。人のものが黙って消えると何が起きたか分からない */
 function wbUndo(){
   if(wbLocked()) return;
   const me = clientId();
   for(let i = _wbItems.length - 1; i >= 0; i--){
-    if(_wbItems[i].by === me){ wbRemove(_wbItems[i].id, true); return; }
+    if(_wbItems[i].by === me){
+      _wbRedo.push(JSON.parse(JSON.stringify(_wbItems[i])));   /* やり直す用に控えておく */
+      if(_wbSel === _wbItems[i].id) _wbSel = null;
+      wbRemove(_wbItems[i].id, true);
+      return;
+    }
   }
+}
+function wbRedoAct(){
+  if(wbLocked()) return;
+  const it = _wbRedo.pop();
+  if(!it) return;
+  it.u = Date.now();
+  wbSortIn(it);
+  if(it.k === "i") wbLoadImage(it);
+  wbRebuild(); wbSaveLocal(); wbPush(it);
 }
 async function wbClear(){
   if(wbLocked()) return;
@@ -7306,6 +7539,14 @@ function wbSetTool(t){
   const e = $("wbErase"), s = $("wbSelect");
   if(e) e.classList.toggle("on", t === "erase");
   if(s) s.classList.toggle("on", t === "select");
+  if(t !== "select") _wbSel = null;   /* 選択ツールを離れたら選択も外す */
+  wbUpdateLayerBtns();
+  wbPaint();
+}
+/* 重なり順のボタンは、選んでいるときだけ出す */
+function wbUpdateLayerBtns(){
+  const box = $("wbLayerBtns");
+  if(box) box.hidden = !(_wbTool === "select" && _wbSel);
 }
 function wbShow(){ wbFit(); wbRenderCount(); }
 (function wbInit(){
@@ -7330,6 +7571,9 @@ function wbShow(){ wbFit(); wbRenderCount(); }
   $("wbErase").onclick = ()=>wbSetTool(_wbTool === "erase" ? "pen" : "erase");
   $("wbSelect").onclick = ()=>wbSetTool(_wbTool === "select" ? "pen" : "select");
   $("wbUndo").onclick = wbUndo;
+  $("wbRedo").onclick = wbRedoAct;
+  $("wbFront").onclick = ()=>wbLayer(true);
+  $("wbBack").onclick = ()=>wbLayer(false);
   $("wbClear").onclick = wbClear;
   $("wbPng").onclick = wbExportPng;
   $("wbImg").onclick = ()=>$("wbFile").click();
