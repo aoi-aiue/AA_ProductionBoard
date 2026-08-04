@@ -2767,7 +2767,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-4290e55";
+const APP_VERSION = "2026.08.04-b079cfc";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2888,6 +2888,7 @@ const KEYS_HELP = [
     ["Ctrl+Z(\u2318Z)", "元に戻す"],
     ["Ctrl+Shift+Z", "やり直す"],
     ["Escape", "モーダルを閉じる / 台本の全画面を抜ける"],
+    ["L", "編集ロックの切り替え(右上の鍵と同じ)"],
     ["右上の鍵", "編集ロック。オンの間はドラッグやセル操作を止める(起動時は必ずオン)"],
   ]],
   ["一覧・シーン別", [
@@ -6731,6 +6732,8 @@ document.addEventListener("keydown", e=>{
       return;
     }
     if(e.key.toLowerCase()==="d"){ e.preventDefault(); toggleScriptPane(); return; }
+    /* L = 編集ロックの切り替え。どのビューでも同じに効かせる */
+    if(e.key.toLowerCase()==="l"){ e.preventDefault(); toggleEditMode(); return; }
     /* Q/W/E = ガントの行の高さ(低/中/高)。ガントを見ているときだけ効かせる */
     const dens = {q:"s", w:"m", e:"l"}[e.key.toLowerCase()];
     if(dens && document.body.dataset.view === "gantt"){
