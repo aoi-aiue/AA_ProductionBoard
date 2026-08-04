@@ -842,9 +842,7 @@ footer .spacer{flex:1}
 /* 日程未定タスクの置き場(ガントビューの下) */
 /* 台本ペインと同じく、開閉はスライドで見せる。高さはJSで実測して入れる(CSSだけだと
    内容の高さが決まらずアニメーションできないため) */
-/* 背景は板と同じ色にすると、後ろのガントと地続きに見えて境目が分からない。
-   一段違う色にして「下から出てくる引き出し」として読めるようにする */
-#unsched{flex:none;border-top:1px solid var(--line);background:var(--hover);
+#unsched{flex:none;border-top:1px solid var(--line);background:var(--panel);
   display:flex;flex-direction:column;overflow:hidden;
   transition:height .28s ease, opacity .22s ease, border-top-color .28s ease}
 /* 閉じているときは境界線も消す(1pxが余白として残って見えるため) */
@@ -870,8 +868,8 @@ footer .spacer{flex:1}
 #unschedTab .cnt{font-size:10px;font-weight:700;background:var(--line2);color:var(--muted);
   border-radius:99px;padding:1px 7px}
 /* 開いているとき: 下の枠と地続きに見せる。閉じているときと違い、影は要らない */
-#unschedTab.on{color:var(--text);box-shadow:none;background:var(--hover);border-bottom-color:var(--hover)}
-#unschedTab.on:hover{background:var(--hover);border-bottom-color:var(--hover)}
+#unschedTab.on{color:var(--text);box-shadow:none;background:var(--panel);border-bottom-color:var(--panel)}
+#unschedTab.on:hover{background:var(--panel);border-bottom-color:var(--panel)}
 #unschedList{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;overflow:auto}
 .usChip{display:inline-flex;align-items:center;gap:6px;max-width:260px;
   border:1px solid var(--line);border-radius:6px;background:var(--panel);
@@ -2782,7 +2780,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-36b6ae2";
+const APP_VERSION = "2026.08.04-bfa98e6";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10705,7 +10703,17 @@ function rebuildStickyCache(){
      ラベルは集計バーの兄弟だが、位置の基準に使うのは集計バーの left/width なのでこれで足りる */
   document.querySelectorAll("#rinner .rrow.phase").forEach(row=>{
     const bar=row.querySelector(".phaseSummaryBar"), bl=row.querySelector(".phaseSummaryLabel");
-    if(bar&&bl)_stickyItems.push({el:bar,bl,blW:bl.offsetWidth,cur:null,inset:PHLABEL_BASE_INSET*2});
+    const seg1=row.querySelector(".phaseSummarySeg:not(.arrow)"), seg2=row.querySelector(".phaseSummarySeg.arrow");
+    if(!bar||!bl)return;
+    _stickyItems.push({el:bar,bl,blW:bl.offsetWidth,cur:null,inset:PHLABEL_BASE_INSET*2,
+      /* ラベルは translateY(-50%) で縦中央に置いてある。横移動だけを入れると上書きして
+         下へ落ちるので、縦のぶんも一緒に指定する */
+      ty:"-50%",
+      /* 文字の前後に伸びる線も一緒に動かす。動かさないと、文字だけが線から離れていく */
+      seg1, seg2,
+      seg1W0:seg1?parseFloat(seg1.style.width)||0:0,
+      seg2L0:seg2?parseFloat(seg2.style.left)||0:0,
+      seg2W0:seg2?parseFloat(seg2.style.width)||0:0});
   });
 }
 /* バーの左側の実際の余白(padding 8px + blabelのleft:6px = 14px)。ラベルはこの分だけ元々右に寄っているので、
@@ -10734,8 +10742,19 @@ function updateStickyBlabels(){
     }else{
       item.cur=target;
     }
-    const val=item.cur>0?`translateX(${item.cur}px)`:"";
+    const val=item.ty
+      ? (item.cur>0?`translate(${item.cur}px, ${item.ty})`:`translateY(${item.ty})`)
+      : (item.cur>0?`translateX(${item.cur}px)`:"");
     if(item.bl.style.transform!==val)item.bl.style.transform=val;
+    if(item.seg1){
+      /* 左の線は文字の手前まで伸ばし、右の矢印は文字の後ろから始める。
+         右は矢尻のぶん(8px)より短くしない */
+      item.seg1.style.width=(item.seg1W0+item.cur)+"px";
+      if(item.seg2){
+        item.seg2.style.left=(item.seg2L0+item.cur)+"px";
+        item.seg2.style.width=Math.max(item.seg2W0-item.cur,8)+"px";
+      }
+    }
   });
   return stillMoving;
 }
