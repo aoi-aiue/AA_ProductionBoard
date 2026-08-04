@@ -1161,13 +1161,18 @@ body.locked #wbLayerBtns{opacity:.4;pointer-events:none}
 }
 #lockHint[hidden]{display:none}
 body.dark #lockHint{color:#F0A882;background:#3A2A22;border-color:#5A4034}
-/* 鍵そのものも短く光らせる。文字だけだと、どこを押せばいいのか分からない */
+/* 鍵そのものも点滅させる。文字だけだと、どこを押せばいいのか分からない。
+   背景ごと変えて、視界の端でも気づく強さにしてある */
 @keyframes lockFlash{
-  0%,100%{box-shadow:0 0 0 0 rgba(179,64,26,0)}
-  30%    {box-shadow:0 0 0 3px rgba(179,64,26,.30)}
-  65%    {box-shadow:0 0 0 0 rgba(179,64,26,0)}
+  0%   {box-shadow:0 0 0 0 rgba(214,76,31,.55); background:var(--line2)}
+  35%  {box-shadow:0 0 0 6px rgba(214,76,31,0); background:#D64C1F}
+  70%  {box-shadow:0 0 0 0 rgba(214,76,31,0);   background:var(--line2)}
+  100% {box-shadow:0 0 0 0 rgba(214,76,31,0);   background:var(--line2)}
 }
-#btnEditMode.lockFlash{animation:lockFlash .85s ease 2}
+#btnEditMode.lockFlash{animation:lockFlash .55s ease 4}
+/* 案内も出た瞬間に少しだけ動かす。静かに現れると気づかれない */
+@keyframes lockHintIn{ from{opacity:0; transform:translateY(-5px)} to{opacity:1; transform:none} }
+#lockHint:not([hidden]){animation:lockHintIn .16s ease-out}
 /* 版の表示と更新の案内。普段は目立たせず、新しい版が出たときだけボタンを出す */
 #appVer{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
 #btnUpdate{margin-left:8px;font-size:10.5px;padding:2px 8px;border-radius:4px;cursor:pointer;
@@ -1969,7 +1974,6 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   </div><!-- /viewTools -->
   <!-- 編集ロックとテーマは右端に貼り付けておく。横に溢れてもスクロールで見失わないように -->
   <div class="headerRight">
-    <div id="lockHint" hidden>ロック中です。この鍵を押すと編集できます</div>
     <button class="themeToggle" id="btnEditMode" onclick="toggleEditMode()" title="オフの間は、マトリクスのセル操作・ドラッグ操作(誤って触れやすい部分)を無効にします。タスク名やシーン名のクリックでの編集は常に可能です" aria-label="編集ロック切替">
       <span class="ttIcon lock"><svg viewBox="0 0 14 14" width="11" height="11"><rect x="3" y="6.3" width="8" height="6" rx="1.2" fill="currentColor"/><path d="M4.3 6.3V4.5a2.7 2.7 0 0 1 5.4 0v1.8" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
       <span class="ttIcon unlock"><svg viewBox="0 0 14 14" width="11" height="11"><rect x="3" y="6.3" width="8" height="6" rx="1.2" fill="currentColor"/><path d="M4.3 6.3V4.5a2.7 2.7 0 0 1 5.2-1" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
@@ -2302,6 +2306,9 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   </div>
 </div>
 <!-- data-nodismiss: どちらかを選ぶまで閉じない。閉じられると何も選んでいない画面に取り残される -->
+<!-- ロック中の案内。header の中に置くと、header が作る重なり文脈に閉じ込められて
+     本文の下に隠れてしまう。位置はJSで入れるので、置き場所はここでよい -->
+<div id="lockHint" hidden>ロック中です。この鍵を押すと編集できます</div>
 <div class="overlay" id="welcomeOverlay" data-nodismiss>
   <div class="modal" style="width:min(720px,94vw)">
     <h2 class="wcTitle"><img class="wcIcon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='10' height='8' rx='2' fill='%234A6FA5'/%3E%3Crect x='17' y='6' width='11' height='8' rx='2' fill='%237A5CA0'/%3E%3Crect x='4' y='18' width='17' height='8' rx='2' fill='%233E8A80'/%3E%3C/svg%3E" alt="">AA_ProductionBoard</h2>
@@ -2739,7 +2746,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-8d69a00";
+const APP_VERSION = "2026.08.04-82e3ede";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2891,7 +2898,7 @@ const KEYS_HELP = [
     ["ドラッグ", "描く。選択中は、置いたものを動かす"],
     ["四隅のつまみ", "選んだ画像の大きさを変える(縦横比は保つ)"],
     ["上の丸いつまみ", "選んだ画像を回す(Shiftで15度ずつ)"],
-    ["前面へ / 背面へ", "選んだものの重なり順を変える"],
+    ["前面へ / 背面へ", "選んだものの重なり順を変える(Ctrl+Shift+] / [)"],
     ["Delete", "選んだものを消す"],
     ["Ctrl+V", "画像を貼り付ける(ドラッグ&ドロップでも置ける)"],
     ["Ctrl+Z", "自分が最後に描いたものを取り消す"],
@@ -6710,6 +6717,11 @@ document.addEventListener("keydown", e=>{
   const k = e.key.toLowerCase();
   /* ホワイトボードを見ている間の Ctrl+Z は、盤面ではなく落書きに効かせる */
   if(document.body.dataset.view === "wb"){
+    /* 重なり順。Googleスライドと同じ Cmd+Shift+] / [。
+       Shiftを押すと key は } { になるので、配列の位置で見る(キーボードの配列に左右されない) */
+    if(e.shiftKey && (e.code === "BracketRight" || e.code === "BracketLeft")){
+      e.preventDefault(); wbLayer(e.code === "BracketRight"); return;
+    }
     if(k==="z" && !e.shiftKey){ e.preventDefault(); wbUndo(); return; }
     if((k==="z" && e.shiftKey) || k==="y"){ e.preventDefault(); wbRedoAct(); return; }
   }
@@ -7058,7 +7070,8 @@ const WB_W = 2000, WB_H = 1200;              /* 論理サイズ。座標はこ�
 const WB_TTL_MS = 12 * 60 * 60 * 1000;          /* これより古いものは開いたときに消す */
 const WB_MAX_ITEMS = 400, WB_MAX_IMG = 20;
 const WB_IMG_MAX = 1280;                        /* 貼った画像はこの長辺まで縮める */
-const WB_COLORS = ["#E5392C","#3B76C4","#4C9E7E","#E0A020","#2B2F35"];
+/* 白は画像の上に書くために要る(暗い写真の上では黒が読めない) */
+const WB_COLORS = ["#E5392C","#3B76C4","#4C9E7E","#E0A020","#2B2F35","#FFFFFF"];
 const WB_LS = "aa_pb_wb";
 let _wbItems = [], _wbImgs = {}, _wbBase = null, _wbScale = 1;
 let _wbColor = WB_COLORS[0], _wbWidth = 4, _wbTool = "pen";   /* pen / erase / select */
@@ -7346,6 +7359,14 @@ function wbHit(pt, slack){
   }
   return null;
 }
+/* つまみの上でのカーソル。回転していても「その隅が伸びる向き」に合わせる */
+const WB_RESIZE_CURSORS = ["ew-resize","nwse-resize","ns-resize","nesw-resize"];
+function wbCornerCursor(it, i){
+  const c = wbCorners(it), cx = it.x + it.w/2, cy = it.y + it.h/2;
+  const a = Math.atan2(c[i][1]-cy, c[i][0]-cx);
+  const k = ((Math.round(a / (Math.PI/4)) % 4) + 4) % 4;
+  return WB_RESIZE_CURSORS[k];
+}
 /* 選択中の画像のつまみに当たっているか。0〜3=四隅 / "r"=回転 */
 function wbHitHandle(pt){
   const it = wbSelItem();
@@ -7394,8 +7415,19 @@ function wbDown(e){
   _wbDrawing = {k:"s", c:_wbColor, w:_wbWidth, p:[pt]};
   wbPaint();
 }
+/* 掴んでいないときのカーソル。何ができる場所なのかを、触る前に伝える */
+function wbHoverCursor(pt){
+  const c = $("wbCanvas");
+  if(!c) return;
+  if(_wbTool !== "select" || wbLocked()){ c.style.cursor = ""; return; }
+  const h = wbHitHandle(pt);
+  if(h === "r"){ c.style.cursor = "grab"; return; }
+  if(h !== null){ c.style.cursor = wbCornerCursor(wbSelItem(), h); return; }
+  c.style.cursor = wbHit(pt, 10) ? "move" : "";
+}
 function wbMove(e){
   if(_wbErasing){ wbEraseAt(wbPt(e)); return; }
+  if(!_wbGrab && !_wbDrawing){ wbHoverCursor(wbPt(e)); }
   if(_wbGrab){
     const pt = wbPt(e), it = _wbItems.find(x=>x.id===_wbGrab.id);
     if(!it){ _wbGrab = null; return; }
