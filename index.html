@@ -1676,9 +1676,13 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 #view-gantt .lrow.ms{position:sticky;top:0;z-index:24;background:var(--panel);transition:none}
 #view-gantt.vscrolled .rrow.ms,#view-gantt.vscrolled .lrow.ms{box-shadow:0 3px 6px -4px rgba(20,29,40,.35)}
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
-/* 画面ぎりぎりまで広げる。月表示は面積がそのまま情報量になるため */
-#calOverlay .calModal{width:calc(100vw - 40px);max-width:none;height:calc(100vh - 40px);max-height:none;
-  display:flex;flex-direction:column;padding:16px 20px 18px}
+/* 覆うのはツールバーより下だけ。上の道具は見えたままにして、
+   「中身の領域だけがカレンダーに変わった」ように見せる(位置はJSで入れる) */
+#calOverlay{top:var(--calTop,120px)}
+/* その領域いっぱいまで広げる。月表示は面積がそのまま情報量になるため */
+#calOverlay .calModal{width:calc(100vw - 24px);max-width:none;
+  height:calc(100vh - var(--calTop,120px) - 14px);max-height:none;
+  display:flex;flex-direction:column;padding:14px 18px 16px}
 #calOverlay #calView{display:flex;flex:1;min-height:0;flex-direction:column;overflow:hidden}
 #calOverlay .calHeader{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 #calOverlay .calHeader button{padding:5px 10px;border:1px solid var(--line);border-radius:4px;color:#4B5157}
@@ -2941,7 +2945,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-0ff8c10";
+const APP_VERSION = "2026.08.04-451bb47";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -8879,6 +8883,9 @@ function setCalMode(on){
   const ov=document.getElementById("calOverlay");
   if(!ov)return;
   calMode=!!on;
+  /* ツールバーの下端を測って、そこから下だけを覆う */
+  const mp=document.getElementById("mainPane");
+  if(mp) ov.style.setProperty("--calTop", Math.round(mp.getBoundingClientRect().top)+"px");
   ov.classList.toggle("open",calMode);
   const b=$("#btnCalView");
   if(b&&b.classList)b.classList.toggle("on",calMode);
