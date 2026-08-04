@@ -1679,10 +1679,16 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 /* 覆うのはツールバーより下だけ。上の道具は見えたままにして、
    「中身の領域だけがカレンダーに変わった」ように見せる(位置はJSで入れる) */
 #calOverlay{top:var(--calTop,120px)}
-/* その領域いっぱいまで広げる。月表示は面積がそのまま情報量になるため */
-#calOverlay .calModal{width:calc(100vw - 24px);max-width:none;
-  height:calc(100vh - var(--calTop,120px) - 14px);max-height:none;
-  display:flex;flex-direction:column;padding:14px 18px 16px}
+/* ぴったり埋めると板が浮いて見えず、モーダルだと分からない。周りを空けて影を落とす */
+#calOverlay .calModal{width:min(1240px, calc(100vw - 140px));max-width:none;
+  height:calc(100vh - var(--calTop,120px) - 56px);max-height:none;
+  display:flex;flex-direction:column;padding:14px 18px 16px;
+  box-shadow:0 18px 60px rgba(20,29,40,.28)}
+/* 開くときだけ軽く動かす。どこから出てきたのかが分かると、重なっていることが伝わる */
+@keyframes calFadeIn{from{opacity:0} to{opacity:1}}
+@keyframes calModalIn{from{opacity:0;transform:translateY(10px) scale(.985)} to{opacity:1;transform:none}}
+#calOverlay.open{animation:calFadeIn .14s ease-out}
+#calOverlay.open .calModal{animation:calModalIn .18s cubic-bezier(.2,.8,.3,1)}
 #calOverlay #calView{display:flex;flex:1;min-height:0;flex-direction:column;overflow:hidden}
 #calOverlay .calHeader{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 #calOverlay .calHeader button{padding:5px 10px;border:1px solid var(--line);border-radius:4px;color:#4B5157}
@@ -2945,7 +2951,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-451bb47";
+const APP_VERSION = "2026.08.04-7b9d908";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
