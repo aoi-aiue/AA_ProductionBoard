@@ -249,6 +249,8 @@ body.dark .mfItem.on{background:var(--hover)}
 .mxFiltNote{margin-left:6px;color:var(--faint);font-size:10px}
 /* 担当者の絞り込み。目のマークで「表示を絞る」ことだと分かるようにする */
 #mfBtn{display:flex;align-items:center;gap:5px}
+/* サマリーは絞り込みを効かせないので、押せないことを見た目でも示す */
+body[data-view="summary"] #mfGroup{opacity:.4;pointer-events:none}
 .mfEye{flex:none;opacity:.75}
 #mfBtn.solid .mfEye{opacity:1}
 #mfBtnTxt{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2865,7 +2867,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-5059b4f";
+const APP_VERSION = "2026.08.04-0573867";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4794,7 +4796,9 @@ function renderKanban(){
 function renderSummary(){
   const v = $("view-summary");
   const pt = a => SIZE_PT[a.size];
-  const ST = shownTasks();
+  /* サマリーは全体を俯瞰する画面なので、担当者の絞り込みは効かせない
+     (絞ったまま数字を見て「全体がこうだ」と誤解するのを避ける) */
+  const ST = state.tasks;
   const total = ST.reduce((t,a)=>t+pt(a),0);
   const done  = ST.filter(a=>a.stage===STAGES.length-1).reduce((t,a)=>t+pt(a),0);
   const pct = total ? Math.round(done/total*100) : 0;
@@ -4881,7 +4885,7 @@ function renderSummary(){
         </div>
       </div>
       <div class="sum-kpis">
-        <div class="kpi-tile"><div class="num">${ST.length}</div><div class="lbl">総タスク数${memberFilterActive()?"(絞り込み中)":""}</div></div>
+        <div class="kpi-tile"><div class="num">${ST.length}</div><div class="lbl">総タスク数</div></div>
         <div class="kpi-tile"><div class="num">${done} / ${total}</div><div class="lbl">完了pt(S=1/M=3/L=5)</div></div>
         <div class="kpi-tile"><div class="num">${stageCounts[1]+stageCounts[2]}</div><div class="lbl">進行中(制作中+実装完了)</div></div>
         <div class="kpi-tile"><div class="num">${stageCounts[0]}</div><div class="lbl">未着手</div></div>
