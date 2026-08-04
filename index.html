@@ -2999,7 +2999,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-891dc82";
+const APP_VERSION = "2026.08.04-ab2889a";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10930,11 +10930,12 @@ function openMsModal(m){
       <div class="field"><label>期日(期間の場合は開始日)</label><input type="date" id="mDate" value="${d.date}"></div>
       <div class="field"><label>終了日(任意・期間にする場合)</label><input type="date" id="mEnd" value="${d.end||""}" data-auto="1"></div>
     </div>
-    <div class="field"><label>重要度</label>
-      <div class="seg" id="mImpSeg">
-        <button type="button" data-imp="1" class="${(d.imp||1)===1?"on":""}" title="通常">1</button>
-        <button type="button" data-imp="2" class="impBtn2 ${d.imp===2?"on":""}" title="やや重要(黄色になります)">2</button>
-        <button type="button" data-imp="3" class="impBtn3 ${d.imp===3?"on":""}" title="重要(赤になります)">3</button>
+    <!-- タスク側の優先度と同じ見せ方(低/中/高・選択中は色が付く)に揃える -->
+    <div class="field"><label>優先度</label>
+      <div class="seg prioSeg" id="mImpSeg">
+        <button type="button" data-v="1" style="flex:1" class="${(d.imp||1)===1?"on":""}">低</button>
+        <button type="button" data-v="2" style="flex:1" class="${d.imp===2?"on":""}">中</button>
+        <button type="button" data-v="3" style="flex:1" class="${d.imp===3?"on":""}">高</button>
       </div>
     </div>
     <div class="mFoot">
@@ -10946,7 +10947,7 @@ function openMsModal(m){
   `);
   let mImpVal=d.imp||1;
   document.querySelectorAll("#mImpSeg button").forEach(b=>b.onclick=()=>{
-    mImpVal=+b.dataset.imp;
+    mImpVal=+b.dataset.v;
     document.querySelectorAll("#mImpSeg button").forEach(x=>x.classList.toggle("on",x===b));
   });
   $("#mCancel").onclick=closeModal;
