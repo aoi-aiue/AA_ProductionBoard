@@ -838,18 +838,22 @@ footer .spacer{flex:1}
 #unschedHead{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:11.5px;color:var(--muted);flex:none}
 #unschedHead .hintTxt{font-size:10.5px;color:var(--faint);margin-left:auto}
 /* 開け閉めのタブ。ビュータブと同じ考え方で、開いているときだけ下の枠と地続きに見せる */
-#unschedDock{flex:none;display:flex;flex-direction:column}
+/* タブは「突起」。左右の外側には帯を敷かず、後ろのガントがそのまま見えるようにする
+   (Dock は当たり判定を持たせず、中の要素だけ押せるようにしてある) */
+#unschedDock{flex:none;display:flex;flex-direction:column;pointer-events:none}
 #unschedDock[hidden]{display:none}
+#unschedDock > *{pointer-events:auto}
 #unschedTab{align-self:flex-end;margin:0 16px -1px 0;position:relative;z-index:1;
   display:flex;align-items:center;gap:7px;padding:5px 14px 6px;
   font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap;
-  background:var(--hover);border:1px solid var(--line);border-bottom-color:var(--line);
-  border-radius:8px 8px 0 0;transition:color .12s}
-#unschedTab:hover{color:var(--text)}
+  background:var(--panel);border:1px solid var(--line);border-bottom-color:var(--panel);
+  border-radius:8px 8px 0 0;transition:color .12s;box-shadow:0 -2px 6px rgba(20,29,40,.07)}
+#unschedTab:hover{color:var(--text);background:var(--hover);border-bottom-color:var(--hover)}
 #unschedTab .cnt{font-size:10px;font-weight:700;background:var(--line2);color:var(--muted);
   border-radius:99px;padding:1px 7px}
-/* 開いているとき: 下の枠と同じ色にして、境界を消して繋げる */
-#unschedTab.on{background:var(--panel);color:var(--text);border-bottom-color:var(--panel)}
+/* 開いているとき: 下の枠と地続きに見せる。閉じているときと違い、影は要らない */
+#unschedTab.on{color:var(--text);box-shadow:none}
+#unschedTab.on:hover{background:var(--panel);border-bottom-color:var(--panel)}
 #unschedList{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;overflow:auto}
 .usChip{display:inline-flex;align-items:center;gap:6px;max-width:260px;
   border:1px solid var(--line);border-radius:6px;background:var(--panel);
@@ -2348,18 +2352,13 @@ body.locked #view-gantt .phToggle{cursor:pointer}
 <div class="overlay" id="whoOverlay">
   <div class="modal" style="width:min(560px,94vw)">
     <h2>あなたはどの人ですか?</h2>
-    <p class="syncLead">「誰が変えたか」の表示と、いま開いている人の一覧に使います。</p>
+    <p class="syncLead">「誰が変えたか」の表示と、いま開いている人の一覧表示に使います。</p>
     <div class="whoGrid" id="whoGrid"></div>
-    <div class="field" style="margin-top:14px">
-      <label>一覧に自分がいない場合 <span class="fHint">名前を入れると、メンバーとして追加します</span></label>
-      <div class="syncRow">
-        <input type="text" id="whoNew" placeholder="あなたの名前">
-        <button class="btn" type="button" id="whoAdd">追加して選ぶ</button>
-      </div>
-    </div>
     <div class="mFoot">
+      <!-- 一覧に自分がいないとき用。名乗らずに参加でき、あとから選び直せる -->
+      <button class="btn solid" type="button" id="whoGuest">ゲストとして参加</button>
       <div class="spacer"></div>
-      <button class="btn solid" type="button" id="whoSkip">あとで決める</button>
+      <button class="btn primary" type="button" id="whoOk">決定</button>
     </div>
   </div>
 </div>
@@ -2765,7 +2764,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-80a73a1";
+const APP_VERSION = "2026.08.04-ceedb0b";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -6436,14 +6435,16 @@ function renderMe(){
     ? (m.icon ? `<img class="pzAv" src="${m.icon}" alt="">`
               : `<span class="pzAv pzDot" style="background:${m.color}">${esc(m.name.slice(0,1))}</span>`)
     : `<span class="pzAv pzUnknown">?</span>`;
-  box.innerHTML = `<span class="meSep"></span>${face}<span class="meNm">${esc(nm || "名前を選ぶ")}</span>`;
+  box.innerHTML = `<span class="meSep"></span>${face}<span class="meNm">${esc(nm || (syncCfg && syncCfg.guest ? "ゲスト" : "名前を選ぶ"))}</span>`;
 }
 $("meBar").addEventListener("click", ()=>{ if(syncEnabled()) openWhoAmI(); });
 
 /* 接続してメンバー一覧が手に入ってから「あなたは誰か」を選んでもらう。
    参加する側は、繋ぐまで相手のメンバーもアイコンも分からないため */
+let _whoSel = "";
 function openWhoAmI(){
   const cur = (syncCfg && syncCfg.name) || "";
+  _whoSel = cur;
   $("whoGrid").innerHTML = state.members.length
     ? state.members.map(m=>`
         <button type="button" class="whoCard${m.name===cur?" on":""}" data-who="${esc(m.name)}">
@@ -6452,34 +6453,41 @@ function openWhoAmI(){
           <span class="whoNm">${esc(m.name)}</span>
         </button>`).join("")
     : `<div class="hint" style="grid-column:1/-1">まだメンバーがいません。下の欄から追加してください。</div>`;
-  $("whoNew").value = "";
   $("whoOverlay").classList.add("open");
+  syncWhoOk();
+}
+/* 押せるのは、誰かを選んでいるときだけ。選ばずに決定できると何も決まらない */
+function syncWhoOk(){
+  const ok = $("whoOk");
+  if(ok) ok.disabled = !_whoSel;
 }
 function chooseWho(name){
   if(!syncCfg) return;
   syncCfg.name = name;
+  delete syncCfg.guest;
   saveSyncConfig(syncCfg);
   $("whoOverlay").classList.remove("open");
   presencePut();       /* 誰が居るかの一覧にすぐ反映させる */
   renderPresence();
   renderMe();
 }
+/* 押した時点では選ぶだけ。決定するまで確定させない(押し間違いをその場で直せる) */
 $("whoGrid").addEventListener("click", e=>{
   const b = e.target.closest("[data-who]");
-  if(b) chooseWho(b.dataset.who);
+  if(!b) return;
+  _whoSel = b.dataset.who;
+  $("whoGrid").querySelectorAll(".whoCard").forEach(c=>c.classList.toggle("on", c===b));
+  syncWhoOk();
 });
-$("whoAdd").onclick = ()=>{
-  const n = $("whoNew").value.trim();
-  if(!n) return;
-  let m = state.members.find(x=>x.name===n);
-  if(!m){
-    m = {id:uid("m"), name:n, color:resolveMemberColor(n, PALETTE[state.members.length%PALETTE.length])};
-    state.members.push(m);
-    renderAll();       /* 追加したメンバーを共有にも流す */
-  }
-  chooseWho(n);
+$("whoOk").onclick = ()=>{ if(_whoSel) chooseWho(_whoSel); };
+$("whoGuest").onclick = ()=>{
+  if(!syncCfg) return;
+  syncCfg.name = "";
+  syncCfg.guest = true;   /* 名乗っていないのか、まだ選んでいないのかを見分けるため */
+  saveSyncConfig(syncCfg);
+  $("whoOverlay").classList.remove("open");
+  presencePut(); renderPresence(); renderMe();
 };
-$("whoSkip").onclick = ()=>$("whoOverlay").classList.remove("open");
 
 /* 初回の入口。作るのか、誰かのプロジェクトに参加するのかをまず選ばせる。
    このツールは複数人で使うのが前提なので、参加の道を最初から見せておく */
