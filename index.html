@@ -1867,7 +1867,7 @@ body.locked #view-gantt .msband .h{display:none}
 /* z-index:0 を必ず置くこと。中の ::before が z-index:-1 なので、
    ここで重なりの土台を作らないとモーダルの背景の裏に回り込んで消える */
 #msPreviewWrap .pvBand{
-  position:relative;z-index:0;height:18px;flex:none;max-width:100%;
+  position:relative;z-index:0;height:18px;flex:1;min-width:0;
   display:flex;align-items:center;gap:6px;
   padding:0 14px;color:var(--bg);white-space:nowrap;overflow:hidden;--msFill:var(--text);
 }
@@ -3032,7 +3032,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-09a75e6";
+const APP_VERSION = "2026.08.04-8a669a2";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
