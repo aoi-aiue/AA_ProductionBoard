@@ -672,8 +672,9 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 .sum-row .mem-dot{width:18px;height:18px;border-radius:99px;flex:none}
 .msRow{display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:12px;border-bottom:1px solid var(--line2)}
 .msRow:last-child{border-bottom:0}
-/* 日付欄は幅を固定する。単日と期間で長さが違うと、名前の頭が行ごとにずれて読みにくい */
-.msRow .dt{flex:none;width:196px;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;
+/* 日付欄は幅を固定する。単日と期間で長さが違うと、名前の頭が行ごとにずれて読みにくい。
+   節目は日付そのものが読む対象なので、名前と同じ濃さで出す */
+.msRow .dt{flex:none;width:196px;font-size:11px;color:var(--text);font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .msRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
 .msRow .days{flex:none;min-width:60px;text-align:right;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -2856,7 +2857,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-532018a";
+const APP_VERSION = "2026.08.04-e54b35b";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
