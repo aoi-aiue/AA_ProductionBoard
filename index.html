@@ -1694,8 +1694,10 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 /* フェイズ行はマイルストーン行の下に貼り付く。一覧ビューのカテゴリ見出しと同じ挙動。
    マイルストーン行は中身によって高さが変わるので、実測した値を --msRowH に入れている。
    z-index はマイルストーン行(24)より下にして、あちらが常に上に来るようにする */
-#view-gantt .lrow.phase{position:sticky;top:var(--msRowH,0px);z-index:22}
-#view-gantt .rrow.phase{position:sticky;top:calc(var(--headH) + var(--msRowH,0px));z-index:22}
+/* transition を残すと、貼り付いている間に背景や影が追いかけ続けてちらつく。
+   マイルストーン行(.lrow.ms)で同じことが起きて transition:none にしてある。それに倣う */
+#view-gantt .lrow.phase{position:sticky;top:var(--msRowH,0px);z-index:22;transition:none}
+#view-gantt .rrow.phase{position:sticky;top:calc(var(--headH) + var(--msRowH,0px));z-index:22;transition:none}
 /* 掴んで動かしている間は貼り付けない。止まったままだとドラッグに付いてこない */
 #view-gantt .lrow.phase.blockLift, #view-gantt .rrow.phase.blockLift,
 #view-gantt .lrow.phase.dragging, #view-gantt .rrow.phase.dragging{position:relative;z-index:26}
@@ -2999,7 +3001,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-11cf85b";
+const APP_VERSION = "2026.08.04-1a54672";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
