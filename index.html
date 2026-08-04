@@ -665,6 +665,10 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
 .stuckRow .days{flex:none;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);min-width:44px;text-align:right}
 .stuckRow.hot .days{color:var(--imp)}
 .stuckRow.hot .k{color:var(--imp);border-color:var(--imp)}
+/* 受け取り済みは残すが、目線は未受領のほうへ向けたいので落ち着かせる */
+.stuckRow.isDone{opacity:.5}
+.stuckRow.isDone .nm{text-decoration:line-through}
+.stuckRow .days{min-width:66px}
 /* 工程別の積み上げバー(グレースケールの濃淡=マトリクスの進捗配色と同じ言語) */
 .stage-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-bottom:10px}
 .stage-bar i{display:block;height:100%;transition:width .4s}
@@ -704,7 +708,10 @@ body.dark .stg3{background:#F0F1F2}
 .field label.withAction{display:flex;align-items:center;justify-content:space-between}
 .field label.withAction button{font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0}
 .field label.withAction button:hover{text-decoration:underline}
-.field input[type=text],.field select,.field textarea{width:100%}
+/* [type=text] で書くと、type を書いていない input(既定でtext)に当たらない。
+   マイルストーンの名称欄と期日欄が狭かったのはこれが原因。除外する型を並べる形にする */
+.field input:not([type=checkbox]):not([type=radio]):not([type=file]),
+.field select,.field textarea{width:100%}
 .field textarea{resize:vertical;min-height:60px}
 /* 台本の貼り付け欄は長文を扱うので大きめに */
 #sImpText{min-height:360px;line-height:1.6}
@@ -1647,12 +1654,18 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 #view-gantt .dia.msLate{background:var(--imp);box-shadow:none}
 #view-gantt .dia.msWait.msLate{background:var(--imp);box-shadow:0 0 0 1.6px var(--imp) inset}
 #view-gantt .msband.msDone{opacity:.4}
-#view-gantt .msband.msLate{outline:1.5px solid var(--imp);outline-offset:1px}
 #view-gantt .diaLbl.msDone{opacity:.45;text-decoration:line-through}
 #view-gantt .diaLbl.msLate b{color:var(--imp)}
-/* 受け取り待ちの文字には印を付ける。菱形だけだと、文字だけ読んだときに種類が分からない */
-#view-gantt .diaLbl.msWait b::before{content:"待 ";font-size:9.5px;color:var(--muted);font-weight:700}
-#view-gantt .diaLbl.msWait.msLate b::before{color:var(--imp)}
+/* 期間のマイルストーンも、受け取り待ちなら塗らずに枠線だけにする(単日の菱形と揃える) */
+#view-gantt .msband.msWait{
+  background:var(--panel);color:var(--text);
+  box-shadow:0 0 0 1.5px var(--text) inset, 0 0 0 1.5px var(--panel);
+}
+#view-gantt .msband.msWait:hover{filter:none;box-shadow:0 0 0 1.5px var(--accent) inset, 0 0 0 1.5px var(--panel),0 3px 8px rgba(20,29,40,.18)}
+#view-gantt .msband.msWait.msLate{
+  color:var(--imp);
+  box-shadow:0 0 0 1.5px var(--imp) inset, 0 0 0 1.5px var(--panel);
+}
 #view-gantt .dia:active{cursor:grabbing}
 #view-gantt .dia .h{
   position:absolute;top:50%;width:6px;height:14px;cursor:ew-resize;z-index:1;
@@ -1809,7 +1822,10 @@ body.locked #view-gantt .msband .h{display:none}
 }
 #view-gantt .dragEdgeLbl .dayChip{background:rgba(255,255,255,.18);border-color:transparent;color:#fff}
 #view-gantt .bar.activeDrag .edgeDate{visibility:hidden}
-body.locked #view-gantt .bar, body.locked #view-gantt .dia{cursor:pointer}
+/* バーはロック中でもクリックで編集を開ける(タスク名と同じ扱い)ので pointer のまま。
+   マイルストーンは開かせないので、触れないものとして default にする */
+body.locked #view-gantt .bar{cursor:pointer}
+body.locked #view-gantt .dia, body.locked #view-gantt .msband{cursor:default}
 body.locked #view-gantt .grip{cursor:default}
 body.locked #view-gantt .rrow.phase{cursor:default}
 body.locked #view-gantt .bar .h{display:none}
@@ -2807,7 +2823,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-2b5481b";
+const APP_VERSION = "2026.08.04-1bd54bd";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4786,22 +4802,36 @@ function renderSummary(){
       <span class="val">${d} / ${t}pt ・ ${items.length}件</span></div>`;
   }).join("");
 
-  /* 止まっているもの: まだ済んでいないマイルストーンのうち、期日を過ぎたもの。
-     クライアントとの打ち合わせ前にここを開けば、聞くべきことがそのまま並んでいる */
+  /* マイルストーンと受け取り待ちは、性質が違うので別の表にする。
+     受け取り待ちは受け取り済みのものも残す(何が届いたかを確認したいため) */
   const _t0 = isoToday();
-  const stuck = (state.milestones||[])
-    .filter(m=>!m.done && (m.end||m.date) < _t0)
-    .map(m=>({m, days: isoDiffDays(m.end||m.date, _t0)}))
-    .sort((a,b)=>b.days-a.days);
-  const stuckRows = stuck.length
-    ? stuck.map(({m,days})=>`
-        <div class="stuckRow${days>=7?" hot":""}">
-          <span class="k">${m.kind==="wait"?"受け取り待ち":"未達"}</span>
+  const _ms = (state.milestones||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const _dl = m => isoDiffDays(_t0, m.end||m.date);   /* 正=これから / 負=過ぎている */
+  const _period = m => m.end ? `${m.date} 〜 ${m.end}` : m.date;
+
+  const owns = _ms.filter(m=>m.kind!=="wait");
+  const ownRows = owns.length
+    ? owns.map(m=>{
+        const d = _dl(m), late = d < 0;
+        return `<div class="stuckRow${late?" hot":""}">
           <span class="nm">${esc(m.name)}</span>
-          <span class="dt">${esc(m.end||m.date)}</span>
-          <span class="days">${days}日</span>
-        </div>`).join("")
-    : `<div class="hint" style="margin:0">期日を過ぎたまま済んでいないものはありません。</div>`;
+          <span class="dt">${esc(_period(m))}</span>
+          <span class="days">${late?`${-d}日超過`:(d===0?"今日":`あと${d}日`)}</span>
+        </div>`;}).join("")
+    : `<div class="hint" style="margin:0">まだありません。</div>`;
+
+  const waits = _ms.filter(m=>m.kind==="wait");
+  const waitRows = waits.length
+    ? waits.map(m=>{
+        const d = _dl(m), late = !m.done && d < 0;
+        const st = m.done ? "受け取り済み" : (late ? `${-d}日超過` : (d===0?"今日":`あと${d}日`));
+        return `<div class="stuckRow${late&&-d>=7?" hot":""}${m.done?" isDone":""}">
+          <span class="nm">${esc(m.name)}</span>
+          <span class="dt">${esc(_period(m))}</span>
+          <span class="days">${st}</span>
+        </div>`;}).join("")
+    : `<div class="hint" style="margin:0">まだありません。</div>`;
+  const waitLate = waits.filter(m=>!m.done && _dl(m) < 0).length;
 
   v.innerHTML = `<div class="sum-wrap">
     <div class="sum-hero">
@@ -4818,9 +4848,15 @@ function renderSummary(){
         <div class="kpi-tile"><div class="num">${stageCounts[0]}</div><div class="lbl">未着手</div></div>
       </div>
     </div>
-    <div class="sum-card">
-      <h3>止まっているもの ${stuck.length?`<span class="cnt">${stuck.length}件</span>`:""}</h3>
-      ${stuckRows}
+    <div class="sum-grid">
+      <div class="sum-card">
+        <h3>マイルストーン ${owns.length?`<span class="cnt">${owns.length}件</span>`:""}</h3>
+        ${ownRows}
+      </div>
+      <div class="sum-card">
+        <h3>受け取り待ち ${waits.length?`<span class="cnt">${waits.length}件${waitLate?` / 超過 ${waitLate}`:""}</span>`:""}</h3>
+        ${waitRows}
+      </div>
     </div>
     <div class="sum-card">
       <h3>工程別</h3>
@@ -8894,13 +8930,9 @@ function render(){
       d.addEventListener("mousedown",ev=>{
         ev.preventDefault();
         if(!editMode){
-          /* ロック中: 動かさずに離したときだけ編集モーダルを開く(ドラッグはしない) */
-          const px=ev.clientX,py=ev.clientY;
-          const up=e2=>{
-            document.removeEventListener("mouseup",up);
-            if(Math.abs(e2.clientX-px)<=4&&Math.abs(e2.clientY-py)<=4)openMsModal(it.m);
-          };
-          document.addEventListener("mouseup",up);
+          /* ロック中は動かすのも開くのも止める。開けてしまうと、そこから日付も削除も
+             変えられるので「ロックされている」と言えない。理由は鍵の点滅で伝える */
+          if(typeof flashLockHint==="function")flashLockHint();
           return;
         }
         const onHandle=ev.target.classList.contains("h");
@@ -10456,16 +10488,16 @@ function openMsModal(m){
     <div class="field"><label>種類</label>
       <div class="aiModeCards" id="mKindSeg">
         <button type="button" data-k="own"${d.kind!=="wait"?' class="on"':''}>
-          <span class="amTitle">自分たちの節目</span>
+          <span class="amTitle">マイルストーン</span>
           <span class="amDesc">台本FIX・α版など、こちらで達成するもの</span>
         </button>
         <button type="button" data-k="wait"${d.kind==="wait"?' class="on"':''}>
-          <span class="amTitle">外部からの受け取り</span>
+          <span class="amTitle">受け取り待ち</span>
           <span class="amDesc">素材・情報・監修戻しなど、相手を待つもの</span>
         </button>
       </div>
     </div>
-    <label class="chk" id="mDoneRow"><input type="checkbox" id="mDone"${d.done?" checked":""}><span id="mDoneTxt">受け取り済み</span></label>
+    <label class="chk" id="mDoneRow"><input type="checkbox" id="mDone"${d.done?" checked":""}><span>受け取り済み</span></label>
     <div class="mFoot">
       ${isNew?"":`<button class="btn danger" id="mDel">削除</button>`}
       <div class="spacer"></div>
@@ -10476,8 +10508,8 @@ function openMsModal(m){
   let mImpVal=d.imp||1, mKind=d.kind==="wait"?"wait":"own";
   const syncKindUI=()=>{
     document.querySelectorAll("#mKindSeg button").forEach(b=>b.classList.toggle("on",b.dataset.k===mKind));
-    /* 言い方を種類に合わせる。自分の節目に「受け取り済み」は変なので */
-    $("#mDoneTxt").textContent = mKind==="wait" ? "受け取り済み" : "達成済み";
+    /* 「受け取り済み」は待っているものにしか意味が無い。マイルストーン側では出さない */
+    $("#mDoneRow").hidden = mKind!=="wait";
   };
   syncKindUI();
   document.querySelectorAll("#mKindSeg button").forEach(b=>b.onclick=()=>{ mKind=b.dataset.k; syncKindUI(); });
@@ -10506,14 +10538,14 @@ function openMsModal(m){
       if(end)nm.end=end;
       if(imp>1)nm.imp=imp;
       if(mKind==="wait")nm.kind="wait";
-      if($("#mDone").checked)nm.done=true;
+      if(mKind==="wait"&&$("#mDone").checked)nm.done=true;
       data.milestones.push(nm);
     }else{
       Object.assign(m,{name,date});
       if(end)m.end=end;else delete m.end;
       if(imp>1)m.imp=imp;else delete m.imp;
       if(mKind==="wait")m.kind="wait";else delete m.kind;
-      if($("#mDone").checked)m.done=true;else delete m.done;
+      if(mKind==="wait"&&$("#mDone").checked)m.done=true;else delete m.done;
     }
     data.milestones.sort((a,b)=>a.date<b.date?-1:1);
     scheduleSave();closeModal();render();
