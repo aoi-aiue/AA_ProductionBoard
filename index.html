@@ -1685,6 +1685,55 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 #view-gantt .lrow.ms{position:sticky;top:0;z-index:24;background:var(--panel);transition:none}
 #view-gantt.vscrolled .rrow.ms,#view-gantt.vscrolled .lrow.ms{box-shadow:0 3px 6px -4px rgba(20,29,40,.35)}
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
+#view-gantt #calView{display:none;flex:1;overflow:auto;padding:18px 22px;flex-direction:column}
+body.calMode #view-gantt #gantt{display:none}
+body.calMode #view-gantt #calView{display:flex}
+#view-gantt .calHeader{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+#view-gantt .calHeader button{padding:5px 10px;border:1px solid var(--line);border-radius:4px;color:#4B5157}
+#view-gantt .calHeader button:hover{background:var(--hover)}
+#view-gantt #calMonthLabel{font-size:15px;font-weight:700;min-width:110px;text-align:center}
+#view-gantt .calWeekdays{display:grid;grid-template-columns:repeat(7,1fr);font-size:10.5px;font-weight:700;color:var(--faint);padding:0 0 6px;border-bottom:1px solid var(--line)}
+#view-gantt .calWeekdays span{text-align:center}
+#view-gantt .calWeekdays .sat{color:var(--satTxt)}
+#view-gantt .calWeekdays .sun{color:var(--sunTxt)}
+#view-gantt .calWeek{
+  position:relative;border-bottom:1px solid var(--line2);
+  background-image:linear-gradient(to right,var(--line2) 1px,transparent 1px);
+  background-size:calc(100%/7) 100%;
+}
+#view-gantt .calDayNums{display:grid;grid-template-columns:repeat(7,1fr);position:relative;z-index:1;pointer-events:none}
+#view-gantt .calDayNum{padding:5px 7px 2px;font-size:11px;color:var(--text)}
+#view-gantt .calDayNum.otherMonth{color:var(--faint);opacity:.5}
+#view-gantt .calDayNum.today{color:#fff;font-weight:700;display:flex;align-items:center;gap:5px}
+#view-gantt .calDayNum.today .calNumBadge{background:var(--accent);border-radius:99px;padding:1px 6px}
+#view-gantt .calTodayFlag{background:var(--imp);color:#fff;font-size:8.5px;font-weight:700;letter-spacing:.03em;padding:1px 5px;border-radius:4px;white-space:nowrap}
+#view-gantt .calDayNum.sat{color:var(--satTxt)}
+#view-gantt .calDayNum.sun{color:var(--sunTxt)}
+#view-gantt .calDayNum.pastDate{opacity:.45}
+#view-gantt .calEvents{position:relative;top:0;pointer-events:none}
+#view-gantt .calBarPastVeil{position:absolute;top:0;left:0;height:100%;background:var(--veil);pointer-events:none;border-radius:4px 0 0 4px}
+#view-gantt .calEventBar{
+  position:absolute;height:20px;border-radius:4px;font-size:10.5px;color:#fff;
+  display:flex;align-items:center;gap:4px;padding:0 6px;overflow:hidden;white-space:nowrap;
+  cursor:pointer;box-shadow:0 1px 2px rgba(20,29,40,.15);transition:filter .12s,transform .12s;
+  pointer-events:auto;
+}
+#view-gantt .calEventBar:hover{filter:brightness(1.12);transform:translateY(-1px);z-index:2}
+#view-gantt .calEventBar.isMs{border-radius:99px;font-weight:600}
+#view-gantt .calEvName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
+#view-gantt .calEvAv{flex:none;display:flex;align-items:center}
+#view-gantt .calEvAv img, #view-gantt .calEvDot{
+  width:14px;height:14px;border-radius:99px;object-fit:cover;flex:none;display:block;
+  box-shadow:0 0 0 1px rgba(255,255,255,.7);
+}
+#view-gantt .calEvDia{flex:none;width:7px;height:7px;background:currentColor;transform:rotate(45deg);border-radius:1px}
+#view-gantt .calEvCats{display:flex;align-items:center;gap:2px;flex:none}
+#view-gantt .calEvCatDot{width:6px;height:6px;border-radius:99px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.6)}
+#view-gantt .calMoreLabel{position:absolute;left:6px;height:20px;display:flex;align-items:center;font-size:10px;font-weight:600;color:var(--faint)}
+body.calMode #view-gantt .calDisable{opacity:.4;pointer-events:none}
+#view-gantt .calDayBg{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr);z-index:0}
+#view-gantt .calDayCell{transition:background .1s;cursor:pointer}
+#view-gantt .calDayCell:hover{background:var(--hovCol)}
 #view-gantt .dia{
   position:absolute;width:9px;height:9px;background:var(--text);
   transform:rotate(45deg);border-radius:1px;cursor:grab;z-index:5;
@@ -2033,6 +2082,11 @@ body.locked #view-gantt .phToggle{cursor:pointer}
   <!-- ここから下は「今見ているビューだけの設定」。共通のものと見分けがつくよう枠で囲う -->
   <div class="viewTools" id="viewTools">
   <div class="tgroup ganttOnly" id="ganttTools" title="ガントの表示設定です">
+    <div class="seg" id="viewSeg" title="ガントと月表示を切り替えます">
+      <div class="seg-thumb noAnim"></div>
+      <button data-view="gantt" class="on">ガント</button>
+      <button data-view="cal">カレンダー</button>
+    </div>
     <span class="segLabel">行の高さ</span>
     <div class="seg" id="densSeg" title="タスク行の高さ(見やすさ)を切り替えます">
       <div class="seg-thumb noAnim"></div>
@@ -2128,6 +2182,17 @@ body.locked #view-gantt .phToggle{cursor:pointer}
         </div>
         <button id="todayJumpL" class="todayJump l" title="TODAYへ移動">‹</button>
         <button id="todayJumpR" class="todayJump r" title="TODAYへ移動">›</button>
+      </div>
+      <!-- 月表示。ガントと同じ器の中で入れ替える -->
+      <div id="calView">
+        <div class="calHeader">
+          <button id="calPrev" aria-label="前の月">‹</button>
+          <div id="calMonthLabel"></div>
+          <button id="calNext" aria-label="次の月">›</button>
+          <button id="calToday">今日</button>
+        </div>
+        <div class="calWeekdays"><span class="sun">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="sat">土</span></div>
+        <div id="calGrid"></div>
       </div>
       <!-- 日程未定のタスク置き場。ここからカレンダーへドラッグすると日程が入る。
            開け閉めは右下のタブで行う(ツールバーに置くと、どのビューの設定か分かりにくかった) -->
@@ -2867,7 +2932,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.04-0573867";
+const APP_VERSION = "2026.08.04-18e62e8";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -2999,6 +3064,7 @@ const KEYS_HELP = [
   ["ガント", [
     ["Q / W / E", "行の高さを 低 / 中 / 高 に切り替える"],
     ["F", "全体ビュー(1画面に収める)のオン・オフ"],
+    ["ガント / カレンダー", "月表示に切り替える。‹ › で月をめくる"],
     ["バーを横ドラッグ", "日程を移動する"],
     ["バーを縦ドラッグ", "前後関係・所属フェイズを変える"],
     ["バーの端をつまむ", "期間を伸縮する"],
@@ -8662,6 +8728,153 @@ function applyAutoCols(){
 
 /* ---------- カレンダー(月表示・見るだけ) ---------- */
 
+
+/* ================= カレンダー表示(ガントの月表示) =================
+   統合のときに表示先(#calView)と切替ボタンの器を持ち込み忘れて動かない状態だった。
+   掃除で一度消したが、器を用意して復活させたもの */
+let calMode=false;
+let calMonth=today(); /* 表示中の月(その月の1日を指す) */
+function calWeeksOf(monthDate){
+  /* 月曜始まり・日曜が右端になるよう並べる */
+  const y=monthDate.getFullYear(),m=monthDate.getMonth();
+  const first=new Date(y,m,1);
+  const start=addD(first,-((first.getDay()+6)%7));
+  const last=new Date(y,m+1,0);
+  const end=addD(last,6-((last.getDay()+6)%7));
+  const weeks=[];
+  let cur=start;
+  while(cur<=end){
+    weeks.push([0,1,2,3,4,5,6].map(i=>addD(cur,i)));
+    cur=addD(cur,7);
+  }
+  return weeks;
+}
+function calEventsOf(){
+  const evs=[];
+  for(const t of data.tasks){
+    const mems=membersOf(t);
+    const cats=catsOf(t);
+    const noasg=!mems.length&&t.noAsg;
+    /* バーと同じ塗り。以前はここだけ重要度で色を変えていて、バーと食い違っていた */
+    const paint=barPaint(mems,{done:(t.stage||0)>=3,noAsg:noasg});
+    const bg=paint.bg,color=paint.fg;
+    evs.push({isMs:false,name:t.name,start:parse(t.start),end:parse(t.end),bg,color,mem:mems[0]||null,cats,ref:t});
+  }
+  for(const m of data.milestones){
+    const s=parse(m.date),e=m.end?parse(m.end):s;
+    let bg=m.imp===3?"var(--imp)":m.imp===2?"var(--imp2)":"var(--text)";
+    const color=m.imp===3?"#fff":m.imp===2?"#332800":"var(--bg)";
+    evs.push({isMs:true,name:m.name,start:s,end:e,bg,color,mem:null,cats:[],ref:m});
+  }
+  return evs;
+}
+function renderCalendar(){
+  $("#calMonthLabel").textContent=`${calMonth.getFullYear()}年${calMonth.getMonth()+1}月`;
+  const grid=$("#calGrid");
+  grid.innerHTML="";
+  const weeks=calWeeksOf(calMonth);
+  const events=calEventsOf();
+  const todayStr=fmt(today());
+  const dimPast=data.ui?.showToday!==false; /* ガントの「本日表示」と同じ設定に合わせて過去を薄くする */
+  const ROW_H=22;
+  const MAX_LANES=6; /* 週ごとに高さがバラつくと見にくいため、どの週も同じ高さに揃える */
+  for(const week of weeks){
+    const weekStart=week[0],weekEnd=week[6];
+    const weekEl=document.createElement("div");weekEl.className="calWeek";
+    /* 日をマウスオーバーした時にその日だけ強調するための、内容の背面に敷く当たり判定セル */
+    const bgEl=document.createElement("div");bgEl.className="calDayBg";
+    week.forEach(d=>{
+      const c=document.createElement("div");c.className="calDayCell";
+      if(fmt(d)===todayStr)c.classList.add("todayCell");
+      bgEl.appendChild(c);
+    });
+    weekEl.appendChild(bgEl);
+    const numsEl=document.createElement("div");numsEl.className="calDayNums";
+    week.forEach((d,i)=>{
+      const cell=document.createElement("div");cell.className="calDayNum";
+      if(d.getMonth()!==calMonth.getMonth())cell.classList.add("otherMonth");
+      if(i===5)cell.classList.add("sat");
+      if(i===6)cell.classList.add("sun");
+      if(dimPast&&fmt(d)<todayStr)cell.classList.add("pastDate");
+      if(fmt(d)===todayStr){cell.classList.add("today");cell.innerHTML=`<span class="calNumBadge">${d.getDate()}</span><span class="calTodayFlag">TODAY</span>`;}
+      else cell.textContent=d.getDate();
+      numsEl.appendChild(cell);
+    });
+    weekEl.appendChild(numsEl);
+    /* その週にかかるイベントだけを抽出し、簡易レーン割り当て(既存のマイルストーンレーンと同じ考え方)。
+       マイルストーン(単日・期間とも)は常に最上段に来るよう、タスクより先にソートする */
+    const weekEvs=events.filter(e=>e.end>=weekStart&&e.start<=weekEnd)
+      .sort((a,b)=>(a.isMs===b.isMs?0:(a.isMs?-1:1))||a.start-b.start||(b.end-b.start)-(a.end-a.start));
+    const lanesEnd=[];
+    weekEvs.forEach(e=>{
+      e._s=Math.max(0,Math.round((e.start-weekStart)/DAY));
+      e._e=Math.min(6,Math.round((e.end-weekStart)/DAY));
+      let lane=0;
+      for(;lane<lanesEnd.length;lane++){if(e._s>lanesEnd[lane])break;}
+      lanesEnd[lane]=e._e;
+      e._lane=lane;
+    });
+    /* レーンがMAX_LANESを超える場合は、はみ出して被って見えると気持ち悪いので、最後の1段を「+N件」の表示に譲って省略する */
+    const usedLanes=lanesEnd.length;
+    const cap=usedLanes>MAX_LANES?MAX_LANES-1:MAX_LANES;
+    const visibleEvs=weekEvs.filter(e=>e._lane<cap);
+    const hiddenCount=weekEvs.length-visibleEvs.length;
+    const evLayer=document.createElement("div");evLayer.className="calEvents";
+    evLayer.style.height=(MAX_LANES*ROW_H+4)+"px";
+    visibleEvs.forEach(e=>{
+      const bar=document.createElement("div");bar.className="calEventBar"+(e.isMs?" isMs":"");
+      bar.style.left=(e._s/7*100)+"%";
+      bar.style.width=((e._e-e._s+1)/7*100)+"%";
+      bar.style.top=(e._lane*ROW_H)+"px";
+      bar.style.background=e.bg;bar.style.color=e.color;
+      const msIcon=e.isMs?`<span class="calEvDia"></span>`:"";
+      const avIcon=e.mem?`<span class="calEvAv">${e.mem.icon?`<img src="${e.mem.icon}" alt="">`:`<span class="calEvDot" style="background:${e.mem.color}"></span>`}</span>`:"";
+      const catDots=e.cats.length?`<span class="calEvCats">${e.cats.slice(0,3).map(c=>`<span class="calEvCatDot" style="background:${c.color}"></span>`).join("")}</span>`:"";
+      bar.innerHTML=`${msIcon}${avIcon}<span class="calEvName">${esc(e.name)}</span>${catDots}`;
+      const catNames=e.cats.map(c=>c.name).join("/");
+      bar.title=`${e.name}${catNames?` [${catNames}]`:""}${e.mem?`  担当: ${e.mem.name}`:""}`;
+      bar.onclick=()=>{e.isMs?openMsModal(e.ref):openTaskModal(e.ref);};
+      if(dimPast){
+        let pastCount=0;
+        for(let i=e._s;i<=e._e;i++){if(fmt(addD(weekStart,i))<todayStr)pastCount++;}
+        if(pastCount>0){
+          const pv=document.createElement("div");pv.className="calBarPastVeil";
+          const span=e._e-e._s+1;
+          pv.style.width=(pastCount/span*100)+"%";
+          if(pastCount>=span)pv.style.borderRadius="4px";
+          bar.appendChild(pv);
+        }
+      }
+      evLayer.appendChild(bar);
+    });
+    if(hiddenCount>0){
+      const more=document.createElement("div");more.className="calMoreLabel";
+      more.style.top=(cap*ROW_H)+"px";
+      more.textContent=`+${hiddenCount}件`;
+      more.title=`他 ${hiddenCount} 件`;
+      evLayer.appendChild(more);
+    }
+    weekEl.appendChild(evLayer);
+    grid.appendChild(weekEl);
+  }
+}
+function setCalMode(on){
+  if(on===calMode)return;
+  document.querySelectorAll("#viewSeg button").forEach(b=>b.classList.toggle("on",(b.dataset.view==="cal")===on));
+  const outEl=on?$("#gantt"):$("#calView");
+  const inEl=on?$("#calView"):$("#gantt");
+  outEl.classList.add("viewFadeOut");
+  setTimeout(()=>{
+    calMode=on;
+    document.body.classList.toggle("calMode",on);
+    outEl.classList.remove("viewFadeOut");
+    if(on)renderCalendar();
+    inEl.classList.add("viewFadeIn");
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      inEl.classList.remove("viewFadeIn");
+    }));
+  },140);
+}
 function render(){
   _barReg={};
   /* undo等でドラッグ中にDOMが丸ごと再構築されると、mouseupの後処理が正しく走らず
@@ -10680,6 +10893,12 @@ function setDensity(d){
   applyDensity();scheduleSave();render();
 }
 document.querySelectorAll("#densSeg button").forEach(b=>b.onclick=()=>setDensity(b.dataset.d));
+/* ガント / カレンダーの切り替えと、月めくり */
+document.querySelectorAll("#viewSeg button").forEach(b=>b.onclick=()=>setCalMode(b.dataset.view==="cal"));
+$("#calPrev").onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);renderCalendar();};
+$("#calNext").onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1);renderCalendar();};
+$("#calToday").onclick=()=>{calMonth=new Date(today().getFullYear(),today().getMonth(),1);renderCalendar();};
+updateSegThumb($("#viewSeg"));
 /* ガントチャート全体(メニューより下)の表示倍率。CSSのzoomで実際にレイアウトごと拡大縮小し、
    マウス座標から日付を逆算する各所の計算にはuiScaleで補正を掛けて整合させている(上のuiScale変数と連動) */
 function applyUiScale(){
