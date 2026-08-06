@@ -3095,7 +3095,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-44b85ce";
+const APP_VERSION = "2026.08.06-bf425fd";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10170,7 +10170,12 @@ function addTaskRow(t,r,tW,lbody,rinner,nDays,phaseGroups,dimPast){
      2日以上に伸ばしたら節目ではなくなる(◆で期間は表せないため) */
   if(t.isMs&&days>1){t.isMs=false;}
   const asMs=!!t.isMs&&days===1;
-  if(asMs){bar.classList.add("msBar");bar.style.setProperty("--msBarCol",paint.bg);}
+  if(asMs){
+    /* 色はマイルストーン行の◆と同じ規則にする(低=黒 / 中=黄 / 高=赤)。
+       担当の色ではなく重要度で塗るので、上下の◆が同じ意味で読める */
+    bar.classList.add("msBar");
+    bar.style.setProperty("--msBarCol",imp===3?"var(--imp)":imp===2?"var(--imp2)":"var(--text)");
+  }
   const dateRangeStr=s===e?dfmt(parse(t.start)):`${dfmt(parse(t.start))}〜${dfmt(parse(t.end))}`;
   bar.title=`${esc(t.name)}${cats.length?` [${cats.map(c=>esc(c.name)).join("/")}]`:""}${mems.length?`  担当: ${mems.map(x=>esc(x.name)).join("・")}`:""}  ${dateRangeStr}`;
   const barH=(DENS[data?.ui?.density]||DENS.m).bar;
