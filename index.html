@@ -1450,8 +1450,8 @@ body.dark .syncNote.warn{color:#F0B49A;background:#2A1E19;border-color:#4A3428}
 #syncState{font-size:11px;color:var(--muted);white-space:nowrap}
 /* ドロップダウンの中の区切り線 */
 .mpSep{height:1px;background:var(--line);margin:4px 2px}
-#btnFit,#btnPhaseHL{height:24px;padding:0 11px;display:flex;align-items:center;box-sizing:border-box}
-#btnFit.on,#btnPhaseHL.on{background:var(--text);color:var(--bg)}
+#btnFit{height:24px;padding:0 11px;display:flex;align-items:center;box-sizing:border-box}
+#btnFit.on{background:var(--text);color:var(--bg)}
 #densSeg button.on{background:transparent}
 #dayWStepper input.stepLabel{border:none;background:transparent;font-family:inherit;padding:0;width:38px;
   font-size:11px;color:var(--muted);text-align:center}
@@ -1604,12 +1604,6 @@ body.fit #view-gantt #rpane{overflow-x:hidden}
   background:var(--line);pointer-events:none;transform:translateY(-.5px);
 }
 #view-gantt .lrow[data-tid].noPhase::before, #view-gantt .lrow[data-tid].noPhase::after{display:none}
-/* マイルストーン行はどのフェイズにも属さない見出しなので、薄くする対象から外す。
-   この行は上に貼り付いて出っぱなしなので、スクロール中にホバー先が次々入れ替わると
-   薄く→濃くを繰り返してちらついて見えた */
-#view-gantt #gantt.phaseFocus .lrow:not(.ms), #view-gantt #gantt.phaseFocus .rrow:not(.ms){opacity:.3}
-#view-gantt #gantt.phaseFocus .lrow.inFocus, #view-gantt #gantt.phaseFocus .rrow.inFocus{opacity:1}
-#view-gantt .lrow.phaseEnd, #view-gantt .rrow.phaseEnd{border-bottom-color:transparent}
 #view-gantt .tnameWrap{display:flex;align-items:center;gap:6px;flex:1;min-width:0;transition:transform .12s}
 #view-gantt .tdot{flex:none;width:3px;height:3px;border-radius:99px;background:var(--faint);transition:background .15s;position:relative;z-index:1}
 #view-gantt .lrow[data-tid].current .tdot{
@@ -2217,7 +2211,6 @@ body.locked #view-gantt .phToggle{cursor:pointer}
       <button id="dayWUp" title="拡大">＋</button>
       <button id="dayWReset" class="stepReset" title="標準(20px)に戻す">↺</button>
     </div>
-    <button class="btn solid chartOnly" id="btnPhaseHL" title="フェイズにマウスを乗せたとき、その配下以外を薄くします">フェイズ強調</button>
     <button class="btn solid chartOnly" id="btnFit" title="1画面に全体を収めて表示します。この間はドラッグでの編集ができません">全体表示</button>
     <div class="sep"></div>
     <button class="btn solid" id="btnCalView" title="月ごとのカレンダーで見ます">カレンダー表示</button>
@@ -3072,7 +3065,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-2ae0d27";
+const APP_VERSION = "2026.08.06-64520fa";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -9031,30 +9024,6 @@ function pairHover(l,rr){
   rr.addEventListener("mouseenter",on);rr.addEventListener("mouseleave",off);
 }
 
-/* フェイズ(見出し+配下タスク)をマウスオーバーした時だけ強調し、それ以外をゆっくりディゾルブして薄くする。
-   末尾のタスク行には黒い下線を付けて、フェイズの範囲がどこまでかを分かりやすくする。 */
-/* 強調のオン/オフ。既定はオン。切っている人は「他が薄くなるのが目障り」なので、
-   ホバーしても何も起きない状態にする */
-function phaseHLOn(){ return (data.ui||{}).phaseHL !== false; }
-function syncPhaseHLBtn(){ $("#btnPhaseHL").classList.toggle("on", phaseHLOn()); }
-$("#btnPhaseHL").onclick=()=>{
-  data.ui={...(data.ui||{}), phaseHL: !phaseHLOn()};
-  scheduleSave();
-  syncPhaseHLBtn();
-  if(!phaseHLOn()) $("#gantt").classList.remove("phaseFocus");   /* 切った瞬間に薄いままにしない */
-};
-function setPhaseFocus(grp,active){
-  if(!phaseHLOn()) return;
-  const gantt=$("#gantt");
-  gantt.classList.toggle("phaseFocus",active);
-  const method=active?"add":"remove";
-  grp.lp.classList[method]("inFocus");
-  grp.rp.classList[method]("inFocus");
-  grp.rows.forEach(x=>{x.l.classList[method]("inFocus");x.rr.classList[method]("inFocus");});
-  const last=grp.rows[grp.rows.length-1];
-  if(last){last.l.classList[method]("phaseEnd");last.rr.classList[method]("phaseEnd");}
-}
-
 /* 列幅の自動調整: 手動調整(data.ui)がなければ内容に合わせる。長すぎる場合は上限で止めてドラッグ調整 */
 function applyAutoCols(){
   const rt=document.documentElement.style;
@@ -9256,9 +9225,7 @@ function render(){
   /* undo等でドラッグ中にDOMが丸ごと再構築されると、mouseupの後処理が正しく走らず
      dragBars/dragRows(半透明化)やカーソルロックが残ったままになることがあるため、
      再描画のたびに必ずリセットしておく(ドラッグ中に正当にrender()が呼ばれることは無い) */
-  /* phaseFocus(フェイズにホバー中、それ以外を薄くする)は、削除・複製などでDOMを作り直すと
-     mouseleaveが飛ばずに残り、全体が半透明のままになるため必ず解除する */
-  $("#gantt").classList.remove("dragBars","dragRows","phaseFocus");
+  $("#gantt").classList.remove("dragBars","dragRows");
   document.body.classList.remove("marqueeActive");
   unlockCursor();
   applyTitleBar();
@@ -10008,10 +9975,6 @@ function render(){
       const clrHovPhase=()=>{if(_hoverPhase===g.phase)_hoverPhase=null};
       lp.addEventListener("mouseenter",setHovPhase);rp.addEventListener("mouseenter",setHovPhase);
       lp.addEventListener("mouseleave",clrHovPhase);rp.addEventListener("mouseleave",clrHovPhase);
-      lp.addEventListener("mouseenter",()=>setPhaseFocus(grp,true));
-      rp.addEventListener("mouseenter",()=>setPhaseFocus(grp,true));
-      lp.addEventListener("mouseleave",()=>setPhaseFocus(grp,false));
-      rp.addEventListener("mouseleave",()=>setPhaseFocus(grp,false));
     }
     for(const t of g.tasks)addTaskRow(t,r,tW,lTarget,rTarget,nDays,phaseGroups,dimPast);
   }
@@ -11429,7 +11392,6 @@ function updateDayWStepperState(){
   $("#dayWDown").disabled=fit||zoom<=DAYW_MIN;
   $("#dayWUp").disabled=fit||zoom>=DAYW_MAX;
   $("#btnFit").classList.toggle("on",fit);
-  syncPhaseHLBtn();
 }
 function setDayW(v){
   if(zoom==="fit")return;
@@ -11653,7 +11615,7 @@ function forceEndDrag(){
   document.dispatchEvent(new MouseEvent("mouseup",{
     bubbles:true,clientX:_lastMouse.x,clientY:_lastMouse.y
   }));
-  $("#gantt").classList.remove("dragBars","dragRows","phaseFocus");
+  $("#gantt").classList.remove("dragBars","dragRows");
   document.body.classList.remove("marqueeActive");
   unlockCursor();
 }
