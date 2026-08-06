@@ -1942,12 +1942,12 @@ body.locked #view-gantt .msband .h{display:none}
 /* 節目にしたタスクのバー。地を透明にして中央に菱形を描くだけで、行も当たり判定もそのまま。
    background の打ち消しは .barDone の !important より後ろに置くこと(同じ強さなので順序で決まる) */
 #view-gantt .bar.msBar{background:transparent !important;box-shadow:none !important}
+/* 大きさは上のマイルストーン行の◆(.dia)と揃える。影も付けない */
 #view-gantt .bar.msBar::after{
-  content:"";position:absolute;left:50%;top:50%;width:11px;height:11px;
+  content:"";position:absolute;left:50%;top:50%;width:9px;height:9px;
   transform:translate(-50%,-50%) rotate(45deg);border-radius:1px;
-  background:var(--msBarCol,var(--text));box-shadow:0 1px 2px rgba(20,29,40,.15);
+  background:var(--msBarCol,var(--text));
 }
-#view-gantt .bar.msBar:hover::after{box-shadow:0 3px 7px rgba(20,29,40,.3)}
 #view-gantt .bar.msBar .bprog{display:none}
 /* 選択・本日の枠は、透明な当たり判定の全体ではなく菱形に添わせる */
 #view-gantt .bar.msBar.selected{box-shadow:none !important}
@@ -3095,7 +3095,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-54b8648";
+const APP_VERSION = "2026.08.06-46a618a";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
