@@ -3080,7 +3080,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-b5bc9fd";
+const APP_VERSION = "2026.08.06-f67bc2c";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -9759,7 +9759,11 @@ function render(){
         };
         const onUp=()=>{
           cleanup();
-          if(!started)openPhaseModal(g.phase); /* 動かさないまま離した=短いクリックとして編集を開く */
+          /* 動かさないまま離した=短いクリックとして編集を開く。
+             ただしロック中は開かない。開けてしまうと名前も削除も変えられてしまい「ロック」と言えない */
+          if(started)return;
+          if(!editMode){if(typeof flashLockHint==="function")flashLockHint();return;}
+          openPhaseModal(g.phase);
         };
         const timer=setTimeout(startDrag,350); /* 動かさなくても長押しすればドラッグ開始 */
         document.addEventListener("mousemove",onMove);
@@ -9938,7 +9942,9 @@ function render(){
             const px=ev.clientX,py=ev.clientY;
             const up=e2=>{
               document.removeEventListener("mouseup",up);
-              if(Math.abs(e2.clientX-px)<=4&&Math.abs(e2.clientY-py)<=4)openPhaseModal(g.phase);
+              if(Math.abs(e2.clientX-px)>4||Math.abs(e2.clientY-py)>4)return;
+              if(!editMode){if(typeof flashLockHint==="function")flashLockHint();return;}
+              openPhaseModal(g.phase);   /* 本番日フェイズは動かせないが、名前の変更はできる */
             };
             document.addEventListener("mouseup",up);
           });
