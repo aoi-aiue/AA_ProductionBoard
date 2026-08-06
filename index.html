@@ -3095,7 +3095,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-46a618a";
+const APP_VERSION = "2026.08.06-9f3d6e7";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10470,11 +10470,10 @@ function offerMilestone(tid,x,y){
   const t=data.tasks.find(z=>z.id===tid);
   if(!t||t.isMs)return;
   openPopover(x,y,`
-    <h3>マイルストーンにしますか?</h3>
-    <div class="hint" style="margin:0 0 9px">「${esc(t.name)}」を${dfmt(parse(t.start))}の節目として扱います。<br>バーが◆になり、サマリーの一覧に出ます。担当や工程はそのままです。</div>
-    <div class="mFoot" style="margin-top:2px">
+    <h3 style="margin-bottom:11px">マイルストーンにしますか?</h3>
+    <div class="mFoot" style="margin-top:0">
       <div class="spacer"></div>
-      <button class="btn" id="omNo">そのまま</button>
+      <button class="btn" id="omNo">しない</button>
       <button class="btn primary" id="omYes">マイルストーンにする</button>
     </div>
   `);
