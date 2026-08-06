@@ -907,6 +907,18 @@ footer{padding:4px 16px;border-top:1px solid var(--line);color:var(--faint);font
 footer > *{flex:none}
 footer .spacer{flex:1}
 #btnKeys{font-size:10.5px;padding:2px 9px;height:auto;line-height:1.7;border-radius:4px}
+/* クリックした場所のそばに出す小さな入力枠。位置はJSが実測して画面内に収める */
+#popover{position:fixed;z-index:120;min-width:250px;max-width:340px;
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  box-shadow:0 10px 30px rgba(20,29,40,.22);padding:13px 15px 12px}
+#popover[hidden]{display:none}
+#popover h3{font-size:12px;font-weight:700;margin-bottom:9px}
+#popover .field{margin-bottom:8px}
+#popover .field input,#popover .field select{width:100%}
+#popover .mRow{display:flex;gap:8px}
+#popover .mRow .field{flex:1;min-width:0}
+#popover .mFoot{display:flex;align-items:center;gap:8px;margin-top:4px}
+#popover .hint{font-size:10.5px;color:var(--muted);line-height:1.6}
 /* 最終更新。押すと変更履歴が開く。状態表示の一種なので、ボタンらしい枠は出さない */
 #lastUpd{font-size:10.5px;color:var(--faint);background:none;border:0;padding:0;cursor:pointer}
 #lastUpd:hover{color:var(--text);text-decoration:underline}
@@ -2359,6 +2371,9 @@ body.locked #view-gantt .phToggle{cursor:pointer}
      中身は openModal() が流し込む。b.className に "modal" を入れているので、
      統合版の .modal の見た目がそのまま当たる -->
 <div id="modalBg"><div id="modalBody" class="modal"></div></div>
+<!-- クリック位置の近くに出す小さな入力枠(タスク・マイルストーンのクイック追加など)。
+     この要素が無いと openPopover() が捨て要素に書き込むだけになり、どのポップオーバーも黙って出なくなる -->
+<div id="popover" hidden></div>
 
 <!-- task modal -->
 <div class="overlay" id="assetOverlay">
@@ -3065,7 +3080,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-64520fa";
+const APP_VERSION = "2026.08.06-b5bc9fd";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10417,6 +10432,31 @@ function makePhaseRowGhosts(rowEl){
   }catch(err){}
   return out;
 }
+/* 期間が1日になったタスクを、その場でマイルストーンに変えられるようにする。
+   自動では変えない。1日の作業と節目は別物で、勝手に節目が増えると一覧の意味が薄れるため */
+function offerMilestone(tid,x,y){
+  const t=data.tasks.find(z=>z.id===tid);
+  if(!t)return;
+  openPopover(x,y,`
+    <h3>マイルストーンにしますか?</h3>
+    <div class="hint" style="margin:0 0 9px">「${esc(t.name)}」を${dfmt(parse(t.start))}の節目として扱います。<br>担当・カテゴリ・工程は外れ、サマリーの一覧に出るようになります。</div>
+    <div class="mFoot" style="margin-top:2px">
+      <div class="spacer"></div>
+      <button class="btn" id="omNo">そのまま</button>
+      <button class="btn primary" id="omYes">マイルストーンにする</button>
+    </div>
+  `);
+  $("#omNo").onclick=closePopover;
+  $("#omYes").onclick=()=>{
+    const nm={id:uid(),name:t.name,date:t.start};
+    if(t.phase)nm.phase=t.phase;   /* フェイズの中の節目として引き継ぐ */
+    if((t.imp||1)>1)nm.imp=t.imp;
+    data.milestones.push(nm);
+    data.milestones.sort((a,b)=>a.date<b.date?-1:1);
+    data.tasks=data.tasks.filter(z=>z.id!==tid);
+    closePopover();scheduleSave();render();
+  };
+}
 function attachDrag(bar,t,r,l){
   bar.addEventListener("mousedown",ev=>{
     ev.preventDefault();
@@ -10454,6 +10494,7 @@ function attachDrag(bar,t,r,l){
     const sl0=$("#rpane").scrollLeft;
     let lastEv=ev;
     const s0=dayIdx(r,t.start),e0=dayIdx(r,t.end);
+    const wasOneDay=s0===e0;   /* 「1日になった瞬間」を捉えるため、掴んだ時点の長さを覚えておく */
     let moved=false;
     let target=bar;
     const g=$("#gantt");
@@ -10684,6 +10725,8 @@ function attachDrag(bar,t,r,l){
           data.tasks=arr;
         }
         scheduleSave();render();
+        /* 1日にした瞬間だけ、節目にするか小さく尋ねる。押さなければただの1日タスクのまま */
+        if(!wasOneDay&&t.start===t.end&&!t.evLock)offerMilestone(t.id,lastEv.clientX,lastEv.clientY);
       }else{
         openTaskModal(t);
       }
