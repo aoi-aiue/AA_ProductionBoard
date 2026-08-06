@@ -3113,7 +3113,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-d32360d";
+const APP_VERSION = "2026.08.06-1e7477f";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -9512,26 +9512,31 @@ function render(){
       const internal=isRange&&bandW>=inTextW;
       return{m,si,ei,x,isRange,bandL,bandW,dstr,internal,imp:impOf(m)};
     });
-    /* 2) 外側ラベル(点◆と、文字が収まらない狭いバンド)のレーン割当 */
+    /* 2) 外側ラベルのレーン割当。
+       ここで段を使うのは**点(◆)だけ**。狭い帯の名前は上の段に積むと帯から離れて
+       どれの名前か分からなくなるので、帯のすぐ横(同じ高さ)に置く */
     const lanesEnd=[];
     for(const it of items){
       if(it.internal)continue;
-      const w=tw(it.m.name,F1)+tw(" "+it.dstr,F2)+8;
+      it.outW=tw(it.m.name,F1)+tw(" "+it.dstr,F2)+8;
+      if(it.isRange)continue;   /* 帯の名前は段を使わない */
       let lx=it.x+9;
-      if(lx+w>tW-4)lx=Math.max(it.x-9-w,2);
+      if(lx+it.outW>tW-4)lx=Math.max(it.x-9-it.outW,2);
       let lane=0;
       for(;lane<lanesEnd.length;lane++){if(lx>=lanesEnd[lane]+14)break;}
-      lanesEnd[lane]=lx+w;
+      lanesEnd[lane]=lx+it.outW;
       it.lx=lx;it.lane=lane;
     }
     const laneN=lanesEnd.length;
-    /* 3) バンドのサブレーン: 触れ合う程度(2px)まで詰めて同列に並べる */
+    /* 3) バンドのサブレーン: 触れ合う程度(2px)まで詰めて同列に並べる。
+       名前を横に出す帯は、その名前のぶんも場所を取ったものとして詰める
+       (そうしないと隣の帯と名前が重なる) */
     const bands=items.filter(i=>i.isRange).sort((a,b)=>a.bandL-b.bandL);
     const bEnd=[];
     for(const bd of bands){
       let bl=0;
       for(;bl<bEnd.length;bl++){if(bd.bandL>=bEnd[bl]+2)break;}
-      bEnd[bl]=bd.bandL+bd.bandW;
+      bEnd[bl]=bd.bandL+bd.bandW+(bd.internal?0:bd.outW+8);
       bd.bLane=bl;
     }
     const bandN=bEnd.length;
@@ -9566,16 +9571,26 @@ function render(){
       const yMark=it.isRange?bandY0+it.bLane*22:pointY;
       let stem=null,l=null;
       if(!it.internal){
-        const lblTop=6+(laneN-1-it.lane)*15;
-        stem=document.createElement("div");stem.className="diaStem";
-        stem.dataset.mid=it.m.id; /* タスクとまとめてドラッグする際に、本体と一緒に動かせるようにする */
-        stem.style.left=it.x+"px";
-        stem.style.top=(lblTop+13)+"px";
-        stem.style.height=Math.max(yMark-1-(lblTop+13),0)+"px";
-        rms.appendChild(stem);
         l=document.createElement("div");l.className="diaLbl"+impCls;
-        l.dataset.mid=it.m.id; /* 同上 */
-        l.style.left=it.lx+"px";l.style.top=lblTop+"px";
+        l.dataset.mid=it.m.id; /* タスクとまとめてドラッグする際に、本体と一緒に動かせるようにする */
+        if(it.isRange){
+          /* 帯のすぐ右に、同じ高さで置く。右端に寄っていて入らないときだけ左へ回す。
+             帯の高さ18px、ラベルの行の高さ14pxなので2px下げると縦中央に来る */
+          let lx=it.bandL+it.bandW+6;
+          if(lx+it.outW>tW-4)lx=Math.max(it.bandL-it.outW-6,2);
+          it.lblL=lx;   /* ドラッグ中の追従に使う */
+          l.style.left=lx+"px";l.style.top=(yMark+2)+"px";
+        }else{
+          const lblTop=6+(laneN-1-it.lane)*15;
+          stem=document.createElement("div");stem.className="diaStem";
+          stem.dataset.mid=it.m.id;
+          stem.style.left=it.x+"px";
+          stem.style.top=(lblTop+13)+"px";
+          stem.style.height=Math.max(yMark-1-(lblTop+13),0)+"px";
+          rms.appendChild(stem);
+          it.lblL=it.lx;
+          l.style.left=it.lx+"px";l.style.top=lblTop+"px";
+        }
         l.innerHTML=`<b>${esc(it.m.name)}</b><span>${it.dstr}</span>`;
       }
       let d;
@@ -9727,7 +9742,7 @@ function render(){
           if(!dup){
             if(stem)stem.style.left=nx+"px";
             if(l){
-              l.style.left=(it.lx+(nx-it.x))+"px";
+              l.style.left=((it.lblL||0)+(nx-it.x))+"px";
               l.querySelector("span").textContent=ndstr;
             }
             const mbd=d.querySelector(".mbd");
