@@ -1939,6 +1939,21 @@ body.locked #view-gantt .msband .h{display:none}
 }
 #view-gantt .bar:hover{box-shadow:0 4px 10px rgba(20,29,40,.32);transform:translateY(-2px);z-index:9}
 #view-gantt .bar.selected{box-shadow:0 0 0 2px var(--accent),0 2px 6px rgba(20,29,40,.25);z-index:4}
+/* 節目にしたタスクのバー。地を透明にして中央に菱形を描くだけで、行も当たり判定もそのまま。
+   background の打ち消しは .barDone の !important より後ろに置くこと(同じ強さなので順序で決まる) */
+#view-gantt .bar.msBar{background:transparent !important;box-shadow:none !important}
+#view-gantt .bar.msBar::after{
+  content:"";position:absolute;left:50%;top:50%;width:11px;height:11px;
+  transform:translate(-50%,-50%) rotate(45deg);border-radius:1px;
+  background:var(--msBarCol,var(--text));box-shadow:0 1px 2px rgba(20,29,40,.15);
+}
+#view-gantt .bar.msBar:hover::after{box-shadow:0 3px 7px rgba(20,29,40,.3)}
+#view-gantt .bar.msBar .bprog{display:none}
+/* 選択・本日の枠は、透明な当たり判定の全体ではなく菱形に添わせる */
+#view-gantt .bar.msBar.selected{box-shadow:none !important}
+#view-gantt .bar.msBar.selected::after{box-shadow:0 0 0 2px var(--accent)}
+#view-gantt .bar.msBar.current{outline:none;animation:none}
+#view-gantt .bar.msBar.current::after{outline:1.5px solid var(--curCol);outline-offset:2px;animation:currentPulse 1.8s ease-in-out infinite}
 #view-gantt .bar.dragGhost{
   background:var(--faint)!important;opacity:.35;box-shadow:none;
   pointer-events:none;z-index:1;
@@ -3080,7 +3095,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-f67bc2c";
+const APP_VERSION = "2026.08.06-54b8648";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -5224,7 +5239,11 @@ function renderSummary(){
       return `${msDate(m.date)} 〜 ${b.getMonth()+1}月${b.getDate()}日(${_WD[b.getDay()]})`;
     return `${msDate(m.date)} 〜 ${msDate(m.end)}`;
   };
-  const msList = (state.milestones||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  /* 「節目」の印を立てたタスクも同じ一覧に並べる。中身は同じ意味を持つので分けない */
+  const msFromTasks = (state.tasks||[])
+    .filter(t=>t.isMs && t.start && t.start===t.end)
+    .map(t=>({id:t.id, name:t.name, date:t.start, phase:t.phase, imp:t.priority, fromTask:true}));
+  const msList = (state.milestones||[]).concat(msFromTasks).sort((a,b)=>a.date<b.date?-1:1);
   const msRows = msList.length
     ? msList.map(m=>{
         const end = m.end||m.date, d = isoDiffDays(_t0, end), late = d < 0;
@@ -10143,6 +10162,12 @@ function addTaskRow(t,r,tW,lbody,rinner,nDays,phaseGroups,dimPast){
   bar.style.background=paint.bg;bar.style.color=paint.fg;
   const imp=t.imp||1; /* 重要度はバーの色ではなく旗アイコンで示す(他ビューと統一) */
   const days=e-s+1;
+  /* 節目の印が立っている1日タスクは、バーではなく◆で描く。
+     掴む場所を狭めたくないので、要素の大きさ・当たり判定はそのままにして見た目だけ変える。
+     2日以上に伸ばしたら節目ではなくなる(◆で期間は表せないため) */
+  if(t.isMs&&days>1){t.isMs=false;}
+  const asMs=!!t.isMs&&days===1;
+  if(asMs){bar.classList.add("msBar");bar.style.setProperty("--msBarCol",paint.bg);}
   const dateRangeStr=s===e?dfmt(parse(t.start)):`${dfmt(parse(t.start))}〜${dfmt(parse(t.end))}`;
   bar.title=`${esc(t.name)}${cats.length?` [${cats.map(c=>esc(c.name)).join("/")}]`:""}${mems.length?`  担当: ${mems.map(x=>esc(x.name)).join("・")}`:""}  ${dateRangeStr}`;
   const barH=(DENS[data?.ui?.density]||DENS.m).bar;
@@ -10438,14 +10463,15 @@ function makePhaseRowGhosts(rowEl){
   }catch(err){}
   return out;
 }
-/* 期間が1日になったタスクを、その場でマイルストーンに変えられるようにする。
-   自動では変えない。1日の作業と節目は別物で、勝手に節目が増えると一覧の意味が薄れるため */
+/* 期間が1日になったタスクに「節目」の印を立てられるようにする。
+   タスクは動かさない。行もフェイズも担当もそのままで、バーが◆になり、サマリーの一覧に出るだけ。
+   自動では立てない。1日の作業と節目は別物で、勝手に節目が増えると一覧の意味が薄れるため */
 function offerMilestone(tid,x,y){
   const t=data.tasks.find(z=>z.id===tid);
-  if(!t)return;
+  if(!t||t.isMs)return;
   openPopover(x,y,`
     <h3>マイルストーンにしますか?</h3>
-    <div class="hint" style="margin:0 0 9px">「${esc(t.name)}」を${dfmt(parse(t.start))}の節目として扱います。<br>担当・カテゴリ・工程は外れ、サマリーの一覧に出るようになります。</div>
+    <div class="hint" style="margin:0 0 9px">「${esc(t.name)}」を${dfmt(parse(t.start))}の節目として扱います。<br>バーが◆になり、サマリーの一覧に出ます。担当や工程はそのままです。</div>
     <div class="mFoot" style="margin-top:2px">
       <div class="spacer"></div>
       <button class="btn" id="omNo">そのまま</button>
@@ -10454,12 +10480,7 @@ function offerMilestone(tid,x,y){
   `);
   $("#omNo").onclick=closePopover;
   $("#omYes").onclick=()=>{
-    const nm={id:uid(),name:t.name,date:t.start};
-    if(t.phase)nm.phase=t.phase;   /* フェイズの中の節目として引き継ぐ */
-    if((t.imp||1)>1)nm.imp=t.imp;
-    data.milestones.push(nm);
-    data.milestones.sort((a,b)=>a.date<b.date?-1:1);
-    data.tasks=data.tasks.filter(z=>z.id!==tid);
+    t.isMs=true;
     closePopover();scheduleSave();render();
   };
 }
