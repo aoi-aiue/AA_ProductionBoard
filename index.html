@@ -3111,7 +3111,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-ab98c03";
+const APP_VERSION = "2026.08.06-7e4fdf5";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10234,7 +10234,9 @@ function addTaskRow(t,r,tW,lbody,rinner,nDays,phaseGroups,dimPast){
   /* カテゴリチップもバー内に入るので、その分の幅も判定に含める。
      含めないと1日バーなどで「入る」と判断され、中身が潰れて読めなくなる */
   const catSpace=cats.reduce((sum,c)=>sum+Math.min(tw(c.name,"600 9px "+FS)+19,90)+5,0);
-  const wide=barW>=Math.max(50,nameW+avSpace+catSpace+28);
+  /* 節目(◆)は地が透明なので、中に文字を置くと白いまま何も無い所に描かれて読めなくなる。
+     列の幅を広げると「入る」と判定されてしまうため、節目のときは必ず外に出す */
+  const wide=!asMs&&barW>=Math.max(50,nameW+avSpace+catSpace+28);
   const ti=dayIdx(r,fmt(today()));
   const dayChipTxt=`${days}日間`;
   /* バーが短いときは名前(+カテゴリ)をバー外に表示してはみ出しでも読めるように(従来通り・フリップあり)。
