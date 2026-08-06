@@ -3095,7 +3095,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-9f3d6e7";
+const APP_VERSION = "2026.08.06-44b85ce";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -6671,6 +6671,9 @@ function normalizeTask(t){
     memo: t.memo||"",
     scenes: t.scenes||[], size: ["S","M","L"].includes(t.size)?t.size:"M", stage: t.stage||0,
     start: t.start||"", end: t.end||"", phase: t.phase||"",
+    /* 節目として扱う印。ここに書き忘れると、保存・共有・巻き戻しのたびに落ちて
+       ◆が普通のバーに戻ってしまう(実際に一度そうなった) */
+    ...(t.isMs?{isMs:true}:{}),
     ...(t.evLock?{evLock:true}:{})
   };
 }
@@ -10473,8 +10476,8 @@ function offerMilestone(tid,x,y){
     <h3 style="margin-bottom:11px">マイルストーンにしますか?</h3>
     <div class="mFoot" style="margin-top:0">
       <div class="spacer"></div>
-      <button class="btn" id="omNo">しない</button>
       <button class="btn primary" id="omYes">マイルストーンにする</button>
+      <button class="btn" id="omNo">しない</button>
     </div>
   `);
   $("#omNo").onclick=closePopover;
