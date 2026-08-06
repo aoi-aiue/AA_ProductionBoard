@@ -537,8 +537,6 @@ body.locked .mx-ghost{visibility:hidden}
   transform:translate(-50%,-50%) rotate(45deg);border-radius:1px;background:var(--text)}
 .msDia.imp2::before{background:#E0A020}
 .msDia.imp3::before{background:#E5392C}
-/* 旗の場所取りだけ残す。消すと後ろの名前がその分ズレる */
-.prio.prioGhost{width:11px;visibility:hidden}
 /* 優先度フラグ: 旗の色で高=赤・中=橙・低=グレーの3段階を表す。
    進捗背景(白〜ほぼ黒)のどれでも見えるよう、明暗2重の輪郭(drop-shadow)を付けて縁取りする */
 .prio{display:inline-flex;align-items:center;flex:none;height:12px;line-height:0;vertical-align:middle;margin-right:4px}
@@ -1067,7 +1065,7 @@ body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
   font-size:calc(var(--tagFs, 9.5px) - 0.5px);border-width:1px}
 /* バー外の旗も下地が背景色になるので、影は不要 */
 #view-gantt .out .bflag{text-shadow:none;margin-right:3px}
-.kb-card .kb-sub .size-badge,.kb-card .kb-sub .msDia{margin-right:3px}
+.kb-card .kb-sub .size-badge{margin-right:3px}
 /* ================= タスク編集モーダル =================
    項目が多いので「名前 → 分類・担当 / 状態・日程 → シーン → メモ」の順に、
    関係の近いものを枠でまとめて2列に置く。新規追加の入力欄は普段は隠しておく */
@@ -3113,7 +3111,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-5085db9";
+const APP_VERSION = "2026.08.06-ab98c03";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4293,7 +4291,9 @@ function renderMatrix(){
   });
 
   state.cats.forEach(c=>{
-    const items = sortedAssets(shownTasks().filter(a=>a.cat===c.id));
+    const sorted = sortedAssets(shownTasks().filter(a=>a.cat===c.id));
+    /* 節目はそのカテゴリの先頭に置く。日付の目印なので、優先度の高い期間タスクより上のほうが読みやすい */
+    const items = sorted.filter(a=>a.isMs).concat(sorted.filter(a=>!a.isMs));
     const pt = items.reduce((t,a)=>t+SIZE_PT[a.size],0);
     h += `<div class="mx-cat" data-cid="${c.id}" style="--cc:${c.color}"><div class="mx-cat-in">${esc(c.name)}</div><span class="n">${items.length}件</span></div>`;
     items.forEach(a=>{
@@ -4301,7 +4301,7 @@ function renderMatrix(){
       const ms = membersOf(a);
       const stack = avatarStack(ms);
       h += `<div class="mx-name${stCls}" data-aid="${a.id}" onclick="openAssetModal('${a.id}')" title="${esc(a.memo)}">
-        ${sizeMark(a)}${prioMark(a)}${phaseChip(a)}<span class="nm">${esc(a.name)}</span><span class="rowRight">${stack}${pips(a.stage, a.id, c.color)}</span>
+        ${sizeMark(a)}${prioFlag(a.priority)}${phaseChip(a)}<span class="nm">${esc(a.name)}</span><span class="rowRight">${stack}${pips(a.stage, a.id, c.color)}</span>
       </div>`;
       state.scenes.forEach((s,i)=>{
         const on = a.scenes.includes(s.id);
@@ -4900,13 +4900,23 @@ function toggleCell(aid, sid, ev){
 /* 節目として扱うタスクは、作業量バッジの位置に重要度色の◆を出し、旗は出さない。
    どちらも「場所は空けたまま中身だけ差し替える」こと。片方を消すと、
    後ろのタスク名の頭が他の行とズレる */
+/* 節目を、同じカテゴリのかたまりの先頭へ持ち上げる。
+   並び替えの結果そのものは崩さないよう、連続した同カテゴリの範囲の中だけで入れ替える */
+function msFirstByCat(list){
+  const out=[];
+  for(let i=0;i<list.length;){
+    let j=i;
+    while(j<list.length && list[j].cat===list[i].cat) j++;
+    const run=list.slice(i,j);
+    out.push(...run.filter(x=>x.isMs), ...run.filter(x=>!x.isMs));
+    i=j;
+  }
+  return out;
+}
 function sizeMark(a){
   return a.isMs
     ? `<span class="msDia imp${a.priority||1}" title="マイルストーン"></span>`
     : `<span class="size-badge">${a.size}</span>`;
-}
-function prioMark(a){
-  return a.isMs ? `<span class="prio prioGhost"></span>` : prioFlag(a.priority);
 }
 function phaseChipOn(){ return !(state.ui && state.ui.phaseChip === false); }
 function phaseChip(a){
@@ -4976,7 +4986,7 @@ function renderSceneView(){
   const main = document.createElement("div");
   main.className = "scene-main";
   state.scenes.forEach((s,i)=>{
-    const items = sortedAssets(shownTasks().filter(a=>a.scenes.includes(s.id)));
+    const items = msFirstByCat(sortedAssets(shownTasks().filter(a=>a.scenes.includes(s.id))));
     const tc = times[i].start!==null ? fmtSec(times[i].start)+"〜 ・ " : "";
     const block = document.createElement("div");
     block.className = "scene-block";
@@ -4984,7 +4994,7 @@ function renderSceneView(){
     const rows = items.map(a=>`
       <tr class="st${a.stage}" data-aid="${a.id}" draggable="${isManualSort()}" onclick="openAssetModal('${a.id}')">
         <td><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span></td>
-        <td>${sizeMark(a)}${prioMark(a)}${phaseChip(a)}${esc(a.name)}</td>
+        <td>${sizeMark(a)}${prioFlag(a.priority)}${phaseChip(a)}${esc(a.name)}</td>
         <td>${memHTML(a, true)}</td>
         <td>${pips(a.stage, a.id, cat(a.cat).color)}<span class="status-label">${STAGES[a.stage]}</span></td>
       </tr>`).join("");
@@ -5010,7 +5020,7 @@ function renderSceneView(){
   });
   /* どのシーンにも紐づいていないタスク。ここに出さないと、シーン別ビューでは存在ごと消えてしまう
      (全体進行・環境整備など、特定のシーンに属さない作業は普通にある) */
-  const orphans = sortedAssets(shownTasks().filter(a=>!a.scenes.length));
+  const orphans = msFirstByCat(sortedAssets(shownTasks().filter(a=>!a.scenes.length)));
   if(orphans.length){
     const block = document.createElement("div");
     block.className = "scene-block orphan";
@@ -5018,7 +5028,7 @@ function renderSceneView(){
     const rows = orphans.map(a=>`
       <tr class="st${a.stage}" data-aid="${a.id}" draggable="${isManualSort()}" onclick="openAssetModal('${a.id}')">
         <td><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span></td>
-        <td>${sizeMark(a)}${prioMark(a)}${phaseChip(a)}${esc(a.name)}</td>
+        <td>${sizeMark(a)}${prioFlag(a.priority)}${phaseChip(a)}${esc(a.name)}</td>
         <td>${memHTML(a, true)}</td>
         <td>${pips(a.stage, a.id, cat(a.cat).color)}<span class="status-label">${STAGES[a.stage]}</span></td>
       </tr>`).join("");
@@ -5146,15 +5156,17 @@ function bindSceneColResize(){
 function renderKanban(){
   const v = $("view-kanban");
   v.innerHTML = `<div class="kanban">` + STAGES.map((st,si)=>{
-    const items = sortedAssets(shownTasks().filter(a=>a.stage===si));
+    /* 節目はカードにしない。カードビューは「作業を進める場所」なので、
+       進める対象ではないものが列に混ざると数も意味も濁る */
+    const items = sortedAssets(shownTasks().filter(a=>a.stage===si && !a.isMs));
     const cards = items.map(a=>{
       const ms = membersOf(a);
       const stack = avatarStack(ms);
       return `
       <div class="kb-card st${a.stage}" draggable="${editMode}" data-id="${a.id}" data-scenes="${a.scenes.join(",")}" style="border-left-color:${cat(a.cat).color}" onclick="openAssetModal('${a.id}')">
         ${a.phase&&phaseChipOn()?`<div class="kb-phase">${esc(a.phase)}</div>`:""}
-        <div class="kb-name">${prioMark(a)}<span class="t">${esc(a.name)}</span>${stack}</div>
-        <div class="kb-meta"><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span><span class="kb-sub">${sizeMark(a)} ${a.scenes.length}${unitName()}</span></div>
+        <div class="kb-name">${prioFlag(a.priority)}<span class="t">${esc(a.name)}</span>${stack}</div>
+        <div class="kb-meta"><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span><span class="kb-sub"><span class="size-badge">${a.size}</span> ${a.scenes.length}${unitName()}</span></div>
       </div>`;}).join("");
     return `<div class="kb-col" data-stage="${si}"><h3>${st}<span class="n">${items.length}</span></h3>${cards}<button class="scene-add-row" onclick="openAssetModal(null, null, null, ${si})">＋ タスクを追加</button></div>`;
   }).join("") + `</div>`;
