@@ -630,7 +630,7 @@ body.dark table.assets tr.st3 .avNames{color:#1A1D21}
   border:1px solid var(--line);color:var(--muted);background:none;letter-spacing:.04em;
   white-space:nowrap;font-weight:500;flex:none}
 /* シーン別は表なので、文字のすぐ後ろに置くと詰まって見える */
-table.assets .phase-chip{margin-left:7px;vertical-align:1px}
+table.assets .phase-chip{margin-right:7px;vertical-align:1px}
 .cat-chip{display:inline-block;font-size:9.5px;padding:2px 8px;border-radius:99px;color:#fff;letter-spacing:.04em;white-space:nowrap}
 body.dark .cat-chip{color:#14181E}
 .status-label{font-size:11px;color:var(--muted);margin-left:8px}
@@ -651,6 +651,9 @@ body.locked .scene-add-row{visibility:hidden}
 body.dark .kb-card.scHi{background:rgba(91,155,230,.14)}
 .kb-card:hover{background:var(--hover)}
 .kb-card:active{cursor:grabbing}
+/* フェイズはタスク名の前提になる情報なので、名前より上に小さく置く(見出しの扱い) */
+.kb-card .kb-phase{font-size:9.5px;color:var(--muted);letter-spacing:.04em;margin-bottom:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kb-card .kb-name{font-weight:600;display:flex;align-items:center;gap:6px}
 .kb-card .kb-name .t{flex:1;min-width:0}
 .kb-card .avStack img,.kb-card .avStack .cdot,.kb-card .avStack .avNone{width:16px;height:16px}
@@ -717,6 +720,7 @@ table.assets tr.dndAfter td{box-shadow:inset 0 -2px 0 0 var(--accent)}
    日付と同じ大きさ・太さにして、日付欄と同じくらいの余白を右に残す */
 .msRow .days{flex:none;width:78px;text-align:left;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .msRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.msRow .nm .phase-chip{margin-left:7px;vertical-align:1px}
 /* 過ぎたものは薄くする。色は付けない(重要度の赤と重複するため) */
 .msRow.past{opacity:.5}
 /* 左=一覧 / 右=カレンダー。半分ずつ。狭いときは縦に積む */
@@ -1228,13 +1232,21 @@ body.dark .viewTools{background:rgba(255,255,255,.075);border-color:rgba(255,255
 .viewTools[hidden]{display:none}
 /* ビュー固有の道具は、そのビューを見ているときだけ出す(body[data-view]で切り替える)。
    ツールバーは1段のまま。溢れたら横スクロールするが、編集ロックとテーマは右端に貼り付くので見失わない */
-.ganttOnly,.matrixOnly,.wbOnly{display:none}
+.ganttOnly,.matrixOnly,.wbOnly,.taskListOnly{display:none}
 body[data-view="gantt"] .ganttOnly{display:flex}
 /* ドロップダウンの中のガント専用項目は、他の項目と同じ「行」として並べる */
 .menuPanel .btn.ganttOnly{display:none}
 body[data-view="gantt"] .menuPanel .btn.ganttOnly{display:flex}
 body[data-view="matrix"] .matrixOnly{display:flex}
 body[data-view="wb"] .wbOnly{display:flex}
+/* フェイズの札は一覧・シーン別・カードの3つで出す。切り替えの道具もその3つでだけ見せる */
+body[data-view="matrix"] .taskListOnly,
+body[data-view="scene"] .taskListOnly,
+body[data-view="kanban"] .taskListOnly{display:flex}
+#btnPhaseChip{font-size:10.5px;height:24px;padding:0 11px;display:flex;align-items:center;box-sizing:border-box}
+#btnPhaseChip.on{background:var(--text);color:var(--bg)}
+/* 切っている間は札そのものを出さない */
+body.noPhaseChip .phase-chip,body.noPhaseChip .kb-phase{display:none}
 /* ================= ホワイトボード(一時的なメモ書き) ================= */
 #view-wb{flex-direction:column;padding:10px 14px 14px;gap:8px;overflow:hidden}
 /* 保存されないことは常に見えていないといけない。ただし主張しすぎない濃さにする */
@@ -1722,6 +1734,11 @@ body.locked #view-gantt .lrow.phase.blockLift, body.locked #view-gantt .rrow.pha
 /* 左ペイン(#lclip)も実際にスクロールするので、sticky がそのまま効く */
 #view-gantt .lrow.ms{position:sticky;top:0;z-index:24;background:var(--panel);transition:none}
 #view-gantt.vscrolled .rrow.ms,#view-gantt.vscrolled .lrow.ms{box-shadow:0 3px 6px -4px rgba(20,29,40,.35)}
+/* フェイズ内の節目レーン。上に貼り付くのは全体の節目だけで、こちらは普通に流れる */
+#view-gantt .lrow.ms.phaseMs,#view-gantt .rrow.ms.phaseMs{position:relative;top:auto;z-index:1;box-shadow:none}
+#view-gantt.vscrolled .lrow.ms.phaseMs,#view-gantt.vscrolled .rrow.ms.phaseMs{box-shadow:none}
+/* 全体の節目と見分けが付くように、フェイズ内は地をわずかに落とす */
+#view-gantt .lrow.ms.phaseMs,#view-gantt .rrow.ms.phaseMs{background:var(--bg)}
 #view-gantt .lrow.ms{cursor:default;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:600}
 /* 覆うのはツールバーより下だけ。上の道具は見えたままにして、
    「中身の領域だけがカレンダーに変わった」ように見せる(位置はJSで入れる) */
@@ -2204,6 +2221,9 @@ body.locked #view-gantt .phToggle{cursor:pointer}
     <button class="btn solid chartOnly" id="btnFit" title="1画面に全体を収めて表示します。この間はドラッグでの編集ができません">全体表示</button>
     <div class="sep"></div>
     <button class="btn solid" id="btnCalView" title="月ごとのカレンダーで見ます">カレンダー表示</button>
+  </div>
+  <div class="tgroup taskListOnly" title="タスク名にフェイズ(企画・制作などの大項目)を添えます">
+    <button class="btn solid" id="btnPhaseChip">フェイズ表示</button>
   </div>
   <div class="tgroup matrixOnly" title="タスクの並び順です。元(手動)=手動配置に戻します">
     <span class="segLabel">並び順</span>
@@ -3052,7 +3072,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-8c91515";
+const APP_VERSION = "2026.08.06-2ae0d27";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4240,7 +4260,7 @@ function renderMatrix(){
       const ms = membersOf(a);
       const stack = avatarStack(ms);
       h += `<div class="mx-name${stCls}" data-aid="${a.id}" onclick="openAssetModal('${a.id}')" title="${esc(a.memo)}">
-        <span class="size-badge">${a.size}</span>${prioFlag(a.priority)}<span class="nm">${esc(a.name)}</span>${phaseChip(a)}<span class="rowRight">${stack}${pips(a.stage, a.id, c.color)}</span>
+        <span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${phaseChip(a)}<span class="nm">${esc(a.name)}</span><span class="rowRight">${stack}${pips(a.stage, a.id, c.color)}</span>
       </div>`;
       state.scenes.forEach((s,i)=>{
         const on = a.scenes.includes(s.id);
@@ -4836,10 +4856,23 @@ function toggleCell(aid, sid, ev){
 /* 優先度フラグ(1=低/2=中/3=高)。旗の色で3段階を表す(高=赤・中=橙・低=グレー) */
 /* フェイズの札。ガント以外のビューでは、これが無いとタスク名だけでは
    どの段階の作業か分からない(「デザイン」「調整」など)。未設定なら何も出さない */
+function phaseChipOn(){ return !(state.ui && state.ui.phaseChip === false); }
 function phaseChip(a){
+  if(!phaseChipOn()) return "";
   const p = (a && a.phase || "").trim();
   return p ? `<span class="phase-chip" title="フェイズ: ${esc(p)}">${esc(p)}</span>` : "";
 }
+function syncPhaseChipBtn(){
+  const b = $("btnPhaseChip");
+  if(b) b.classList.toggle("on", phaseChipOn());
+  document.body.classList.toggle("noPhaseChip", !phaseChipOn());
+}
+$("btnPhaseChip").onclick = ()=>{
+  state.ui = {...(state.ui||{}), phaseChip: !phaseChipOn()};
+  syncPhaseChipBtn();
+  scheduleSave();
+  renderAll();
+};
 function prioFlag(p){
   p = p||2;
   const label = {1:"低",2:"中",3:"高"}[p];
@@ -4899,7 +4932,7 @@ function renderSceneView(){
     const rows = items.map(a=>`
       <tr class="st${a.stage}" data-aid="${a.id}" draggable="${isManualSort()}" onclick="openAssetModal('${a.id}')">
         <td><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span></td>
-        <td><span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${esc(a.name)}${phaseChip(a)}</td>
+        <td><span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${phaseChip(a)}${esc(a.name)}</td>
         <td>${memHTML(a, true)}</td>
         <td>${pips(a.stage, a.id, cat(a.cat).color)}<span class="status-label">${STAGES[a.stage]}</span></td>
       </tr>`).join("");
@@ -4933,7 +4966,7 @@ function renderSceneView(){
     const rows = orphans.map(a=>`
       <tr class="st${a.stage}" data-aid="${a.id}" draggable="${isManualSort()}" onclick="openAssetModal('${a.id}')">
         <td><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span></td>
-        <td><span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${esc(a.name)}${phaseChip(a)}</td>
+        <td><span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${phaseChip(a)}${esc(a.name)}</td>
         <td>${memHTML(a, true)}</td>
         <td>${pips(a.stage, a.id, cat(a.cat).color)}<span class="status-label">${STAGES[a.stage]}</span></td>
       </tr>`).join("");
@@ -5067,8 +5100,9 @@ function renderKanban(){
       const stack = avatarStack(ms);
       return `
       <div class="kb-card st${a.stage}" draggable="${editMode}" data-id="${a.id}" data-scenes="${a.scenes.join(",")}" style="border-left-color:${cat(a.cat).color}" onclick="openAssetModal('${a.id}')">
+        ${a.phase&&phaseChipOn()?`<div class="kb-phase">${esc(a.phase)}</div>`:""}
         <div class="kb-name">${prioFlag(a.priority)}<span class="t">${esc(a.name)}</span>${stack}</div>
-        <div class="kb-meta"><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span>${phaseChip(a)}<span class="kb-sub"><span class="size-badge">${a.size}</span> ${a.scenes.length}${unitName()}</span></div>
+        <div class="kb-meta"><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span><span class="kb-sub"><span class="size-badge">${a.size}</span> ${a.scenes.length}${unitName()}</span></div>
       </div>`;}).join("");
     return `<div class="kb-col" data-stage="${si}"><h3>${st}<span class="n">${items.length}</span></h3>${cards}<button class="scene-add-row" onclick="openAssetModal(null, null, null, ${si})">＋ タスクを追加</button></div>`;
   }).join("") + `</div>`;
@@ -5189,7 +5223,7 @@ function renderSummary(){
         return `<div class="msRow${late?" past":""}">
           <span class="dt">${esc(msRange(m))}</span>
           <span class="days">${late?`(${-d}日前)`:(d===0?"(今日)":`(あと${d}日)`)}</span>
-          <span class="nm">${esc(m.name)}</span>
+          <span class="nm">${esc(m.name)}${m.phase?`<span class="phase-chip">${esc(m.phase)}</span>`:""}</span>
         </div>`;}).join("")
     : `<div class="hint" style="margin:0">まだありません。</div>`;
 
@@ -5990,7 +6024,7 @@ function aiPromptText(){
     '      "phase": "フェイズ名", "start": "2026-08-03", "end": "2026-08-14", "memo": "補足" }',
     '  ],',
     '  "milestones": [',
-    '    { "name": "マイルストーン名", "date": "2026-08-14", "end": "", "imp": 1 }',
+    '    { "name": "マイルストーン名", "date": "2026-08-14", "end": "", "imp": 1, "phase": "" }',
     '  ]',
     '}',
     "",
@@ -6005,6 +6039,8 @@ function aiPromptText(){
     "  - 1日で終わらない節目(テスト期間・リハーサル期間など)は end に終了日を入れる。単日なら end は空文字",
     "  - imp は節目の重さで 1 / 2 / 3。基本は 1。落とすと後工程が全部止まるものだけ 2、"+base+"そのものや公開日など動かせないものだけ 3",
     "  - タスクと同じ節目を二重に作らない。作業そのものは assets、締切・確認日として意味があるものだけ milestones に置く",
+    "  - phase は、その節目が特定の工程の中だけで意味を持つ場合に、phases の名前を入れる(例: 「フライヤー入稿」は宣伝工程の中の節目)。",
+    "    プロジェクト全体の節目(台本FIX・"+base+"日など)は phase を空文字にする。全体の節目は数件までに絞ること",
     "- script には、台本のうち「S-XX」「SXX」(Xは数字。例: S-01 / S01)と番号が振られたシーンの本文だけを、要約・改変せずそのまま入れる(改行は \\n)。取り込むと台本表示にそのまま引用される",
     "  - 表・スケジュール・スタッフ表・ト書きの一覧などは script に含めない。あくまでシーン番号付きの本文(セリフ・情景描写)だけにする",
     "  - 各シーンの先頭には「S-01」「S-02」…のようなシーン番号見出し行を必ず1行残す(この行を区切りに台本表示がシーン分割される)",
@@ -6152,6 +6188,9 @@ function runAiImport(){
     const one={id:uid("ms"),name:nm,date:dt};
     if(/^\d{4}-\d{2}-\d{2}$/.test(String(m.end||""))) one.end=m.end;
     if([2,3].includes(Number(m.imp))) one.imp=Number(m.imp);
+    /* フェイズ内の節目。phases に無い名前は全体の節目として扱う(行方不明にしない) */
+    const mph=String(m.phase||"").trim();
+    if(mph && state.phases.includes(mph)) one.phase=mph;
     state.milestones.push(one);
     msAdded++;
   }
@@ -7307,6 +7346,7 @@ function renderAll(){
   }
   scheduleSave();
   applyTitleBar();
+  syncPhaseChipBtn();
   const rt = totalRuntime();
   const hasOpenEnd = state.scenes.some(s=>!durSec(s.dur));
   /* 基準日(本番日/納品日)までのカウントダウン。旧ガントのヘッダー表示をここに持ってきた */
@@ -9400,10 +9440,13 @@ function render(){
     }
   }
 
-  /* ---- milestone lane (常時表示・バンドは文字入り/同列パッキング) ---- */
-  {
+  /* ---- milestone lane (常時表示・バンドは文字入り/同列パッキング) ----
+     全体の節目は先頭に1レーン。フェイズ内の節目(入稿・素材上がりなど)は
+     そのフェイズの配下に同じ作りのレーンをもう1本作る。作りが同じなので関数にしてある */
+  const buildMsLane=(msSrc,phaseName,lTargetEl,rTargetEl)=>{
+    if(!msSrc.length&&phaseName)return;   /* フェイズ内は、無いなら行ごと作らない */
     const impOf=o=>o.imp||1;
-    const ms=[...data.milestones].sort((a,b)=>a.date<b.date?-1:1);
+    const ms=[...msSrc].sort((a,b)=>a.date<b.date?-1:1);
     const F1='600 10.5px '+FS;
     const F2='9.5px '+FS;
     /* 1) 各要素の基本情報。バンドは内側にラベルが収まるか判定 */
@@ -9447,11 +9490,12 @@ function render(){
     const pointY=labelEnd+6;
     const bandY0=(hasPoints?labelEnd+22:labelEnd+4);
     const H=Math.max(hasPoints?labelEnd+24:0,bandN?bandY0+bandN*22+4:0,labelEnd+8,36);
-    const lms=document.createElement("div");lms.className="lrow ms";
+    const phCls=phaseName?" phaseMs":"";
+    const lms=document.createElement("div");lms.className="lrow ms"+phCls;
     lms.style.height=H+"px";
-    lms.innerHTML=`<span style="flex:1"></span><button class="rowAdd" title="マイルストーンを追加">＋</button>`;
-    lms.querySelector(".rowAdd").onclick=e=>{if(!editMode)return;e.stopPropagation();quickMsPopover(e.clientX,e.clientY,null);};
-    const rms=document.createElement("div");rms.className="rrow ms";
+    lms.innerHTML=`<span style="flex:1"></span><button class="rowAdd" title="${phaseName?esc(phaseName)+"のマイルストーンを追加":"マイルストーンを追加"}">＋</button>`;
+    lms.querySelector(".rowAdd").onclick=e=>{if(!editMode)return;e.stopPropagation();quickMsPopover(e.clientX,e.clientY,null,phaseName);};
+    const rms=document.createElement("div");rms.className="rrow ms"+phCls;
     rms.style.height=H+"px";
     if(editMode){
       rms.title="ダブルクリックでこの日付にマイルストーンを追加";
@@ -9459,7 +9503,9 @@ function render(){
         if(e.target!==rms)return;
         const rc=rms.getBoundingClientRect();
         const di=Math.min(Math.max(Math.floor((e.clientX-rc.left)/(dayW*uiScale)),0),nDays-1);
-        data.milestones.push({id:uid(),name:nextMsName(),date:fmt(addD(r.start,di))});
+        const nm2={id:uid(),name:nextMsName(),date:fmt(addD(r.start,di))};
+        if(phaseName)nm2.phase=phaseName;
+        data.milestones.push(nm2);
         data.milestones.sort((a,b)=>a.date<b.date?-1:1);
         scheduleSave();render();
       });
@@ -9659,6 +9705,7 @@ function render(){
               const nm={id:uid(),name:it.m.name,date:fmt(addD(r.start,ns))};
               if(it.m.end)nm.end=fmt(addD(r.start,ne));
               if(it.m.imp)nm.imp=it.m.imp;
+              if(it.m.phase)nm.phase=it.m.phase;
               data.milestones.push(nm);
               data.milestones.sort((a,b)=>a.date<b.date?-1:1);
               scheduleSave();render();
@@ -9690,9 +9737,13 @@ function render(){
       });
     }
     pairHover(lms,rms);
-    lbody.appendChild(lms);rinner.appendChild(rms);
-    pinMsRow();
-  }
+    lTargetEl.appendChild(lms);rTargetEl.appendChild(rms);
+    if(!phaseName)pinMsRow();
+  };
+  /* 全体の節目だけを先頭のレーンに出す。
+     フェイズ名が今のフェイズ一覧に無いものは、行方不明にならないようこちらに含める */
+  const phaseNames=new Set(data.phases||[]);
+  buildMsLane(data.milestones.filter(m=>!m.phase||!phaseNames.has(m.phase)),null,lbody,rinner);
 
   /* ---- task groups ---- */
   const groups=groupsOf();
@@ -9794,13 +9845,20 @@ function render(){
               return reg?{t:gt,r:reg.r,bar:reg.bar,s0:dayIdx(reg.r,gt.start),e0:dayIdx(reg.r,gt.end)}:null;
             }).filter(Boolean);
             if(!members.length)return;
-            const msMembers=selMode
-              ?[...selectedMsIds].map(id=>{
-                  const m=data.milestones.find(x=>x.id===id);
-                  const els=[...$("#rinner").querySelectorAll(`[data-mid="${id}"]`)];
-                  return (m&&els.length)?{m,els}:null;
-                }).filter(Boolean)
-              :[];
+            /* このフェイズに属する節目は、集計バーを動かせば必ず一緒に動く。
+               「フライヤー制作フェイズの入稿日」のような、フェイズと不可分の予定のため */
+            const msIds=new Set();
+            const collectMs=m=>{
+              if(!m||msIds.has(m.id))return null;
+              const els=[...$("#rinner").querySelectorAll(`[data-mid="${m.id}"]`)];
+              if(!els.length)return null;
+              msIds.add(m.id);
+              return {m,els};
+            };
+            const msMembers=[
+              ...data.milestones.filter(m=>m.phase===g.phase).map(collectMs),
+              ...(selMode?[...selectedMsIds].map(id=>collectMs(data.milestones.find(x=>x.id===id))):[]),
+            ].filter(Boolean);
             /* 選択範囲に含まれる「自分以外」のフェイズの集計バーも一緒に動かす
                (自分の集計バーはこの下で個別に座標を更新するため除外する) */
             const otherPhaseRows=selMode
@@ -9920,6 +9978,8 @@ function render(){
       if(collapsed){lWrap.classList.add("collapsed");rWrap.classList.add("collapsed");lWrap.style.maxHeight="0px";rWrap.style.maxHeight="0px";}
       lbody.appendChild(lWrap);rinner.appendChild(rWrap);
       lTarget=lWrap;rTarget=rWrap;
+      /* このフェイズの節目。配下の扱いなので、フェイズを閉じれば一緒に隠れる */
+      buildMsLane(data.milestones.filter(m=>m.phase===g.phase),g.phase,lWrap,rWrap);
       const grp=phaseGroups[g.phase]={lp,rp,lWrap,rWrap,rows:[]};
       /* フェイズ行はどこをホバーしても同じ挙動にする(＋ボタンでのタスク追加は引き続き機能する)。
          配下のタスクも含めて丸ごと浮かせ、ドラッグすると一緒に動く範囲をホバーの時点で示唆する */
@@ -10947,7 +11007,7 @@ function quickTaskPopover(x,y,phase){
 }
 
 /* クリック位置の近くでマイルストーンを素早く追加 */
-function quickMsPopover(x,y,date){
+function quickMsPopover(x,y,date,phase){
   const d=date||fmt(today());
   openPopover(x,y,`
     <h3>マイルストーンを追加</h3>
@@ -10972,6 +11032,7 @@ function quickMsPopover(x,y,date){
     if(en&&parse(en)<parse(dt))[dt,en]=[en,dt];
     const nm={id:uid(),name,date:dt};
     if(en)nm.end=en;
+    if(phase)nm.phase=phase;   /* フェイズのレーンから足したものは、そのフェイズの節目にする */
     data.milestones.push(nm);
     data.milestones.sort((a,b)=>a.date<b.date?-1:1);
     scheduleSave();render();
@@ -11011,7 +11072,7 @@ function openPhaseModal(p){
       <button class="btn" id="pCancel">キャンセル</button>
       <button class="btn primary" id="pSave">${isNew?"追加":"保存"}</button>
     </div>
-    ${isNew?"":`<div style="font-size:11px;color:var(--muted);margin-top:10px">削除してもタスクは消えません(1つ上のフェイズへ移動します)</div>`}
+    ${isNew?"":`<div style="font-size:11px;color:var(--muted);margin-top:10px">削除してもタスクは消えません(1つ上のフェイズへ移動します)。<br>このフェイズだけのマイルストーンは一緒に削除されます</div>`}
   `);
   $("#pCancel").onclick=closeModal;
   $("#pSave").onclick=()=>{
@@ -11023,10 +11084,17 @@ function openPhaseModal(p){
       if(data.phases.includes(name))data.phases.splice(i,1);
       else data.phases[i]=name;
       data.tasks.forEach(t=>{if((t.phase||"")===p)t.phase=name});
+      data.milestones.forEach(m=>{if((m.phase||"")===p)m.phase=name});
     }
     scheduleSave();closeModal();render();
   };
   if(!isNew)$("#pDel").onclick=()=>{
+    /* このフェイズだけの節目は、フェイズと一緒に消える。黙って消すと入稿日のような
+       重要な予定が失われるので、件数を出して確かめる */
+    const own=data.milestones.filter(m=>(m.phase||"")===p);
+    if(own.length&&!confirm(`このフェイズのマイルストーン${own.length}件も一緒に削除されます。\n\n`
+      +own.map(m=>"・"+m.name).join("\n")+"\n\nよろしいですか?")) return;
+    if(own.length)data.milestones=data.milestones.filter(m=>(m.phase||"")!==p);
     detachTasksFromPhases([p]);
     data.phases=data.phases.filter(x=>x!==p);
     scheduleSave();closeModal();render();
@@ -11056,6 +11124,13 @@ function openMsModal(m){
     <div class="mRow">
       <div class="field"><label>期日(期間の場合は開始日)</label><input type="date" id="mDate" value="${d.date}"></div>
       <div class="field"><label>終了日(任意・期間にする場合)</label><input type="date" id="mEnd" value="${d.end||""}" data-auto="1"></div>
+    </div>
+    <div class="field"><label>フェイズ</label>
+      <select id="mPhase">
+        <option value="">全体(どのフェイズにも属さない)</option>
+        ${(data.phases||[]).map(ph=>`<option value="${esc(ph)}"${(d.phase||"")===ph?" selected":""}>${esc(ph)}</option>`).join("")}
+      </select>
+      <div class="fHint">フェイズを選ぶと、そのフェイズの中に置かれます。集計バーをドラッグすると一緒に動きます</div>
     </div>
     <!-- タスク側の優先度と同じ見せ方(低/中/高・選択中は色が付く)に揃える -->
     <div class="field"><label>優先度</label>
@@ -11111,15 +11186,18 @@ function openMsModal(m){
     if(!name||!date)return;
     if(end&&parse(end)<parse(date))[date,end]=[end,date];
     const imp=mImpVal;
+    const ph=$("#mPhase")?$("#mPhase").value:"";
     if(isNew){
       const nm={id:uid(),name,date};
       if(end)nm.end=end;
       if(imp>1)nm.imp=imp;
+      if(ph)nm.phase=ph;
       data.milestones.push(nm);
     }else{
       Object.assign(m,{name,date});
       if(end)m.end=end;else delete m.end;
       if(imp>1)m.imp=imp;else delete m.imp;
+      if(ph)m.phase=ph;else delete m.phase;
     }
     data.milestones.sort((a,b)=>a.date<b.date?-1:1);
     scheduleSave();closeModal();render();
