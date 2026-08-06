@@ -1880,7 +1880,9 @@ body.locked #view-gantt .dia .h{display:none}
 #view-gantt .msband .mbwrap{
   position:relative;z-index:1;   /* 枠の擬似要素より前に出す */
   display:flex;align-items:center;gap:6px;
-  max-width:calc(100% - 28px);overflow:hidden;will-change:transform;
+  /* 100% は帯の内容部分(padding 14px x2 を除いた幅)なので、ここでさらに28pxを引くと
+     余白を二重に差し引くことになり、入るはずの文字が切られて読めなくなる */
+  max-width:100%;overflow:hidden;will-change:transform;
 }
 #view-gantt .msband .mbl{font-size:10px;font-weight:700;white-space:nowrap}
 #view-gantt .msband .mbd{font-size:9px;opacity:.7;white-space:nowrap}
@@ -3111,7 +3113,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-7e4fdf5";
+const APP_VERSION = "2026.08.06-d32360d";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -9503,7 +9505,10 @@ function render(){
       const bandL=si*dayW+1;
       const bandW=isRange?Math.max((ei-si+1)*dayW-2,8):0;
       const dstr=isRange?`${dfmt(parse(m.date))}〜${dfmt(parse(m.end))}`:dfmt(parse(m.date));
-      const inTextW=tw(m.name,'700 10px '+FS)+tw(" "+dstr,'9px '+FS)+20;
+      /* 中に文字が収まるかの判定。帯は左右に14pxずつの余白(とがった端のぶん)と、
+         名前と日付の間に6pxの隙間を持つので、その34pxを見込む。
+         少なく見積もると「入る」と判定された帯で文字が切られ、白いまま読めなくなる */
+      const inTextW=tw(m.name,'700 10px '+FS)+tw(" "+dstr,'9px '+FS)+34;
       const internal=isRange&&bandW>=inTextW;
       return{m,si,ei,x,isRange,bandL,bandW,dstr,internal,imp:impOf(m)};
     });
@@ -11727,6 +11732,17 @@ $("#rpane").addEventListener("scroll",()=>{
   updateTodayJump();
   scheduleStickyUpdate();
 });
+/* 左ペインは overflow:hidden で、右ペインに合わせて scrollTop を入れているだけなので、
+   その上でホイールを回しても何も起きなかった。右ペインへ送って同じように動かす */
+$("#lclip").addEventListener("wheel",e=>{
+  const g=$("#rpane");
+  if(!g)return;
+  const before=g.scrollTop;
+  g.scrollTop+=e.deltaY;
+  /* 端まで来ていて動かないときは、ページ側のスクロールに任せる(取り上げない) */
+  if(g.scrollTop!==before)e.preventDefault();
+},{passive:false});
+
 /* ---------- ドラッグ状態の取りこぼし対策 ----------
    ウィンドウ外でマウスを離す・ドラッグ中にフォーカスが移る等でmouseupを受け取れないと、
    半透明化のクラス(dragBars/dragRows/marqueeActive)が残ったまま復帰できなくなる。
