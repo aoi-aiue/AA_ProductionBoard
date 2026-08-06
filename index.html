@@ -1941,6 +1941,11 @@ body.locked #view-gantt .msband .h{display:none}
 #view-gantt .bar.selected{box-shadow:0 0 0 2px var(--accent),0 2px 6px rgba(20,29,40,.25);z-index:4}
 /* 節目にしたタスクのバー。地を透明にして中央に菱形を描くだけで、行も当たり判定もそのまま。
    background の打ち消しは .barDone の !important より後ろに置くこと(同じ強さなので順序で決まる) */
+/* 左の一覧側にも同じ◆を置く。位置は作業量バッジのところ */
+#view-gantt .lrow .gdia{width:9px;height:9px;flex:none;margin:0 2px;border-radius:1px;
+  transform:rotate(45deg);background:var(--text)}
+#view-gantt .lrow .gdia.imp2{background:var(--imp2)}
+#view-gantt .lrow .gdia.imp3{background:var(--imp)}
 #view-gantt .bar.msBar{background:transparent !important;box-shadow:none !important}
 /* 大きさは上のマイルストーン行の◆(.dia)と揃える。影も付けない */
 #view-gantt .bar.msBar::after{
@@ -3095,7 +3100,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-bf425fd";
+const APP_VERSION = "2026.08.06-09f1000";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -10070,6 +10075,9 @@ function render(){
 }
 
 function addTaskRow(t,r,tW,lbody,rinner,nDays,phaseGroups,dimPast){
+  /* 節目として扱うタスク。◆で期間は表せないので、2日以上に伸ばされていたら印を外す */
+  if(t.isMs&&t.start!==t.end)t.isMs=false;
+  const asMs=!!t.isMs;
   const mems=membersOf(t);
   const m=mems[0];
   const l=document.createElement("div");l.className="lrow"+(t.phase?"":" noPhase");
@@ -10091,7 +10099,12 @@ function addTaskRow(t,r,tW,lbody,rinner,nDays,phaseGroups,dimPast){
   const cats=catsOf(t);
   const catHtml=cats.slice(0,2).map(c=>`<span class="catTag" title="カテゴリ: ${esc(c.name)}"><span class="cdot" style="background:${c.color}"></span><span class="catName">${esc(c.name)}</span></span>`).join("")+
     (cats.length>2?`<span class="catTag">+${cats.length-2}</span>`:"");
-  l.innerHTML=`<span class="grip" title="ドラッグで並び替え">⠿</span><span class="tnameWrap"><span class="tdot"></span><span class="size-badge gsz">${t.size||"M"}</span>${(t.imp||1)>=2?`<span class='lflag imp${t.imp}'>&#9873;</span>`:''}<span class="taskName">${esc(t.name)}</span></span>`+
+  /* 節目のタスクは作業量も旗も出さない。代わりに、その場所へ重要度の色の◆を置く
+     (右のバーと同じ印なので、左右どちらを見ても節目だと分かる) */
+  const lMark=asMs
+    ?`<span class="gdia imp${t.imp||1}" title="マイルストーン"></span>`
+    :`<span class="size-badge gsz">${t.size||"M"}</span>${(t.imp||1)>=2?`<span class='lflag imp${t.imp}'>&#9873;</span>`:''}`;
+  l.innerHTML=`<span class="grip" title="ドラッグで並び替え">⠿</span><span class="tnameWrap"><span class="tdot"></span>${lMark}<span class="taskName">${esc(t.name)}</span></span>`+
     catHtml+
     `<span class="asg"${asgTitle?` title="${esc(asgTitle)}"`:""}>${asgInner}</span>`;
   /* 行のどこを掴んでも良いようにする: 動かさず短く離せば編集、動かすか長押しすればそのままドラッグ(並び替え)開始。
@@ -10165,11 +10178,8 @@ function addTaskRow(t,r,tW,lbody,rinner,nDays,phaseGroups,dimPast){
   bar.style.background=paint.bg;bar.style.color=paint.fg;
   const imp=t.imp||1; /* 重要度はバーの色ではなく旗アイコンで示す(他ビューと統一) */
   const days=e-s+1;
-  /* 節目の印が立っている1日タスクは、バーではなく◆で描く。
-     掴む場所を狭めたくないので、要素の大きさ・当たり判定はそのままにして見た目だけ変える。
-     2日以上に伸ばしたら節目ではなくなる(◆で期間は表せないため) */
-  if(t.isMs&&days>1){t.isMs=false;}
-  const asMs=!!t.isMs&&days===1;
+  /* 節目のタスクは、バーではなく◆で描く。
+     掴む場所を狭めたくないので、要素の大きさ・当たり判定はそのままにして見た目だけ変える */
   if(asMs){
     /* 色はマイルストーン行の◆と同じ規則にする(低=黒 / 中=黄 / 高=赤)。
        担当の色ではなく重要度で塗るので、上下の◆が同じ意味で読める */
@@ -10199,12 +10209,15 @@ function addTaskRow(t,r,tW,lbody,rinner,nDays,phaseGroups,dimPast){
   /* カテゴリも、バー内にあった時と同じ.bcatチップの見た目で表示する */
   const outBcat=(!wide&&cats.length)?cats.map(c=>`<span class="bcat"><span class="cdot" style="background:${c.color}"></span>${esc(c.name)}</span>`).join(""):"";
   const outBcatW=outBcat?cats.reduce((sum,c)=>sum+Math.min(tw(c.name,'600 9px '+FS)+19,90)+5,0):0;
-  const outHtml=outAvHtml+(wide?"":`<span class='bsz outSz'>${t.size||'M'}</span>${imp>=2?`<span class='bflag outFlag imp${imp}'>&#9873;</span>`:''}<b class="on">${esc(t.name)}</b>`)+outBcat;
-  const outW=outAvW+outBcatW+(wide?0:tw(t.name,'11px '+FS)+6+22); /* +22はバー外に出したLMSバッジのぶん */
+  const outHtml=outAvHtml+(wide?"":`${asMs?"":`<span class='bsz outSz'>${t.size||'M'}</span>${imp>=2?`<span class='bflag outFlag imp${imp}'>&#9873;</span>`:''}`}<b class="on">${esc(t.name)}</b>`)+outBcat;
+  const outW=outAvW+outBcatW+(wide?0:tw(t.name,'11px '+FS)+6+(asMs?0:22)); /* +22はバー外に出したLMSバッジのぶん */
   /* 開始日・終了日は、バーの広さや名前を外に出すかどうかに関わらず、常に左右に振り分けて表示する。
      1日のタスクは開始日と終了日が同じで、左右に同じ日付が並んだうえ右側が長くはみ出して見えるため、
      日付は左に1つだけ出し、右側は日数チップだけにする */
-  const edgeDates=days===1
+  /* 節目は日付ひとつで足りる。「1日間」のチップは意味が無いので出さない */
+  const edgeDates=asMs
+    ?`<span class="edgeDate l">${dfmt(parse(t.start))}</span>`
+    :days===1
     ?`<span class="edgeDate l">${dfmt(parse(t.start))}</span><span class="edgeDate r"><span class="dayChip">${dayChipTxt}</span></span>`
     :`<span class="edgeDate l">${dfmt(parse(t.start))}</span><span class="edgeDate r">${dfmt(parse(t.end))} <span class="dayChip">${dayChipTxt}</span></span>`;
   /* 名前などを外に出す場合、その塊は左右の日付よりさらに外側へ置く(日付と重ならないように)。
@@ -10212,7 +10225,7 @@ function addTaskRow(t,r,tW,lbody,rinner,nDays,phaseGroups,dimPast){
   const EDGE_GAP=7; /* .edgeDateがバーから離れている距離(CSSと揃える) */
   const chipW=tw(dayChipTxt,'9px '+FS)+21;
   const edgeLW=tw(dfmt(parse(t.start)),'10px '+FS);
-  const edgeRW=(days===1?0:tw(dfmt(parse(t.end)),'10px '+FS)+3)+chipW;
+  const edgeRW=asMs?0:((days===1?0:tw(dfmt(parse(t.end)),'10px '+FS)+3)+chipW);
   const outOffR=EDGE_GAP+edgeRW+EDGE_GAP;
   const outOffL=EDGE_GAP+edgeLW+EDGE_GAP;
   const flip=(s*dayW+barW+outOffR+outW>tW)&&(s*dayW>outOffL+outW);
