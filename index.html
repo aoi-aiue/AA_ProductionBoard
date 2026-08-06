@@ -422,7 +422,7 @@ body:not(.dark) #scriptBody .scDlg .q{color:#1b2733}
   border-right:1px solid var(--line);cursor:pointer;white-space:nowrap;overflow:hidden;min-width:0;
 }
 .mx-name:hover{background:var(--hover)}
-.mx-name .size-badge{flex-shrink:0}
+.mx-name .size-badge,.mx-name .msDia{flex-shrink:0}
 .mx-name .nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 /* メンバー+進捗の右側ゾーン。幅は--memWで可変(列幅リサイザで調整)。中身は右詰め。
    縦方向はアバターの白フチ(box-shadow)が切れないようにclipせず、はみ出しは親セル(.mx-name)側で吸収する */
@@ -531,6 +531,14 @@ body.locked .mx-ghost{visibility:hidden}
   font-size:9.5px;font-weight:700;line-height:14px;
   border:1px solid var(--line);border-radius:3px;color:var(--muted);padding:0;
 }
+/* 節目として扱うタスクの印。作業量バッジと同じ大きさの枠に菱形を置く(枠が同じなので名前の頭が揃う) */
+.msDia{display:inline-block;position:relative;width:18px;height:16px;box-sizing:border-box;vertical-align:middle}
+.msDia::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;
+  transform:translate(-50%,-50%) rotate(45deg);border-radius:1px;background:var(--text)}
+.msDia.imp2::before{background:#E0A020}
+.msDia.imp3::before{background:#E5392C}
+/* 旗の場所取りだけ残す。消すと後ろの名前がその分ズレる */
+.prio.prioGhost{width:11px;visibility:hidden}
 /* 優先度フラグ: 旗の色で高=赤・中=橙・低=グレーの3段階を表す。
    進捗背景(白〜ほぼ黒)のどれでも見えるよう、明暗2重の輪郭(drop-shadow)を付けて縁取りする */
 .prio{display:inline-flex;align-items:center;flex:none;height:12px;line-height:0;vertical-align:middle;margin-right:4px}
@@ -592,7 +600,7 @@ table.assets{width:100%;border-collapse:collapse;margin-top:4px;table-layout:fix
 table.assets th{text-align:left;font-size:10px;font-weight:500;color:var(--faint);letter-spacing:.08em;padding:6px 10px 3px;border-bottom:1px solid var(--line);position:relative;overflow:hidden}
 /* マトリクスのタスク行(padding:3px 12px)と行の高さを揃える */
 table.assets td{padding:3px 10px;border-bottom:1px solid var(--line2);font-size:12.5px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-table.assets td .size-badge{margin-right:5px}
+table.assets td .size-badge,table.assets td .msDia{margin-right:5px}
 table.assets tr:hover td{background:var(--hover);cursor:pointer}
 /* マトリクスと同じグレースケールの進捗配色(色相を使わず明度だけで未着手<制作中<実装完了<完了を表す) */
 table.assets tr.st1 td{background:#E4E6E9}
@@ -1059,7 +1067,7 @@ body.dark #view-gantt .bar .bprog{background:rgba(255,255,255,.2)}
   font-size:calc(var(--tagFs, 9.5px) - 0.5px);border-width:1px}
 /* バー外の旗も下地が背景色になるので、影は不要 */
 #view-gantt .out .bflag{text-shadow:none;margin-right:3px}
-.kb-card .kb-sub .size-badge{margin-right:3px}
+.kb-card .kb-sub .size-badge,.kb-card .kb-sub .msDia{margin-right:3px}
 /* ================= タスク編集モーダル =================
    項目が多いので「名前 → 分類・担当 / 状態・日程 → シーン → メモ」の順に、
    関係の近いものを枠でまとめて2列に置く。新規追加の入力欄は普段は隠しておく */
@@ -1941,11 +1949,16 @@ body.locked #view-gantt .msband .h{display:none}
 #view-gantt .bar.selected{box-shadow:0 0 0 2px var(--accent),0 2px 6px rgba(20,29,40,.25);z-index:4}
 /* 節目にしたタスクのバー。地を透明にして中央に菱形を描くだけで、行も当たり判定もそのまま。
    background の打ち消しは .barDone の !important より後ろに置くこと(同じ強さなので順序で決まる) */
-/* 左の一覧側にも同じ◆を置く。位置は作業量バッジのところ */
-#view-gantt .lrow .gdia{width:9px;height:9px;flex:none;margin:0 2px;border-radius:1px;
-  transform:rotate(45deg);background:var(--text)}
-#view-gantt .lrow .gdia.imp2{background:var(--imp2)}
-#view-gantt .lrow .gdia.imp3{background:var(--imp)}
+/* 左の一覧側にも同じ◆を置く。位置は作業量バッジのところ。
+   枠は作業量バッジ(18x16)と同じ大きさにして、その中央に菱形を置く。
+   こうしないと後ろのタスク名の頭が、作業量バッジのある行とズレる */
+#view-gantt .lrow .gdia{width:18px;height:16px;flex:none;position:relative}
+#view-gantt .lrow .gdia::before{
+  content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;
+  transform:translate(-50%,-50%) rotate(45deg);border-radius:1px;background:var(--text);
+}
+#view-gantt .lrow .gdia.imp2::before{background:var(--imp2)}
+#view-gantt .lrow .gdia.imp3::before{background:var(--imp)}
 #view-gantt .bar.msBar{background:transparent !important;box-shadow:none !important}
 /* 大きさは上のマイルストーン行の◆(.dia)と揃える。影も付けない */
 #view-gantt .bar.msBar::after{
@@ -3100,7 +3113,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-09f1000";
+const APP_VERSION = "2026.08.06-5085db9";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -4288,7 +4301,7 @@ function renderMatrix(){
       const ms = membersOf(a);
       const stack = avatarStack(ms);
       h += `<div class="mx-name${stCls}" data-aid="${a.id}" onclick="openAssetModal('${a.id}')" title="${esc(a.memo)}">
-        <span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${phaseChip(a)}<span class="nm">${esc(a.name)}</span><span class="rowRight">${stack}${pips(a.stage, a.id, c.color)}</span>
+        ${sizeMark(a)}${prioMark(a)}${phaseChip(a)}<span class="nm">${esc(a.name)}</span><span class="rowRight">${stack}${pips(a.stage, a.id, c.color)}</span>
       </div>`;
       state.scenes.forEach((s,i)=>{
         const on = a.scenes.includes(s.id);
@@ -4884,6 +4897,17 @@ function toggleCell(aid, sid, ev){
 /* 優先度フラグ(1=低/2=中/3=高)。旗の色で3段階を表す(高=赤・中=橙・低=グレー) */
 /* フェイズの札。ガント以外のビューでは、これが無いとタスク名だけでは
    どの段階の作業か分からない(「デザイン」「調整」など)。未設定なら何も出さない */
+/* 節目として扱うタスクは、作業量バッジの位置に重要度色の◆を出し、旗は出さない。
+   どちらも「場所は空けたまま中身だけ差し替える」こと。片方を消すと、
+   後ろのタスク名の頭が他の行とズレる */
+function sizeMark(a){
+  return a.isMs
+    ? `<span class="msDia imp${a.priority||1}" title="マイルストーン"></span>`
+    : `<span class="size-badge">${a.size}</span>`;
+}
+function prioMark(a){
+  return a.isMs ? `<span class="prio prioGhost"></span>` : prioFlag(a.priority);
+}
 function phaseChipOn(){ return !(state.ui && state.ui.phaseChip === false); }
 function phaseChip(a){
   if(!phaseChipOn()) return "";
@@ -4960,7 +4984,7 @@ function renderSceneView(){
     const rows = items.map(a=>`
       <tr class="st${a.stage}" data-aid="${a.id}" draggable="${isManualSort()}" onclick="openAssetModal('${a.id}')">
         <td><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span></td>
-        <td><span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${phaseChip(a)}${esc(a.name)}</td>
+        <td>${sizeMark(a)}${prioMark(a)}${phaseChip(a)}${esc(a.name)}</td>
         <td>${memHTML(a, true)}</td>
         <td>${pips(a.stage, a.id, cat(a.cat).color)}<span class="status-label">${STAGES[a.stage]}</span></td>
       </tr>`).join("");
@@ -4994,7 +5018,7 @@ function renderSceneView(){
     const rows = orphans.map(a=>`
       <tr class="st${a.stage}" data-aid="${a.id}" draggable="${isManualSort()}" onclick="openAssetModal('${a.id}')">
         <td><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span></td>
-        <td><span class="size-badge">${a.size}</span>${prioFlag(a.priority)}${phaseChip(a)}${esc(a.name)}</td>
+        <td>${sizeMark(a)}${prioMark(a)}${phaseChip(a)}${esc(a.name)}</td>
         <td>${memHTML(a, true)}</td>
         <td>${pips(a.stage, a.id, cat(a.cat).color)}<span class="status-label">${STAGES[a.stage]}</span></td>
       </tr>`).join("");
@@ -5129,8 +5153,8 @@ function renderKanban(){
       return `
       <div class="kb-card st${a.stage}" draggable="${editMode}" data-id="${a.id}" data-scenes="${a.scenes.join(",")}" style="border-left-color:${cat(a.cat).color}" onclick="openAssetModal('${a.id}')">
         ${a.phase&&phaseChipOn()?`<div class="kb-phase">${esc(a.phase)}</div>`:""}
-        <div class="kb-name">${prioFlag(a.priority)}<span class="t">${esc(a.name)}</span>${stack}</div>
-        <div class="kb-meta"><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span><span class="kb-sub"><span class="size-badge">${a.size}</span> ${a.scenes.length}${unitName()}</span></div>
+        <div class="kb-name">${prioMark(a)}<span class="t">${esc(a.name)}</span>${stack}</div>
+        <div class="kb-meta"><span class="cat-chip" style="background:${cat(a.cat).color}">${esc(cat(a.cat).name)}</span><span class="kb-sub">${sizeMark(a)} ${a.scenes.length}${unitName()}</span></div>
       </div>`;}).join("");
     return `<div class="kb-col" data-stage="${si}"><h3>${st}<span class="n">${items.length}</span></h3>${cards}<button class="scene-add-row" onclick="openAssetModal(null, null, null, ${si})">＋ タスクを追加</button></div>`;
   }).join("") + `</div>`;
