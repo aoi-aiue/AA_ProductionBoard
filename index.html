@@ -3113,7 +3113,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.06-1e7477f";
+const APP_VERSION = "2026.08.07-1b41d3e";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -11748,12 +11748,19 @@ $("#rpane").addEventListener("scroll",()=>{
   scheduleStickyUpdate();
 });
 /* 左ペインは overflow:hidden で、右ペインに合わせて scrollTop を入れているだけなので、
-   その上でホイールを回しても何も起きなかった。右ペインへ送って同じように動かす */
-$("#lclip").addEventListener("wheel",e=>{
+   その上でホイールを回しても何も起きない。右ペインへ送って同じように動かす。
+   ・受けるのは #lpane(ヘッダーや余白の上で回しても効くように)
+   ・deltaMode を必ず換算すること。マウスのホイールは「行」単位(=3程度)で来ることがあり、
+     そのまま px として足すと数pxしか動かず「効いていない」ように見える */
+$("#lpane").addEventListener("wheel",e=>{
   const g=$("#rpane");
-  if(!g)return;
+  if(!g||!g.scrollHeight)return;
+  const unit=e.deltaMode===1?16:(e.deltaMode===2?g.clientHeight:1);
   const before=g.scrollTop;
-  g.scrollTop+=e.deltaY;
+  g.scrollTop+=e.deltaY*unit;
+  if(e.deltaX)g.scrollLeft+=e.deltaX*unit;
+  /* 左ペインは同期でしか動かないので、scroll が間引かれても取り残されないようここでも合わせる */
+  $("#lclip").scrollTop=g.scrollTop;
   /* 端まで来ていて動かないときは、ページ側のスクロールに任せる(取り上げない) */
   if(g.scrollTop!==before)e.preventDefault();
 },{passive:false});
