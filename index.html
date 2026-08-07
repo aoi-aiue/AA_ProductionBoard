@@ -60,7 +60,7 @@ body.dark{
 html,body{height:100%}
 body{
   background:var(--bg);color:var(--text);
-  font-family:Inter,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic Medium","Yu Gothic",Meiryo,sans-serif;
+  font-family:"Noto Sans JP",Inter,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic Medium","Yu Gothic",Meiryo,sans-serif;
   font-size:13px;display:flex;flex-direction:column;overflow:hidden;
   font-feature-settings:"tnum";
 }
@@ -3113,7 +3113,7 @@ const membersOf = a => (a.memberIds||[]).map(id=>member(id)).filter(Boolean);
    localStorageが使えない環境(Claude.aiのArtifactプレビュー等)でも壊れないよう、全体をtry/catchで囲む */
 /* 公開時に deploy.sh が日付+コミットに書き換える。開発中は "dev" のまま。
    「相手が古い版を開いたままになっていないか」を判断するために使う */
-const APP_VERSION = "2026.08.07-1b41d3e";
+const APP_VERSION = "2026.08.07-a595b33";
 const LS_KEY = "aa_productionboard_data_v1"; /* 旧2ツールとは別のキー。同じブラウザで併用しても混ざらない */
 let _saveTimer = null;
 function nowHM(){ const d=new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; }
@@ -8346,6 +8346,12 @@ applyScriptWidth();
 bindScriptResize();
 renderScriptPane();
 renderAll();
+/* Webフォントが届く前に文字幅を測ると、バーやマイルストーンの「中に名前が入るか」の判定が
+   別のフォントの幅で決まってしまう。読み込みが終わったら一度だけ描き直す
+   (取り消し履歴を汚さないよう _histLock を立てる) */
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(()=>{ _histLock = true; renderAll(); _histLock = false; });
+}
 
 /* var で宣言する: 起動時の renderAll() はこの行より前に走るため、const だと
    TDZ に入っていて `typeof Gantt` すら例外になり、スクリプトが止まってしまう */
@@ -8565,7 +8571,9 @@ function nowStamp(){
 const dwd=d=>`${dfmt(d)}(${WD[d.getDay()]})`;
 const ywd=d=>`${yfmt(d)}(${WD[d.getDay()]})`;
 const _mctx=document.createElement("canvas").getContext("2d");
-const FS='Inter,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic Medium",Meiryo,sans-serif';
+/* 文字幅の実測(tw)に使う。**bodyのfont-familyと必ず同じ並びにすること**。
+   ずれると「バーの中に名前が入るか」の判定が別のフォントの幅で決まってしまう */
+const FS='"Noto Sans JP",Inter,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic Medium",Meiryo,sans-serif';
 function tw(t,f){_mctx.font=f;return _mctx.measureText(t).width;}
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 /* ドラッグ中はカーソルをbody全体に固定し、高速に動かしても他要素のカーソルに化けないようにする */
